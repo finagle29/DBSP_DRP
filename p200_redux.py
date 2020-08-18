@@ -81,9 +81,6 @@ def main(args):
     options_red['spectrograph'] = 'p200_dbsp_red'
     options_red['root'] = os.path.join(args.root, 'red')
 
-    do_red = False
-    do_blue = False
-
     if do_red:
         red_fitstbl, context = p200_arm_redux.setup(options_red)
         # optionally use interactive correction
@@ -124,8 +121,6 @@ def main(args):
             spec1d_table.add_row((path, arm, hdul[0].header['TARGET'], hdul[1].header['OBJTYPE'],
                                   hdul[0].header['AIRMASS'], hdul[0].header['MJD'], ''))
 
-    do_red = True
-    do_blue = True
     if do_red:
         for row in spec1d_table[(spec1d_table['arm'] == 'red') & (spec1d_table['frametype'] == 'standard')]:
             options_red['spec1dfile'] = row['filename']
@@ -166,9 +161,4 @@ def main(args):
 
 
 if __name__ == '__main__':
-    # opts = parser(['-r', '/Users/milan/obs_data/DBSP_20200127/raw',
-    #               '-d', '/Users/milan/obs_data/DBSP_20200127', '--arm', 'blue'])
-    os.chdir('/Users/milan/obs_data/DBSP_20200716')
-    opts = parser(['-r', '/Users/milan/obs_data/DBSP_20200716/raw',
-                   '-d', '/Users/milan/obs_data/DBSP_20200716'])
     main(opts)
