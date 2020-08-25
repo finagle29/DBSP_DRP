@@ -1,0 +1,11 @@
+#!/usr/bin/env python
+
+"""
+Reduce a night of DBSP data
+"""
+
+from dbsp_drp import p200_redux
+
+if __name__ == "__main__":
+    args = p200_redux.parser()
+    p200_redux.main(args)

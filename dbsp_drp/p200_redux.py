@@ -176,8 +176,6 @@ def main(args):
     # TODO: telluric correction
 
 
-if __name__ == '__main__':
-    main(opts)
     # splice data
     splicing_dict = {}
     blue_mask = spec1d_table['arm'] == 'blue'
