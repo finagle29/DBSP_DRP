@@ -2,18 +2,33 @@
 Automated Reduction Pipeline for one arm of P200 DBSP
 """
 import os
+import glob
+import shutil
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+from astropy.io import fits
+from astropy.stats import sigma_clipped_stats
+from astropy.table import Table
+from astropy.visualization import ZScaleInterval, ImageNormalize
+
+
+from yattag import Doc, indent
 
 from pypeit.pypeitsetup import PypeItSetup
 from pypeit import defs
 from pypeit import pypeit
 from pypeit import msgs
 from pypeit import sensfunc
+from pypeit.spec2dobj import Spec2DObj
+from pypeit.specobjs import SpecObjs
 from pypeit.spectrographs.util import load_spectrograph
 from pypeit.scripts.flux_calib import read_fluxfile
-from astropy.io import fits
-
 from pypeit import fluxcalibrate
 from pypeit.par import pypeitpar
+
+
 
 def setup(args):
     """
@@ -254,3 +269,120 @@ def interp_w_error(x, xp, yp, err_yp):
             yerr[i] = np.sqrt((((x[i] - xp[j])*err_yp[j-1]) ** 2 + ((x[i] - xp[j-1])*err_yp[j]) ** 2) / ((xp[j-1] - xp[j]) ** 2))
     return y, yerr
 
+def save_one2dspec(ax, spec, edges, traces):
+    all_left, all_right = edges
+    
+    norm = ImageNormalize(spec, interval=ZScaleInterval())
+    im = ax.imshow(spec, origin='upper', norm=norm, cmap='gray')
+    #im, norm = imshow_norm(spec, interval=ZScaleInterval(), cmap='gray')
+
+    plt.axis('off')
+
+    xs = np.arange(spec.shape[0])
+
+    for i in range(all_left.shape[1]):
+        ax.plot(all_left[:, i], xs, 'green', lw=1)
+        ax.plot(all_right[:, i], xs, 'red', lw=1)
+
+    if traces is not None:
+        for trace in traces:
+            ax.plot(trace, xs, 'orange', lw=1)
+
+def save_2dspecs(args):
+    arm = 'blue' if 'blue' in args['spectrograph'] else 'red'
+    paths = glob.glob(os.path.join(args['output_path'], 'Science', f'spec2d_{arm}*.fits'))
+    
+    out_path = os.path.join(args['output_path'], 'QA', 'PNGs', 'Extraction')
+    if not os.path.exists(out_path):
+        os.makedirs(out_path)
+
+    for path in paths:
+        # open fits file
+        spec = Spec2DObj.from_file(path, 1)
+        spec1d_file = path.replace('spec2d', 'spec1d')
+        if os.path.isfile(spec1d_file):
+            spec1ds = SpecObjs.from_fitsfile(spec1d_file)
+        else:
+            spec1ds = None
+            msgs.warn('Could not find spec1d file: {:s}'.format(spec1d_file) + msgs.newline() +
+                  '             No objects were extracted.')
+        
+        base_name = os.path.join(out_path, os.path.basename(path).split('_')[1])
+
+        all_left, all_right, _ = spec.slits.select_edges()
+        edges = [all_left, all_right]
+        traces = [spec1ds[i]['TRACE_SPAT'] for i in range(len(spec1ds))] if spec1ds is not None else None
+        mask = spec.bpmmask == 0
+
+        out_shape = spec.sciimg.shape
+        fig_width = 0.15 + 4*out_shape[1]/100.
+        subfig_width = out_shape[1]/100. / fig_width
+        padding_width = 0.15 / fig_width
+        fig = plt.figure(figsize=(fig_width, out_shape[0]/100.), dpi=100)
+
+        # science image
+        #ax = fig.add_subplot(1, 4, 1)
+        ax = fig.add_axes([0, 0, subfig_width, 1])
+        save_one2dspec(ax, spec.sciimg, edges, traces)
+
+        # sky subtracted science image
+        #ax = fig.add_subplot(1, 4, 2)
+        ax = fig.add_axes([subfig_width + padding_width, 0, subfig_width, 1])
+        save_one2dspec(ax, (spec.sciimg - spec.skymodel) * mask, edges, traces)
+
+        # sky subtracted images divided by noise
+        #ax = fig.add_subplot(1, 4, 3)
+        ax = fig.add_axes([2*(subfig_width + padding_width), 0, subfig_width, 1])
+        save_one2dspec(ax, (spec.sciimg - spec.skymodel) * np.sqrt(spec.ivarmodel) * mask, edges, traces)
+
+        # total residauls
+        #ax = fig.add_subplot(1, 4, 4)
+        ax = fig.add_axes([3*(subfig_width + padding_width), 0, subfig_width, 1])
+        save_one2dspec(ax, (spec.sciimg - spec.skymodel - spec.objmodel) * np.sqrt(spec.ivarmodel) * mask, edges, traces)
+
+        # save figure
+        fig.savefig(f'{base_name}_extraction.png', bbox_inches='tight', pad_inches=0)
+        plt.close(fig)
+
+def write_extraction_QA(args):
+    out_path = os.path.join(args['output_path'], 'QA')
+
+    doc, tag, text = Doc().tagtext()
+
+    doc.asis('<!DOCTYPE html>')
+    
+    pngs = [os.path.basename(fullpath) for fullpath in glob.glob(os.path.join(out_path, 'PNGs', 'Extraction', '*.png'))]
+    pngs = sorted(pngs)
+    relpath = [os.path.join('PNGs', 'Extraction', png) for png in pngs]
+
+    expnames = [png.split('-')[0] for png in pngs]
+    objnames = [png.split('-')[1].split('_')[0] for png in pngs]
+
+
+    with tag('html'):
+        with tag('head'):
+            with tag('title'):
+                text("DBSP Extraction QA")
+            doc.stag('link', rel='stylesheet', href='dbsp_qa.css')
+            with tag('script', src='./dbsp_qa.js'):
+                pass
+        with tag('body'):
+            with tag('div'):
+                doc.attr(klass='tab')
+                for expname in expnames:
+                    with tag('button'):
+                        doc.attr(klass='tablinks', onclick=f"openExposure(event, '{expname}')")
+                        text(expname)
+            for i in range(len(pngs)):
+                with tag('div'):
+                    doc.attr(klass='tabcontent', id=expnames[i])
+                    with tag('h1'):
+                        text(f'{expnames[i]} {objnames[i]}')
+                    doc.stag('img', src=relpath[i])
+    
+    result = indent(doc.getvalue())
+    with open(os.path.join(out_path, 'Extraction.html'), mode='wt') as f:
+        f.write(result)
+    
+    shutil.copy("dbsp_qa.js", os.path.join(out_path, "dbsp_qa.js"))
+    shutil.copy("dbsp_qa.css", os.path.join(out_path, "dbsp_qa.css"))

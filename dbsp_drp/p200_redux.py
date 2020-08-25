@@ -114,8 +114,13 @@ def main(args):
     #options_blue['calib_only'] = True
     if do_red:
         p200_arm_redux.redux(options_red)
+        p200_arm_redux.save_2dspecs(options_red)
     if do_blue:
         p200_arm_redux.redux(options_blue)
+        p200_arm_redux.save_2dspecs(options_blue)
+    
+    if do_red or do_blue:
+        p200_arm_redux.write_extraction_QA(options_red)
 
 
     # Find standards and make sensitivity functions
@@ -149,7 +154,7 @@ def main(args):
         elif row['frametype'] == 'standard':
             best_sens = spec1d_table[stds & arm]['sensfunc'][np.abs(spec1d_table[stds & arm]['airmass'] - row['airmass']).argsort()[1]]
             standards_fluxing.append(best_sens)
-    
+
     spec1d_table['sensfunc'] = standards_fluxing
 
     # build fluxfile
@@ -167,6 +172,8 @@ def main(args):
         p200_arm_redux.flux(options_red)
     if do_blue:
         p200_arm_redux.flux(options_blue)
+
+    # TODO: telluric correction
 
 
 if __name__ == '__main__':
