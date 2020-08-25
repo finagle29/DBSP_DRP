@@ -20,6 +20,7 @@ dependencies:
 - linetools >= 0.2
 - extension-helpers >= 0.1
 - pytest >= 3.0.7
+- yattag >= 1.13
 - pip:
   - PypeIt >= 1.0.0
 
