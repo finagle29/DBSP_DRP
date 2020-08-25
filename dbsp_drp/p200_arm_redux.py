@@ -90,13 +90,16 @@ def make_sensfunc(args):
     Makes a sensitivity function
     """
     par = load_spectrograph(args['spectrograph']).default_pypeit_par()
-    outfile = os.path.basename(args['spec1dfile']).replace('spec1d', 'sens')
+    outfile = os.path.join(args['output_path'], os.path.basename(args['spec1dfile']).replace('spec1d', 'sens'))
     sensobj = sensfunc.SensFunc.get_instance(args['spec1dfile'], outfile, par=par['sensfunc'], debug=args['debug'])
     sensobj.run()
     sensobj.save()
     return outfile
 
 def build_fluxfile(args):
+    """
+    Writes the fluxfile for fluxing.
+    """
     # args['spec1dfiles'] is a dict mapping spec1d files to the sensitivity function file they should use
     cfg_lines = []
     cfg_lines.append('[fluxcalib]')
@@ -109,16 +112,19 @@ def build_fluxfile(args):
         cfg_lines.append(f'  {spec1d} {sensfun}')
     cfg_lines.append('flux end')
 
-    ofile = f'{args["spectrograph"]}.flux'
+    ofile = os.path.join(args['output_path'], f'{args["spectrograph"]}.flux')
 
     with open(ofile, mode='wt') as f:
         for line in cfg_lines:
             f.write(line)
             f.write("\n")
-    
+
     return ofile
 
 def flux(args):
+    """
+    Fluxes spectra.
+    """
     # Load the file
     config_lines, spec1dfiles, sensfiles = read_fluxfile(args['flux_file'])
     # Read in spectrograph from spec1dfile header
@@ -129,10 +135,11 @@ def flux(args):
     spectrograph_def_par = spectrograph.default_pypeit_par()
     par = pypeitpar.PypeItPar.from_cfg_lines(cfg_lines=spectrograph_def_par.to_config(), merge_with=config_lines)
     # Write the par to disk
-    par_outfile = f"{args['flux_file']}.par"
+    par_outfile = os.path.join(args['output_path'], f"{args['flux_file']}.par")
     print(f"Writing the parameters to {par_outfile}")
     par.to_config(par_outfile)
 
     # Instantiate
     FxCalib = fluxcalibrate.FluxCalibrate.get_instance(spec1dfiles, sensfiles, par=par['fluxcalib'], debug=args['debug'])
     msgs.info('Flux calibration complete')
+
