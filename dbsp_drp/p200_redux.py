@@ -171,3 +171,11 @@ def main(args):
 
 if __name__ == '__main__':
     main(opts)
+    # splice data
+    splicing_dict = {}
+    blue_mask = spec1d_table['arm'] == 'blue'
+    red_mask = spec1d_table['arm'] == 'red'
+    if do_red and do_blue:
+        # make splicing dict
+        for target in spec1d_table['object']:
+            pass
