@@ -22,7 +22,7 @@ def parser(options=None):
     argparser = argparse.ArgumentParser(description="Automatic Data Reduction Pipeline for P200 DBSP")
 
     # Argument for fully-automatic (i.e. nightly) or with user-checking file typing
-    argparser.add_argument('-i', '--interactive', type=bool, default=True,
+    argparser.add_argument('-i', '--no-interactive', default=True, action='store_false',
                            help='Interactive file-checking?')
 
     # Argument for input file directory
@@ -43,7 +43,7 @@ def parser(options=None):
 
     return argparser.parse_args() if options is None else argparser.parse_args(options)
 
-def interactive_correction(ps, arm):
+def interactive_correction(ps):
     # this needs to actually fix the data's FITS headers
     # deleting entire row from .pypeit file is valid though
     # function for interactively correcting the fits table
@@ -95,7 +95,7 @@ def main(args):
         context = p200_arm_redux.setup(options_red)
         # optionally use interactive correction
         if args.interactive:
-            interactive_correction(context[0], 'red')
+            interactive_correction(context[0])
         pypeit_file_red = p200_arm_redux.write_setup(options_red, context)[0]
         # Grab pypeit file from write_setup
         options_red['pypeit_file'] = pypeit_file_red
@@ -103,7 +103,7 @@ def main(args):
     if do_blue:
         context = p200_arm_redux.setup(options_blue)
         if args.interactive:
-            interactive_correction(context[0], 'blue')
+            interactive_correction(context[0])
         pypeit_file_blue = p200_arm_redux.write_setup(options_blue, context)[0]
         # Grab pypeit file from write_setup
         options_blue['pypeit_file'] = pypeit_file_blue
