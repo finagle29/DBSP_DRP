@@ -47,7 +47,6 @@ def interactive_correction(ps, arm):
     # function for interactively correcting the fits table
     fitstbl = ps.fitstbl
     fitstbl.table.sort('filename')
-    fitstbl.table.write(f'table_{arm}.dat', format='ascii')
     deleted_files = []
     table_edit.main(fitstbl.table, deleted_files)
     files_to_remove = []
