@@ -94,7 +94,7 @@ def main(args):
     if do_red:
         context = p200_arm_redux.setup(options_red)
         # optionally use interactive correction
-        if args.interactive:
+        if args.no_interactive:
             interactive_correction(context[0])
         pypeit_file_red = p200_arm_redux.write_setup(options_red, context)[0]
         # Grab pypeit file from write_setup
@@ -102,7 +102,7 @@ def main(args):
 
     if do_blue:
         context = p200_arm_redux.setup(options_blue)
-        if args.interactive:
+        if args.no_interactive:
             interactive_correction(context[0])
         pypeit_file_blue = p200_arm_redux.write_setup(options_blue, context)[0]
         # Grab pypeit file from write_setup
