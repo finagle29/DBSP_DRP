@@ -1,4 +1,6 @@
-# Automatic Reduction Pipeline for P200 DBSP.
+"""
+Automatic Reduction Pipeline for P200 DBSP.
+"""
 
 import argparse
 import glob

@@ -1,6 +1,7 @@
 """
-Automated Reduction Pipeline for one arm of P200 DBSP
+Automated Reduction Pipeline for one arm of P200 DBSP.
 """
+
 import os
 import glob
 import shutil
@@ -174,7 +175,7 @@ def splice(args):
 
 def adjust_and_combine_overlap(spec_b, spec_r):
     """
-    
+
     """
     # combination steps
     overlap_lo = spec_r[1].data['OPT_WAVE'][0]
