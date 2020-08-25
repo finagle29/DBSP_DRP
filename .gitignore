@@ -8,3 +8,4 @@ __pycache__
 # docs output
 docs/html/
 docs/doctrees/
+docs/source/_build

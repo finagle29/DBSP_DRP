@@ -10,6 +10,8 @@ Welcome to DBSP_DRP's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   installing
+   usage
 
 
 Indices and tables
