@@ -7,5 +7,7 @@ setup(
     author="Milan S Roberson",
     author_email="mroberso@caltech.edu",
     license="GPL3",
-    packages=['dbsp_drp']
+    packages=['dbsp_drp'],
+    scripts=['bin/dbsp_reduce'],
+    package_data={'dbsp_drp': ['dbsp_drp/data/*']}
 )
