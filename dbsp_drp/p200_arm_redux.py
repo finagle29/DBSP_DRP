@@ -46,7 +46,7 @@ def setup(args):
     # Run the setup
     ps.run(setup_only=True, sort_dir=sort_dir, write_bkg_pairs=args['background'])
 
-    return ps.fitstbl, (ps, output_path)
+    return (ps, output_path)
 
 def write_setup(args, context):
     """

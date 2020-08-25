@@ -8,8 +8,8 @@ from astropy.io import fits
 from astropy.table import Table
 import numpy as np
 
-import p200_arm_redux
-#import table_edit
+from dbsp_drp import p200_arm_redux
+from dbsp_drp import table_edit
 
 
 def parser(options=None):
@@ -41,14 +41,23 @@ def parser(options=None):
 
     return argparser.parse_args() if options is None else argparser.parse_args(options)
 
-def interactive_correction(fitstbl, arm):
+def interactive_correction(ps, arm):
     # this needs to actually fix the data's FITS headers
     # deleting entire row from .pypeit file is valid though
-    pass
     # function for interactively correcting the fits table
-    #fitstbl.table.sort('filename')
-    #fitstbl.table.write(f'table_{arm}.dat', format='ascii')
-    #table_edit.main(fitstbl)
+    fitstbl = ps.fitstbl
+    fitstbl.table.sort('filename')
+    fitstbl.table.write(f'table_{arm}.dat', format='ascii')
+    deleted_files = []
+    table_edit.main(fitstbl.table, deleted_files)
+    files_to_remove = []
+    for rm_file in deleted_files:
+        for data_file in ps.file_list:
+            if rm_file in data_file:
+                files_to_remove.append(data_file)
+                break
+    for rm_file in files_to_remove:
+        ps.file_list.remove(rm_file)
 
 def main(args):
 
@@ -70,30 +79,30 @@ def main(args):
         'calib_only': False,
         'show': False,
         'do_not_reuse_masters': False,
-        'debug': False
+        'debug': args.debug
     }
 
-    options_blue['show'] = True
-    options_blue['calib_only'] = True
-    options_blue['do_not_reuse_masters'] = True
+    #options_blue['show'] = True
+    #options_blue['calib_only'] = True
+    #options_blue['do_not_reuse_masters'] = True
 
     options_red = options_blue.copy()
     options_red['spectrograph'] = 'p200_dbsp_red'
     options_red['root'] = os.path.join(args.root, 'red')
 
     if do_red:
-        red_fitstbl, context = p200_arm_redux.setup(options_red)
+        context = p200_arm_redux.setup(options_red)
         # optionally use interactive correction
         if args.interactive:
-            interactive_correction(red_fitstbl, 'red')
+            interactive_correction(context[0], 'red')
         pypeit_file_red = p200_arm_redux.write_setup(options_red, context)[0]
         # Grab pypeit file from write_setup
         options_red['pypeit_file'] = pypeit_file_red
 
     if do_blue:
-        blue_fitstbl, context = p200_arm_redux.setup(options_blue)
+        context = p200_arm_redux.setup(options_blue)
         if args.interactive:
-            interactive_correction(blue_fitstbl, 'blue')
+            interactive_correction(context[0], 'blue')
         pypeit_file_blue = p200_arm_redux.write_setup(options_blue, context)[0]
         # Grab pypeit file from write_setup
         options_blue['pypeit_file'] = pypeit_file_blue
@@ -114,7 +123,7 @@ def main(args):
                          dtype=('U100', 'U4', 'U20', 'U8', float, float, 'U100'))
 
     # Ingest spec_1d tables
-    paths = glob.glob("Science/spec1d*.fits")
+    paths = glob.glob(os.path.join(args.output_path, "Science/spec1d*.fits"))
     for path in paths:
         with fits.open(path) as hdul:
             arm = 'red' if 'red' in path else 'blue'
