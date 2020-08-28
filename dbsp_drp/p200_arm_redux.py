@@ -6,6 +6,8 @@ import os
 import glob
 import shutil
 
+from pkg_resources import resource_filename
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -348,17 +350,14 @@ def save_2dspecs(args):
 def write_extraction_QA(args):
     out_path = os.path.join(args['output_path'], 'QA')
 
-    doc, tag, text = Doc().tagtext()
-
-    doc.asis('<!DOCTYPE html>')
-    
     pngs = [os.path.basename(fullpath) for fullpath in glob.glob(os.path.join(out_path, 'PNGs', 'Extraction', '*.png'))]
     pngs = sorted(pngs)
-    relpath = [os.path.join('PNGs', 'Extraction', png) for png in pngs]
 
-    expnames = [png.split('-')[0] for png in pngs]
     objnames = [png.split('-')[1].split('_')[0] for png in pngs]
+    qa_dict = {objname: [pngs[i] for i in range(len(pngs)) if objnames[i] == objname] for objname in objnames}
 
+    doc, tag, text = Doc().tagtext()
+    doc.asis('<!DOCTYPE html>')
 
     with tag('html'):
         with tag('head'):
@@ -370,20 +369,24 @@ def write_extraction_QA(args):
         with tag('body'):
             with tag('div'):
                 doc.attr(klass='tab')
-                for expname in expnames:
+                for target in qa_dict:
                     with tag('button'):
-                        doc.attr(klass='tablinks', onclick=f"openExposure(event, '{expname}')")
-                        text(expname)
-            for i in range(len(pngs)):
+                        doc.attr(klass='tablinks', onclick=f"openExposure(event, '{target}')")
+                        text(target)
+            for target, pngs in qa_dict.items():
                 with tag('div'):
-                    doc.attr(klass='tabcontent', id=expnames[i])
+                    doc.attr(klass='tabcontent', id=target)
                     with tag('h1'):
-                        text(f'{expnames[i]} {objnames[i]}')
-                    doc.stag('img', src=relpath[i])
+                        text(target)
+                    for png in pngs:
+                        with tag('h2'):
+                            text(png.split('-')[0])
+                        doc.stag('img', src=os.path.join('PNGs', 'Extraction', png))
     
+    msgs.info("Writing Extraction QA page")
     result = indent(doc.getvalue())
     with open(os.path.join(out_path, 'Extraction.html'), mode='wt') as f:
         f.write(result)
     
-    shutil.copy("dbsp_qa.js", os.path.join(out_path, "dbsp_qa.js"))
-    shutil.copy("dbsp_qa.css", os.path.join(out_path, "dbsp_qa.css"))
+    shutil.copy(resource_filename("dbsp_drp", "/data/dbsp_qa.js"), os.path.join(out_path, "dbsp_qa.js"))
+    shutil.copy(resource_filename("dbsp_drp", "/data/dbsp_qa.css"), os.path.join(out_path, "dbsp_qa.css"))
