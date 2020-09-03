@@ -5,6 +5,7 @@ Automatic Reduction Pipeline for P200 DBSP.
 import argparse
 import glob
 import os
+import time
 import multiprocessing
 
 from astropy.io import fits
@@ -64,6 +65,8 @@ def interactive_correction(ps):
         ps.file_list.remove(rm_file)
 
 def main(args):
+
+    t = time.perf_counter()
 
     if args.arm:
         do_red = args.arm.lower() == 'red'
@@ -274,3 +277,4 @@ def main(args):
         options_red['splicing_dict'] = splicing_dict
         p200_arm_redux.splice(options_red)
     
+    print('Elapsed time: {0} seconds'.format(time.perf_counter() - t))
