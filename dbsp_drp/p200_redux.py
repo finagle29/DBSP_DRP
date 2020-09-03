@@ -7,7 +7,7 @@ import glob
 import os
 
 from astropy.io import fits
-from astropy.table import Table
+from astropy.table import Table, Column
 import numpy as np
 
 from dbsp_drp import p200_arm_redux
@@ -121,7 +121,7 @@ def main(args):
     if do_blue:
         p200_arm_redux.redux(options_blue)
         p200_arm_redux.save_2dspecs(options_blue)
-    
+
     if do_red or do_blue:
         p200_arm_redux.write_extraction_QA(options_red)
 
@@ -137,6 +137,7 @@ def main(args):
             arm = 'red' if 'red' in path else 'blue'
             spec1d_table.add_row((path, arm, hdul[0].header['TARGET'], hdul[1].header['OBJTYPE'],
                                   hdul[0].header['AIRMASS'], hdul[0].header['MJD'], ''))
+    spec1d_table.add_index('filename')
 
     if do_red:
         for row in spec1d_table[(spec1d_table['arm'] == 'red') & (spec1d_table['frametype'] == 'standard')]:
@@ -176,8 +177,46 @@ def main(args):
     if do_blue:
         p200_arm_redux.flux(options_blue)
 
-    # TODO: telluric correction
+    # TODO: coadd - intelligent coadding of multiple files
+    #options_blue['debug'] = True
+    #options_red['debug'] = True
+    # figure out where on detector likely target is
+    all_spats = []
+    # for each spec1d file
+    for filename in spec1d_table['filename']:
+        with fits.open(filename) as hdul:
+            spats = []
+            for i in range(1, len(hdul) - 1):
+                # grab all of its extensions' spatial positions
+                spats.append(int(hdul[i].name.split('-')[0].lstrip('SPAT')))
+            all_spats.append(spats)
+    # add to table???
+    spec1d_table.add_column(all_spats, name="spats")
+    spec1d_table.add_column(Column(name="coadds", dtype=object, length=len(spec1d_table))) # need to make this dtype object
 
+    # for each arm
+        # find median/mean of spatial positions
+    if do_blue:
+        blue_spats = spec1d_table[spec1d_table['arm'] == 'blue']['spats']
+        blue_spats = [spat for spats in blue_spats for spat in spats]
+        avg_blue_spat = np.mean(blue_spats)
+        std_blue_spats = np.std(blue_spats)
+    if do_red:
+        red_spats = spec1d_table[spec1d_table['arm'] == 'red']['spats']
+        red_spats = [spat for spats in red_spats for spat in spats]
+        avg_red_spat = np.mean(red_spats)
+        std_red_spats = np.std(red_spats)
+
+    # coadd
+    # probolem here
+    if do_red:
+        for row in spec1d_table[spec1d_table['arm'] == 'red']:
+            options_red['spec1dfile'] = row['filename']
+            spec1d_table.loc[row['filename']]['coadds'] = p200_arm_redux.coadd(options_red)
+    if do_blue:
+        for row in spec1d_table[spec1d_table['arm'] == 'blue']:
+            options_blue['spec1dfile'] = row['filename']
+            spec1d_table.loc[row['filename']]['coadds'] = p200_arm_redux.coadd(options_blue)
 
     # splice data
     splicing_dict = {}

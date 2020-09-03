@@ -24,6 +24,7 @@ from pypeit import defs
 from pypeit import pypeit
 from pypeit import msgs
 from pypeit import sensfunc
+from pypeit import coadd1d
 from pypeit.spec2dobj import Spec2DObj
 from pypeit.specobjs import SpecObjs
 from pypeit.spectrographs.util import load_spectrograph
@@ -438,6 +439,29 @@ def write_extraction_QA(args):
     result = indent(doc.getvalue())
     with open(os.path.join(out_path, 'Extraction.html'), mode='wt') as f:
         f.write(result)
-    
+
     shutil.copy(resource_filename("dbsp_drp", "/data/dbsp_qa.js"), os.path.join(out_path, "dbsp_qa.js"))
     shutil.copy(resource_filename("dbsp_drp", "/data/dbsp_qa.css"), os.path.join(out_path, "dbsp_qa.css"))
+
+def coadd(args):
+    """
+    takes in args['spec1dfile'] and coadds each spectrum in the spec1dfile
+    """
+    outfiles = []
+    hdul = fits.open(args['spec1dfile'])
+    for hdu in hdul:
+        if 'SPAT' in hdu.name:
+            basename = os.path.basename(args['spec1dfile']).split("_")[1]
+            outfile = os.path.join(args['output_path'], "Science", f"{basename}_{hdu.name}.fits")
+            coadd_one_object([args['spec1dfile']], [hdu.name], outfile, args)
+            outfiles.append(outfile)
+    return outfiles
+
+def coadd_one_object(spec1dfiles, objids, coaddfile, args):
+    # Instantiate
+    coAdd1d = coadd1d.CoAdd1D.get_instance(spec1dfiles, objids, debug=args['debug'], show=args['debug'])
+    # Run
+    coAdd1d.run()
+    # Save to file
+    coAdd1d.save(coaddfile)
+
