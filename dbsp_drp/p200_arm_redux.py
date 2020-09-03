@@ -191,54 +191,59 @@ def splice(args):
     """
     Splices red and blue spectra together.
     """
-    for target, (bluefile, redfile) in args['splicing_dict'].items():
-        with open(bluefile) as spec_b:
-            with open(redfile) as spec_r:
-                final_wvs, final_flam, final_flam_sig = adjust_and_combine_overlap(spec_b, spec_r)
+    for target, targ_dict in args['splicing_dict'].items():
+        bluefile = targ_dict['blue']
+        redfile = targ_dict['red']
+        with fits.open(bluefile) as spec_b:
+            with fits.open(redfile) as spec_r:
+                final_wvs, final_flam, final_flam_sig = adjust_and_combine_overlap(spec_b, spec_r, target)
                 # now write this to disk
                 t = Table([final_wvs, final_flam, final_flam_sig], names=('OPT_WAVE_SPLICED', 'OPT_FLAM_SPLICED', 'OPT_FLAM_SPLICED_SIG'))
                 # TODO: make output fits file nicer, possibly copy header from one of the blue/red files
-                t.write(f'{target}.fits', format='fits')
+                t.write(os.path.join(args['output_path'], "Science", f'{target}.fits'), format='fits')
 
 
-def adjust_and_combine_overlap(spec_b, spec_r):
+def adjust_and_combine_overlap(spec_b, spec_r, target):
     """
 
     """
     # combination steps
-    overlap_lo = spec_r[1].data['OPT_WAVE'][0]
-    overlap_hi = spec_b[1].data['OPT_WAVE'][-1]
+    overlap_lo = spec_r[1].data['wave'][0]
+    overlap_hi = spec_b[1].data['wave'][-1]
     # maybe need to fix the overlaps?
     # need more finely spaced grid to be completely contained within coarser grid
 
     lw = 0.5
     plt.figure(figsize=(20,10))
 
-    mask_b = ~((spec_b[1].data['OPT_FLAM_SIG'] > 3) & (spec_b[1].data['OPT_WAVE'] > overlap_lo))
-    mask_r = ~((spec_r[1].data['OPT_FLAM_SIG'] > 3) & (spec_r[1].data['OPT_WAVE'] < overlap_hi))
+    mask_b = ~((spec_b[1].data['ivar'] < 0.1) & (spec_b[1].data['wave'] > overlap_lo))
+    mask_r = ~((spec_r[1].data['ivar'] < 0.1) & (spec_r[1].data['wave'] < overlap_hi))
 
-    olap_r = (spec_r[1].data['OPT_WAVE'] < overlap_hi)
-    olap_b = (spec_b[1].data['OPT_WAVE'] > overlap_lo)
+    olap_r = (spec_r[1].data['wave'] < overlap_hi)
+    olap_b = (spec_b[1].data['wave'] > overlap_lo)
 
     red_mult=1
-    red_mult = sigma_clipped_stats(spec_b[1].data['OPT_FLAM'][olap_b])[1]/sigma_clipped_stats(spec_r[1].data['OPT_FLAM'][olap_r])[1]
+    red_mult = sigma_clipped_stats(spec_b[1].data['flux'][olap_b])[1]/sigma_clipped_stats(spec_r[1].data['flux'][olap_r])[1]
     #red_mult = np.average(spec_aag[1].data['OPT_FLAM'][olap_b], weights=spec_aag[1].data['OPT_FLAM_SIG'][olap_b] ** -2.0)/np.average(spec_aag_red[1].data['OPT_FLAM'][olap_r], weights=spec_aag_red[1].data['OPT_FLAM_SIG'][olap_r] ** -2.0)
+    if red_mult > 3 or 1/red_mult > 3:
+        msgs.warn(f"Red spectrum is {red_mult} times less flux than blue spectrum in overlap region. The red and blue traces may not correspond to the same object.")
+
 
     # different dispersion.
-    wvs_b = spec_b[1].data['OPT_WAVE'][~olap_b]
-    wvs_r = spec_r[1].data['OPT_WAVE'][~olap_r]
-    flam_b = spec_b[1].data['OPT_FLAM'][~olap_b]
-    flam_r = spec_r[1].data['OPT_FLAM'][~olap_r]
-    flam_sig_b = spec_b[1].data['OPT_FLAM_SIG'][~olap_b]
-    flam_sig_r = spec_r[1].data['OPT_FLAM_SIG'][~olap_r]
+    wvs_b = spec_b[1].data['wave'][~olap_b]
+    wvs_r = spec_r[1].data['wave'][~olap_r]
+    flam_b = spec_b[1].data['flux'][~olap_b]
+    flam_r = spec_r[1].data['flux'][~olap_r]
+    flam_sig_b = spec_b[1].data['ivar'][~olap_b] ** -0.5
+    flam_sig_r = spec_r[1].data['ivar'][~olap_r] ** -0.5
 
 
-    olap_wvs_r = spec_r[1].data['OPT_WAVE'][olap_r]
-    olap_flam_r = spec_r[1].data['OPT_FLAM'][olap_r]
-    olap_flam_sig_r = spec_r[1].data['OPT_FLAM_SIG'][olap_r]
-    olap_wvs_b = spec_b[1].data['OPT_WAVE'][olap_b][:-1]
-    olap_flam_b = spec_b[1].data['OPT_FLAM'][olap_b][:-1]
-    olap_flam_sig_b = spec_b[1].data['OPT_FLAM_SIG'][olap_b][:-1]
+    olap_wvs_r = spec_r[1].data['wave'][olap_r]
+    olap_flam_r = spec_r[1].data['flux'][olap_r]
+    olap_flam_sig_r = spec_r[1].data['ivar'][olap_r] ** -0.5
+    olap_wvs_b = spec_b[1].data['wave'][olap_b][:-1]
+    olap_flam_b = spec_b[1].data['flux'][olap_b][:-1]
+    olap_flam_sig_b = spec_b[1].data['ivar'][olap_b][:-1] ** -0.5
 
     olap_flam_r_interp = np.interp(olap_wvs_b, olap_wvs_r, olap_flam_r)
     olap_flam_r_interp, olap_flam_sig_r_interp = interp_w_error(olap_wvs_b, olap_wvs_r, olap_flam_r, olap_flam_sig_r)
@@ -254,15 +259,16 @@ def adjust_and_combine_overlap(spec_b, spec_r):
     final_flam = np.concatenate((flam_b, olap_flam_avgd, flam_r))
     final_flam_sig = np.concatenate((flam_sig_b, olap_flam_sig_avgd, flam_sig_r))
 
-    plt.errorbar(spec_b[1].data['OPT_WAVE'][mask_b], spec_b[1].data['OPT_FLAM'][mask_b], yerr=spec_b[1].data['OPT_FLAM_SIG'][mask_b], lw=lw)
-    plt.errorbar(spec_r[1].data['OPT_WAVE'][mask_r], red_mult*spec_r[1].data['OPT_FLAM'][mask_r], yerr=red_mult*spec_r[1].data['OPT_FLAM_SIG'][mask_r], lw=lw)
+    plt.errorbar(spec_b[1].data['wave'][mask_b], spec_b[1].data['flux'][mask_b], yerr=spec_b[1].data['ivar'][mask_b] ** -0.5, lw=lw)
+    plt.errorbar(spec_r[1].data['wave'][mask_r], red_mult*spec_r[1].data['flux'][mask_r], yerr=red_mult*spec_r[1].data['ivar'][mask_r] ** -0.5, lw=lw)
     plt.xlabel('Wavelength (Angstroms)')
     plt.ylabel('Flux (erg/s/cm${}^2$/$\mathring{A}$)')
-    plt.title('Fluxed spectrum of ZTF20aagzdjp')
+    plt.title(f'Fluxed spectrum of {target}')
     #plt.ylim(-100,600)
     plt.ylim(0,20)
     #plt.xlim(5000,6000)
     #plt.savefig('ZTF20aagzdjp_fluxed_spectrum.png')
+    plt.show()
 
 
     mask = final_flam_sig < 3
@@ -274,8 +280,9 @@ def adjust_and_combine_overlap(spec_b, spec_r):
     #plt.xlim(7000,8000)
     plt.xlabel('Wavelength (Angstroms)')
     plt.ylabel('Flux (erg/s/cm${}^2$/$\mathring{A}$)')
-    plt.title('Fluxed spectrum of ZTF20aagzdjp')
+    plt.title(f'Fluxed spectrum of {target}')
     #plt.savefig('ZTF20aagzdjp_fluxed_spectrum.png')
+    plt.show()
     
     return final_wvs, final_flam, final_flam_sig
 

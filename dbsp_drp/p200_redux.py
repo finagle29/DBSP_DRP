@@ -241,11 +241,36 @@ def main(args):
         #    pool.apply_async(p200_arm_redux.telluric_correct, opts, error_callback=lambda e: print("error!"))
         pool.close()
         pool.join()
+
+    
+    # splicing method 1: choose single object closest to arm mean
+    # TODO: better splicing - make sure spatial fraction is similar on blue/red
+    # TODO: better splicing - handle multiple observations of same target throughout night
     # splice data
     splicing_dict = {}
     blue_mask = spec1d_table['arm'] == 'blue'
     red_mask = spec1d_table['arm'] == 'red'
     if do_red and do_blue:
         # make splicing dict
-        for target in spec1d_table['object']:
-            pass
+        for row in spec1d_table:
+            target = row['object']
+            spacings = np.array(row['spats'])
+            if row['arm'] == 'blue':
+                target_spat = avg_blue_spat
+            else:
+                target_spat = avg_red_spat
+            best_ix = np.abs(spacings - target_spat).argmin()
+
+            if row['arm'] == 'blue':
+                best_spec = row['coadds'][best_ix]
+            else:
+                best_spec = row['coadds'][best_ix].replace(".fits", "_tellcorr.fits")
+            
+            if splicing_dict.get(target):
+                splicing_dict[target][row['arm']] = best_spec
+            else:
+                splicing_dict[target] = {row['arm']: best_spec}
+        # splice
+        options_red['splicing_dict'] = splicing_dict
+        p200_arm_redux.splice(options_red)
+    
