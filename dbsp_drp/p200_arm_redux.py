@@ -25,6 +25,7 @@ from pypeit import pypeit
 from pypeit import msgs
 from pypeit import sensfunc
 from pypeit import coadd1d
+from pypeit.core import telluric
 from pypeit.spec2dobj import Spec2DObj
 from pypeit.specobjs import SpecObjs
 from pypeit.spectrographs.util import load_spectrograph
@@ -465,3 +466,33 @@ def coadd_one_object(spec1dfiles, objids, coaddfile, args):
     # Save to file
     coAdd1d.save(coaddfile)
 
+def telluric_correct(args):
+    """
+    method to telluric correct one coadded file
+    """
+    spectrograph = load_spectrograph(args['spectrograph'])
+    par = spectrograph.default_pypeit_par()
+
+    par['tellfit']['objmodel'] = 'poly'
+    par['tellfit']['fit_wv_min_max'] = [5500, 11000]
+    par['tellfit']['model'] = 'exp' # maybe somehow choose between poly and exp??????? look at median
+    par['tellfit']['polyorder'] = 8
+
+    if par['tellfit']['tell_grid'] is None:
+        if par['sensfunc']['IR']['telgridfile'] is not None:
+            par['tellfit']['tell_grid'] = par['sensfunc']['IR']['telgridfile']
+    
+    # Parse the output filename
+    outfile = os.path.join(args['output_path'], "Science", (os.path.basename(args['spec1dfile'])).replace('.fits','_tellcorr.fits'))
+    modelfile = os.path.join(args['output_path'], "Science", (os.path.basename(args['spec1dfile'])).replace('.fits','_tellmodel.fits'))
+
+    TelPoly = telluric.poly_telluric(args['spec1dfile'], par['tellfit']['tell_grid'], modelfile, outfile,
+                                         z_obj=par['tellfit']['redshift'],
+                                         func=par['tellfit']['func'], model=par['tellfit']['model'],
+                                         polyorder=par['tellfit']['polyorder'],
+                                         fit_wv_min_max=par['tellfit']['fit_wv_min_max'],
+                                         mask_lyman_a=par['tellfit']['mask_lyman_a'],
+                                         delta_coeff_bounds=par['tellfit']['delta_coeff_bounds'],
+                                         minmax_coeff_bounds=par['tellfit']['minmax_coeff_bounds'],
+                                         only_orders=par['tellfit']['only_orders'],
+                                         debug_init=args['debug'], disp=args['debug'], debug=args['debug'], show=args['plot'])

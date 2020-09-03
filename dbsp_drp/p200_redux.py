@@ -5,6 +5,7 @@ Automatic Reduction Pipeline for P200 DBSP.
 import argparse
 import glob
 import os
+import multiprocessing
 
 from astropy.io import fits
 from astropy.table import Table, Column
@@ -40,6 +41,8 @@ def parser(options=None):
 
     argparser.add_argument('--debug', default=False, action='store_true',
                            help='debug')
+    argparser.add_argument('-j', '--jobs', type=int, default=1,
+                            help='Number of processes to use')
 
     return argparser.parse_args() if options is None else argparser.parse_args(options)
 
@@ -79,6 +82,7 @@ def main(args):
         'cfg_split': 'all',
         'calib_only': False,
         'show': False,
+        'plot': False,
         'do_not_reuse_masters': False,
         'debug': args.debug,
         'qa_dict': {}
@@ -218,6 +222,25 @@ def main(args):
             options_blue['spec1dfile'] = row['filename']
             spec1d_table.loc[row['filename']]['coadds'] = p200_arm_redux.coadd(options_blue)
 
+    # telluric correct
+    options_red['debug'] = False
+    options_red['plot'] = False
+    if do_red:
+        tellcorr_inputs = []
+        for row in spec1d_table[spec1d_table['arm'] == 'red']:
+            if isinstance(row['coadds'], list):
+                for obj in row['coadds']:
+                    tmp = options_red.copy()
+                    tmp['spec1dfile'] = obj
+                    tellcorr_inputs.append(tmp)
+#                    options_red['spec1dfile'] = obj
+#                    p200_arm_redux.telluric_correct(options_red)
+        pool = multiprocessing.Pool(args.jobs)
+        pool.map(p200_arm_redux.telluric_correct, tellcorr_inputs)
+        #for opts in tellcorr_inputs:    
+        #    pool.apply_async(p200_arm_redux.telluric_correct, opts, error_callback=lambda e: print("error!"))
+        pool.close()
+        pool.join()
     # splice data
     splicing_dict = {}
     blue_mask = spec1d_table['arm'] == 'blue'
