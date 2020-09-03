@@ -80,7 +80,8 @@ def main(args):
         'calib_only': False,
         'show': False,
         'do_not_reuse_masters': False,
-        'debug': args.debug
+        'debug': args.debug,
+        'qa_dict': {}
     }
 
     #options_blue['show'] = True
@@ -90,6 +91,7 @@ def main(args):
     options_red = options_blue.copy()
     options_red['spectrograph'] = 'p200_dbsp_red'
     options_red['root'] = os.path.join(args.root, 'red')
+    options_red['qa_dict'] = options_blue['qa_dict']
 
     if do_red:
         context = p200_arm_redux.setup(options_red)

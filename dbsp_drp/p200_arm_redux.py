@@ -316,6 +316,8 @@ def save_one2dspec(ax, spec, edges, traces):
             ax.plot(trace, xs, 'orange', lw=1)
 
 def save_2dspecs(args):
+    obj_png_dict = args['qa_dict']
+
     arm = 'blue' if 'blue' in args['spectrograph'] else 'red'
     paths = glob.glob(os.path.join(args['output_path'], 'Science', f'spec2d_{arm}*.fits'))
     
@@ -368,8 +370,29 @@ def save_2dspecs(args):
         save_one2dspec(ax, (spec.sciimg - spec.skymodel - spec.objmodel) * np.sqrt(spec.ivarmodel) * mask, edges, traces)
 
         # save figure
-        fig.savefig(f'{base_name}_extraction.png', bbox_inches='tight', pad_inches=0)
+        outname = f'{base_name}_extraction.png'
+        msgs.info(f"Saving {os.path.basename(outname)}")
+        fig.savefig(outname, bbox_inches='tight', pad_inches=0)
         plt.close(fig)
+
+        airmass = spec.head0['AIRMASS']
+        ut = spec.head0['UTSHUT']
+        fname = spec.head0['FILENAME']
+
+        if obj_png_dict.get(spec.head0['OBJECT']):
+            obj_png_dict[spec.head0['OBJECT']]['pngs'].append(outname)
+            obj_png_dict[spec.head0['OBJECT']]['airmass'].append(airmass)
+            obj_png_dict[spec.head0['OBJECT']]['time'].append(ut)
+            obj_png_dict[spec.head0['OBJECT']]['fname'].append(fname)
+        else:
+            obj_png_dict[spec.head0['OBJECT']] = {
+                'pngs': [outname],
+                'airmass': [airmass],
+                'time': [ut],
+                'fname': [fname]
+            }
+    
+    args['qa_dict'] = obj_png_dict
 
 def write_extraction_QA(args):
     out_path = os.path.join(args['output_path'], 'QA')
@@ -378,7 +401,7 @@ def write_extraction_QA(args):
     pngs = sorted(pngs)
 
     objnames = [png.split('-')[1].split('_')[0] for png in pngs]
-    qa_dict = {objname: [pngs[i] for i in range(len(pngs)) if objnames[i] == objname] for objname in objnames}
+    qa_dict = args['qa_dict']
 
     doc, tag, text = Doc().tagtext()
     doc.asis('<!DOCTYPE html>')
@@ -397,16 +420,20 @@ def write_extraction_QA(args):
                     with tag('button'):
                         doc.attr(klass='tablinks', onclick=f"openExposure(event, '{target}')")
                         text(target)
-            for target, pngs in qa_dict.items():
+            for target, obj_dict in qa_dict.items():
                 with tag('div'):
                     doc.attr(klass='tabcontent', id=target)
                     with tag('h1'):
                         text(target)
-                    for png in pngs:
+                    for i, png in enumerate(obj_dict['pngs']):
                         with tag('h2'):
-                            text(png.split('-')[0])
-                        doc.stag('img', src=os.path.join('PNGs', 'Extraction', png))
-    
+                            text(obj_dict['fname'][i])
+                            text('\t')
+                            text(obj_dict['time'][i])
+                            text('\t')
+                            text(obj_dict['airmass'][i])
+                        doc.stag('img', src=os.path.join('PNGs', 'Extraction', os.path.basename(png)))
+
     msgs.info("Writing Extraction QA page")
     result = indent(doc.getvalue())
     with open(os.path.join(out_path, 'Extraction.html'), mode='wt') as f:
