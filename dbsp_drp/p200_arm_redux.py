@@ -287,20 +287,31 @@ def adjust_and_combine_overlap(spec_b, spec_r, target):
     return final_wvs, final_flam, final_flam_sig
 
 def interp_w_error(x, xp, yp, err_yp):
+    if len(xp) == 1:
+        return np.ones_like(x) * yp[0], np.ones_like(x) * err_yp[0]
     y = np.zeros_like(x)
     yerr = np.zeros_like(x)
     slopes = np.zeros(xp.shape[0] - 1)
+    #slopes = np.zeros(xp.shape[0])
     for i in range(len(slopes)):
         slopes[i] = (yp[i+1] - yp[i])/(xp[i+1] - xp[i])
-    
+    #slopes[-1] = slopes[-2]
+
     for i in range(len(x)):
-        # find the index j into xp such that xp[j-1] < x[i] < xp[j]
+        # find the index j into xp such that xp[j-1] <= x[i] < xp[j]
         j = np.searchsorted(xp, x[i], side='right')
         if (x[i] == xp[j-1]):
             y[i] = yp[j-1]
             yerr[i] = err_yp[j-1]
+        elif (j == len(xp)):
+            # extrapolating outside domain!!!
+            y[i] = yp[-1]# + slopes[j-2]*(x[i] - xp[-1])
+            yerr[i] = np.sqrt((((x[i] - xp[-2])*err_yp[-1]) ** 2 + ((x[i] - xp[-1])*err_yp[-2]) ** 2) / ((xp[-2] - xp[-1]) ** 2))
+        elif (j == 0):
+            # extrapolating outside domain!!!
+            y[i] = yp[0]# + slopes[j]*(x[i] - xp[0])
+            yerr[i] = np.sqrt((((x[i] - xp[0])*err_yp[1]) ** 2 + ((x[i] - xp[1])*err_yp[0]) ** 2) / ((xp[1] - xp[0]) ** 2))
         else:
-        # now y[i] = xp[j] + slopes[j]*(x[i] - xp[j])
             y[i] = yp[j-1] + slopes[j-1]*(x[i] - xp[j-1])
             yerr[i] = np.sqrt((((x[i] - xp[j])*err_yp[j-1]) ** 2 + ((x[i] - xp[j-1])*err_yp[j]) ** 2) / ((xp[j-1] - xp[j]) ** 2))
     return y, yerr
