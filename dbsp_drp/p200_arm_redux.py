@@ -112,7 +112,7 @@ def make_sensfunc(args):
     par = load_spectrograph(args['spectrograph']).default_pypeit_par()
     outfile = os.path.join(args['output_path'], os.path.basename(args['spec1dfile']).replace('spec1d', 'sens'))
 
-    par['sensfunc']['UVIS']['extinct_correct'] = False
+    #par['sensfunc']['UVIS']['extinct_correct'] = False
 
     sensobj = sensfunc.SensFunc.get_instance(args['spec1dfile'], outfile, par=par['sensfunc'], debug=args['debug'])
 
@@ -147,8 +147,8 @@ def build_fluxfile(args):
     # args['spec1dfiles'] is a dict mapping spec1d files to the sensitivity function file they should use
     cfg_lines = []
     cfg_lines.append('[fluxcalib]')
-    if 'red' in args['spectrograph']:
-        cfg_lines.append('extinct_correct = False')
+    #if 'red' in args['spectrograph']:
+    #cfg_lines.append('extinct_correct = False')
     
     # data section
     cfg_lines.append('flux read')
