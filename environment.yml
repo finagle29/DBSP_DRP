@@ -22,5 +22,5 @@ dependencies:
 - pytest >= 3.0.7
 - yattag >= 1.13
 - pip:
-  - PypeIt >= 1.0.0
+  - PypeIt >= 1.1.0
 
