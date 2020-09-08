@@ -9,3 +9,7 @@ __pycache__
 docs/html/
 docs/doctrees/
 docs/source/_build
+
+# build output
+build
+dist

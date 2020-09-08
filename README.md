@@ -15,6 +15,11 @@ You can install all prerequisites by downloading the environment.yml file, navig
 $ conda env create -f environment.yml
 ```
 
+The telluric correction code provided by PypeIt relies on a large (5 GB) atmospheric model file, which can be downloaded `here <https://drive.google.com/drive/folders/1x5d2_L8pwLDmvvoFUCa-vIoluv3GpowA>`__
+and must be installed into the ``pypeit/data/telluric/`` directory of your PypeIt installation.
+
+An easier alternative is to use the [download_tellfile](bin/download_tellfile) script to download and install the atmospheric model file for you.
+
 ## Installation
 You can install using `pip`
 ```shell_session

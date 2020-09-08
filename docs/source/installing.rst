@@ -2,7 +2,7 @@
 Installing DBSP_DRP
 *******************
 
-Conda is the recommended pacakage manager used to install DBSP_DRP.
+Conda is the recommended pacakage manager used to install ``DBSP_DRP``.
 
 From Source
 ###########
@@ -43,9 +43,42 @@ Now use ``pip`` to install DBSP_DRP
 
     $ pip install https://github.com/finagle29/DBSP_DRP/archive/master.tar.gz
 
-*************************
+************
+Post-Install
+************
+
+The telluric correction code provided by PypeIt relies on a large (5 GB) atmospheric model file, which can be downloaded `here <https://drive.google.com/drive/folders/1x5d2_L8pwLDmvvoFUCa-vIoluv3GpowA>`__
+and must be installed into the ``pypeit/data/telluric/`` directory of your PypeIt installation.
+
+To determine the location of your PypeIt installation, open the Python interpreter and run
+
+.. code-block:: Python
+
+    >>> import pypeit
+    >>> import os
+    >>> print(os.path.dirname(pypeit.__file__))
+    /Users/me/anaconda3/envs/dbsp_drp/lib/python3.7/site-packages/pypeit
+
+An easier alternative is to download and run `this script <https://raw.githubusercontent.com/finagle29/DBSP_DRP/master/bin/download_tellfile>`__,
+which will perform the download and install it into the current PypeIt installation.
+
+.. code-block:: console
+
+    $ cd /path/to/Downloads
+    $ chmod +x download_tellfile
+    $ ./download_tellfile
+
+If you have multiple PypeIt installations on the same machine, you can create a hard link from the one PypeIt installation to the others so you can reuse the atmospheric model file.
+
+.. code-block:: console
+
+    $ ln /path/to/stable/pypeit/data/telluric/TellFit.fits /path/to/other/pypeit/data/telluric/TellFit.fits
+
+Make sure to use the same filename in both PypeIt installations.
+If you're not sure where your PypeIt installations are, run the previous Python code in each ``conda`` or ``venv`` environment you want to use ``DBSP_DRP`` in.
+
 Testing your installation
-*************************
+#########################
 
 Make sure your PypeIt installation was successful
 
