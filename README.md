@@ -1,4 +1,5 @@
 [![Documentation Status](https://readthedocs.org/projects/dbsp-drp/badge/?version=latest)](https://dbsp-drp.readthedocs.io/en/latest/?badge=latest)
+[![Build Status](https://travis-ci.org/finagle29/DBSP_DRP.svg?branch=master)](https://travis-ci.org/finagle29/DBSP_DRP)
 
 # DBSP_DRP
 
