@@ -63,7 +63,7 @@ class TableModel(QtCore.QAbstractTableModel):
         self._modified_files = set()
         self._deleled_files = del_files
 
-    def data(self: TableModel, index: QtCore.QModelIndex, role) -> Union[str, QtGui.QColor, None]:
+    def data(self, index: QtCore.QModelIndex, role) -> Union[str, QtGui.QColor, None]:
         if role == Qt.DisplayRole or role == Qt.EditRole:
             col = self._cols[index.column()]
             row = index.row()

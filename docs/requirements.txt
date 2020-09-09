@@ -1,0 +1,17 @@
+astropy
+numpy
+pypeit
+matplotlib
+scipy
+PyQt5
+yattag
+PyYAML
+ipython
+numba
+configobj
+scikit-learn
+ginga
+packaging
+linetools
+extension-helpers
+pytest

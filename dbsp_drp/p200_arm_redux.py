@@ -324,7 +324,7 @@ def interp_w_error(x: np.ndarray, xp: np.ndarray, yp: np.ndarray, err_yp: np.nda
             yerr[i] = np.sqrt((((x[i] - xp[j])*err_yp[j-1]) ** 2 + ((x[i] - xp[j-1])*err_yp[j]) ** 2) / ((xp[j-1] - xp[j]) ** 2))
     return y, yerr
 
-def save_one2dspec(ax: plt.Axes, spec: ndarray, edges: Tuple[ndarray, ndarray], traces: List[ndarray]) -> None:
+def save_one2dspec(ax: plt.Axes, spec: np.ndarray, edges: Tuple[np.ndarray, np.ndarray], traces: List[np.ndarray]) -> None:
     all_left, all_right = edges
     
     norm = ImageNormalize(spec, interval=ZScaleInterval())
