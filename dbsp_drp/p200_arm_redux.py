@@ -7,13 +7,14 @@ import glob
 import shutil
 
 from pkg_resources import resource_filename
+from typing import Tuple, List
 
 import numpy as np
 import matplotlib.pyplot as plt
 
 from astropy.io import fits
-from astropy.stats import sigma_clipped_stats
-from astropy.table import Table
+import astropy.stats
+import astropy.table
 from astropy.visualization import ZScaleInterval, ImageNormalize
 
 
@@ -35,9 +36,19 @@ from pypeit.par import pypeitpar
 
 
 
-def setup(args):
-    """
-    Does PypeIt setup, without writing the .pypeit file
+def setup(args: dict) -> Tuple[PypeItSetup, str]:
+    """Does PypeIt setup, without writing the .pypeit file
+
+    Args:
+        args (dict): [description]
+
+    Raises:
+        ValueError: [description]
+        ValueError: [description]
+        IOError: [description]
+
+    Returns:
+        Tuple[PypeItSetup, str]: [description]
     """
     # Check that the spectrograph is provided if using a file root
     if args['root'] is not None:
@@ -68,7 +79,7 @@ def setup(args):
 
     return (ps, output_path)
 
-def write_setup(args, context):
+def write_setup(args: dict, context: Tuple[PypeItSetup, str]) -> List[str]:
     """
     Writes the .pypeit file
     """
@@ -77,14 +88,13 @@ def write_setup(args, context):
     pypeit_file = os.path.join(output_path, '{0}.pypeit'.format(args['spectrograph']))
     config_list = [item.strip() for item in args['cfg_split'].split(',')]
 
-    #ps.user_cfg += par['calibrations']['master_dir']
     ps.user_cfg.append('[calibrations]')
     ps.user_cfg.append('master_dir = Master_' + args['spectrograph'].split('_')[-1])
 
     return ps.fitstbl.write_pypeit(pypeit_file, cfg_lines=ps.user_cfg,
                                    write_bkg_pairs=args['background'], configs=config_list)
 
-def redux(args):
+def redux(args: dict) -> None:
     """
     Runs the reduction
     """
@@ -105,7 +115,7 @@ def redux(args):
     msgs.info('Generating QA HTML')
     pypeIt.build_qa()
 
-def make_sensfunc(args):
+def make_sensfunc(args: dict) -> str:
     """
     Makes a sensitivity function
     """
@@ -140,7 +150,7 @@ def make_sensfunc(args):
     sensobj.save()
     return outfile
 
-def build_fluxfile(args):
+def build_fluxfile(args: dict) -> str:
     """
     Writes the fluxfile for fluxing.
     """
@@ -165,7 +175,7 @@ def build_fluxfile(args):
 
     return ofile
 
-def flux(args):
+def flux(args: dict) -> None:
     """
     Fluxes spectra.
     """
@@ -187,7 +197,7 @@ def flux(args):
     FxCalib = fluxcalibrate.FluxCalibrate.get_instance(spec1dfiles, sensfiles, par=par['fluxcalib'], debug=args['debug'])
     msgs.info('Flux calibration complete')
 
-def splice(args):
+def splice(args: dict) -> None:
     """
     Splices red and blue spectra together.
     """
@@ -198,15 +208,12 @@ def splice(args):
             with fits.open(redfile) as spec_r:
                 final_wvs, final_flam, final_flam_sig = adjust_and_combine_overlap(spec_b, spec_r, target)
                 # now write this to disk
-                t = Table([final_wvs, final_flam, final_flam_sig], names=('OPT_WAVE_SPLICED', 'OPT_FLAM_SPLICED', 'OPT_FLAM_SPLICED_SIG'))
+                t = astropy.table.Table([final_wvs, final_flam, final_flam_sig], names=('OPT_WAVE_SPLICED', 'OPT_FLAM_SPLICED', 'OPT_FLAM_SPLICED_SIG'))
                 # TODO: make output fits file nicer, possibly copy header from one of the blue/red files
                 t.write(os.path.join(args['output_path'], "Science", f'{target}.fits'), format='fits')
 
 
-def adjust_and_combine_overlap(spec_b, spec_r, target):
-    """
-
-    """
+def adjust_and_combine_overlap(spec_b: fits.HDUList, spec_r: fits.HDUList, target: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     # combination steps
     overlap_lo = spec_r[1].data['wave'][0]
     overlap_hi = spec_b[1].data['wave'][-1]
@@ -222,8 +229,9 @@ def adjust_and_combine_overlap(spec_b, spec_r, target):
     olap_r = (spec_r[1].data['wave'] < overlap_hi)
     olap_b = (spec_b[1].data['wave'] > overlap_lo)
 
-    red_mult=1
-    red_mult = sigma_clipped_stats(spec_b[1].data['flux'][olap_b])[1]/sigma_clipped_stats(spec_r[1].data['flux'][olap_r])[1]
+    red_mult = 1
+    red_mult = (astropy.stats.sigma_clipped_stats(spec_b[1].data['flux'][olap_b])[1] /
+        astropy.stats.sigma_clipped_stats(spec_r[1].data['flux'][olap_r])[1])
     #red_mult = np.average(spec_aag[1].data['OPT_FLAM'][olap_b], weights=spec_aag[1].data['OPT_FLAM_SIG'][olap_b] ** -2.0)/np.average(spec_aag_red[1].data['OPT_FLAM'][olap_r], weights=spec_aag_red[1].data['OPT_FLAM_SIG'][olap_r] ** -2.0)
     if red_mult > 3 or 1/red_mult > 3:
         msgs.warn(f"Red spectrum is {red_mult} times less flux than blue spectrum in overlap region. The red and blue traces may not correspond to the same object.")
@@ -283,10 +291,10 @@ def adjust_and_combine_overlap(spec_b, spec_r, target):
     plt.title(f'Fluxed spectrum of {target}')
     #plt.savefig('ZTF20aagzdjp_fluxed_spectrum.png')
     plt.show()
-    
+
     return final_wvs, final_flam, final_flam_sig
 
-def interp_w_error(x, xp, yp, err_yp):
+def interp_w_error(x: np.ndarray, xp: np.ndarray, yp: np.ndarray, err_yp: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     if len(xp) == 1:
         return np.ones_like(x) * yp[0], np.ones_like(x) * err_yp[0]
     y = np.zeros_like(x)
@@ -316,7 +324,7 @@ def interp_w_error(x, xp, yp, err_yp):
             yerr[i] = np.sqrt((((x[i] - xp[j])*err_yp[j-1]) ** 2 + ((x[i] - xp[j-1])*err_yp[j]) ** 2) / ((xp[j-1] - xp[j]) ** 2))
     return y, yerr
 
-def save_one2dspec(ax, spec, edges, traces):
+def save_one2dspec(ax: plt.Axes, spec: ndarray, edges: Tuple[ndarray, ndarray], traces: List[ndarray]) -> None:
     all_left, all_right = edges
     
     norm = ImageNormalize(spec, interval=ZScaleInterval())
@@ -335,7 +343,7 @@ def save_one2dspec(ax, spec, edges, traces):
         for trace in traces:
             ax.plot(trace, xs, 'orange', lw=1)
 
-def save_2dspecs(args):
+def save_2dspecs(args: dict) -> None:
     obj_png_dict = args['qa_dict']
 
     arm = 'blue' if 'blue' in args['spectrograph'] else 'red'
@@ -414,7 +422,7 @@ def save_2dspecs(args):
     
     args['qa_dict'] = obj_png_dict
 
-def write_extraction_QA(args):
+def write_extraction_QA(args: dict) -> None:
     out_path = os.path.join(args['output_path'], 'QA')
 
     pngs = [os.path.basename(fullpath) for fullpath in glob.glob(os.path.join(out_path, 'PNGs', 'Extraction', '*.png'))]
@@ -462,7 +470,7 @@ def write_extraction_QA(args):
     shutil.copy(resource_filename("dbsp_drp", "/data/dbsp_qa.js"), os.path.join(out_path, "dbsp_qa.js"))
     shutil.copy(resource_filename("dbsp_drp", "/data/dbsp_qa.css"), os.path.join(out_path, "dbsp_qa.css"))
 
-def coadd(args):
+def coadd(args: dict) -> List[str]:
     """
     takes in args['spec1dfile'] and coadds each spectrum in the spec1dfile
     """
@@ -476,7 +484,7 @@ def coadd(args):
             outfiles.append(outfile)
     return outfiles
 
-def coadd_one_object(spec1dfiles, objids, coaddfile, args):
+def coadd_one_object(spec1dfiles: List[str], objids: List[str], coaddfile: str, args: dict):
     # Instantiate
     coAdd1d = coadd1d.CoAdd1D.get_instance(spec1dfiles, objids, debug=args['debug'], show=args['debug'])
     # Run
@@ -484,7 +492,7 @@ def coadd_one_object(spec1dfiles, objids, coaddfile, args):
     # Save to file
     coAdd1d.save(coaddfile)
 
-def telluric_correct(args):
+def telluric_correct(args: dict):
     """
     method to telluric correct one coadded file
     """

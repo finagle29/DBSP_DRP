@@ -7,18 +7,25 @@ import glob
 import os
 import time
 import multiprocessing
+from typing import Optional, List
 
 from astropy.io import fits
 from astropy.table import Table, Column
 import numpy as np
+from pypeit.pypeitsetup import PypeItSetup
 
 from dbsp_drp import p200_arm_redux
 from dbsp_drp import table_edit
 
 
-def parser(options=None):
-    """
-    Parses command line arguments
+def parser(options: Optional[List[str]] = None) -> argparse.Namespace:
+    """Parses command line arguments
+
+    Args:
+        options (Optional[List[str]], optional): List of command line arguments. Defaults to sys.argv[1:].
+
+    Returns:
+        argparse.Namespace: Parsed arguments
     """
     # Define command line arguments.
     argparser = argparse.ArgumentParser(description="Automatic Data Reduction Pipeline for P200 DBSP")
@@ -47,9 +54,18 @@ def parser(options=None):
 
     return argparser.parse_args() if options is None else argparser.parse_args(options)
 
-def interactive_correction(ps):
-    # this needs to actually fix the data's FITS headers
-    # deleting entire row from .pypeit file is valid though
+def interactive_correction(ps: PypeItSetup) -> None:
+    """Allows for human correction of FITS headers and frame typing.
+
+    Launches a GUI via dbsp_drp.table_edit, which handles saving updated FITS headers.
+    table_edit depends on the current DBSP headers.
+
+    Todo:
+        Make table to FITS header mapping mutable
+
+    :param ps: PypeIt metadata object created in p200_arm_redux.setup
+    :type ps: PypeItSetup
+    """
     # function for interactively correcting the fits table
     fitstbl = ps.fitstbl
     fitstbl.table.sort('filename')

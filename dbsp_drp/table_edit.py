@@ -1,6 +1,7 @@
 # Interactive Table Editor
 import os
 from datetime import datetime
+from typing import Union, Tuple, List
 
 from astropy.table import Table
 import matplotlib.pyplot as plt
@@ -15,20 +16,29 @@ import astropy
 from astropy import units as u
 from astropy.io import fits
 
-# Some Thoughts on how this could work
-# have modified table and path variable
-# on exit, for each modified row, edit the corresponding FITS file
-
 
 loc = EarthLocation.of_site('Palomar')
 
-def update_airmass(row: astropy.table.Row):
+def update_airmass(row: astropy.table.Row) -> None:
+    """Updates the ``airmass`` entry of ``row`` based on the ``ra`` ``dec`` and ``mjd`` entries.
+
+    Args:
+        row (astropy.table.Row): Row to be updated
+    """
     skycoord = SkyCoord(row['ra'], row['dec'], unit=u.deg)
     time = Time(row['mjd'], format='mjd')
     altaz = AltAz(obstime=time, location=loc)
     row['airmass'] = skycoord.transform_to(altaz).secz
 
-def get_zenith_ra_dec(time) -> SkyCoord:
+def get_zenith_ra_dec(time: str) -> astropy.coordinates.SkyCoord:
+    """Returns RA and Dec of the zenith at Palomar at the given time
+
+    Args:
+        time (str): MJD time
+
+    Returns:
+        astropy.coordinates.SkyCoord: object containing the zenith RA and Dec
+    """
     time = Time(time, format='mjd')
     altaz = AltAz(alt=Angle(90, unit=u.deg), az=Angle(0, unit=u.deg), obstime=time, location=loc)
     return altaz.transform_to(ICRS)
@@ -53,7 +63,7 @@ class TableModel(QtCore.QAbstractTableModel):
         self._modified_files = set()
         self._deleled_files = del_files
 
-    def data(self, index, role):
+    def data(self: TableModel, index: QtCore.QModelIndex, role) -> Union[str, QtGui.QColor, None]:
         if role == Qt.DisplayRole or role == Qt.EditRole:
             col = self._cols[index.column()]
             row = index.row()
@@ -79,7 +89,7 @@ class TableModel(QtCore.QAbstractTableModel):
             if masked:
                 return QtGui.QColor(Qt.red)
 
-    def setData(self, index: QtCore.QModelIndex, value: object, role = Qt.EditRole):
+    def setData(self, index: QtCore.QModelIndex, value: object, role: Qt.ItemDataRole=Qt.EditRole) -> bool:
         try:
             col = self._cols[index.column()]
             row = index.row()
@@ -93,8 +103,6 @@ class TableModel(QtCore.QAbstractTableModel):
                 value = dec.degree
                 if self._data['ra'][row]:
                     update_airmass(self._data[row])
-            else:
-                value = value
             self._data[col][row] = value
             self._mask[col][row] = False
             self.dataChanged.emit(index, index)
@@ -102,28 +110,28 @@ class TableModel(QtCore.QAbstractTableModel):
         except:
             return False
 
-    def flags(self, index):
+    def flags(self, index: QtCore.QModelIndex) -> Qt.ItemFlag:
         if not index.isValid():
             return Qt.ItemIsEnabled
         return QtCore.QAbstractTableModel.flags(self, index) | Qt.ItemIsEditable
 
-    def rowCount(self, index):
+    def rowCount(self, index: QtCore.QModelIndex) -> int:
         return len(self._data)
 
-    def columnCount(self, index):
+    def columnCount(self, index: QtCore.QModelIndex) -> int:
         return self._colCount
 
-    def headerData(self, section, orientation, role):
+    def headerData(self, section, orientation: Qt.Alignment, role: Qt.ItemDataRole) -> str:
         if role == Qt.DisplayRole:
             if orientation == Qt.Horizontal:
                 return self._cols[section]
             if orientation == Qt.Vertical:
                 return ''
 
-    def frametype(self, index: QtCore.QModelIndex):
+    def frametype(self, index: QtCore.QModelIndex) -> str:
         return self._data['frametype'][index.row()]
 
-    def _set_data_to_zenith(self, index: QtCore.QModelIndex):
+    def _set_data_to_zenith(self, index: QtCore.QModelIndex) -> None:
         row = index.row()
         time = self._data['mjd'][row]
         ra_dec = get_zenith_ra_dec(time)
@@ -133,18 +141,17 @@ class TableModel(QtCore.QAbstractTableModel):
 
         self._modified_files.add(self._data['filename'][row])
 
-    def _delete_row(self, index: QtCore.QModelIndex):
+    def _delete_row(self, index: QtCore.QModelIndex) -> None:
         row = index.row()
         self._deleled_files.append(self._data['filename'][row])
         self._data.remove_row(row)
         self._mask.remove_row(row)
-        print(len(self._data))
     
-    def _modified_row(self, index: QtCore.QModelIndex):
+    def _modified_row(self, index: QtCore.QModelIndex) -> None:
         row = index.row()
         self._modified_files.add(self._data['filename'][row])
     
-    def _update_fits(self):
+    def _update_fits(self) -> None:
         def update_header(header: fits.Header, keyword, new, comment):
             old = header.get(keyword)
             print(f'old {keyword}: {old}\tnew {keyword}: {new}')
@@ -192,7 +199,7 @@ class TableView(QtWidgets.QTableView):
         self.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Expanding)
         self.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
 
-    def show_context_menu(self, point: QtCore.QPoint):
+    def show_context_menu(self, point: QtCore.QPoint) -> None:
         index = self.indexAt(point)
         if index.isValid():
             self._menu = QtWidgets.QMenu(self)
@@ -216,7 +223,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Expanding)
     
-    def closeEvent(self, event: QtGui.QCloseEvent):
+    def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         self.table.model()._update_fits()
 
 
@@ -225,24 +232,24 @@ class Delegate(QtWidgets.QStyledItemDelegate):
         super().__init__(parent)
         self._cols = cols
 
-    def createEditor(self, parent, option, index):
+    def createEditor(self, parent, option, index: QtCore.QModelIndex):
         editor = QtWidgets.QLineEdit(parent)
         editor.setFrame(False)
         return editor
 
-    def setEditorData(self, editor: QtWidgets.QLineEdit, index: QtCore.QModelIndex):
+    def setEditorData(self, editor: QtWidgets.QLineEdit, index: QtCore.QModelIndex) -> None:
         value = index.model().data(index, Qt.EditRole)
         editor.setText(value)
 
-    def setModelData(self, editor: QtWidgets.QLineEdit, model: TableModel, index: QtCore.QModelIndex):
+    def setModelData(self, editor: QtWidgets.QLineEdit, model: TableModel, index: QtCore.QModelIndex) -> None:
         value = editor.text()
         model.setData(index, value)
         model._modified_row(index)
 
-    def updateEditorGeometry(self, editor: QtWidgets.QLineEdit, option: QtWidgets.QStyleOptionViewItem, index: QtCore.QModelIndex):
+    def updateEditorGeometry(self, editor: QtWidgets.QLineEdit, option: QtWidgets.QStyleOptionViewItem, index: QtCore.QModelIndex) -> None:
         editor.setGeometry(option.rect)
 
-def main(table, del_files):
+def main(table, del_files: List[str]):
     cols = ('filename', 'frametype', 'ra', 'dec', 'target', 'dispname', 'binning', 'mjd', 'airmass', 'exptime', 'dispangle', 'dichroic', 'slitwid')
     app = QtWidgets.QApplication([])
     window = MainWindow(table, cols, del_files)
@@ -253,7 +260,6 @@ def main(table, del_files):
 if __name__ == '__main__':
     blue_table = Table.read('/Users/milan/Documents/GitHub/DBSP_DRP/table_red.dat', format='ascii')
 
-    main(blue_table)
+    main(blue_table, [])
     # TODO:
-    #   - save on quit
     #   - default size / column sizing

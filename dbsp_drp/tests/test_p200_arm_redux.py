@@ -1,6 +1,6 @@
-from dbsp_drp import p200_arm_redux
-from IPython import embed
 import numpy as np
+
+from dbsp_drp import p200_arm_redux
 
 def interp_w_error_tester(xmin, xmax, xsize, xpmin, xpmax, xpsize):
     x = np.linspace(xmin, xmax, xsize)
@@ -10,7 +10,7 @@ def interp_w_error_tester(xmin, xmax, xsize, xpmin, xpmax, xpsize):
 
     y, yerr = p200_arm_redux.interp_w_error(x, xp, yp, err_yp)
     y_numpy = np.interp(x, xp, yp)
-    assert(np.all(y == y_numpy))
+    assert np.all(y == y_numpy)
 
 def test_interp_w_error():
     interp_w_error_tester(0, 10, 100, -1, 11, 23)
