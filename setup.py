@@ -16,7 +16,6 @@ setup(
         "scipy",
         "matplotlib",
         "numba",
-        "PyQt5",
         "pyyaml",
         "configobj",
         "scikit-learn",
