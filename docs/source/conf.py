@@ -30,6 +30,7 @@ author = 'Milan S. Roberson'
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinx.ext.napoleon',
     'sphinx_rtd_theme'
 ]
 
