@@ -16,6 +16,7 @@ from pypeit.pypeitsetup import PypeItSetup
 
 from dbsp_drp import p200_arm_redux
 from dbsp_drp import table_edit
+from dbsp_drp import fix_headers
 
 
 def parser(options: Optional[List[str]] = None) -> argparse.Namespace:
@@ -117,6 +118,7 @@ def main(args):
     options_red['qa_dict'] = options_blue['qa_dict']
 
     if do_red:
+        fix_headers.main(options_red['root'])
         context = p200_arm_redux.setup(options_red)
         # optionally use interactive correction
         if args.no_interactive:
@@ -126,6 +128,7 @@ def main(args):
         options_red['pypeit_file'] = pypeit_file_red
 
     if do_blue:
+        fix_headers.main(options_blue['root'])
         context = p200_arm_redux.setup(options_blue)
         if args.no_interactive:
             interactive_correction(context[0])
