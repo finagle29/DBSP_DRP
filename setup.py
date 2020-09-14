@@ -9,7 +9,7 @@ setup(
     license="GPL3",
     packages=['dbsp_drp'],
     scripts=['bin/dbsp_reduce'],
-    package_data={'dbsp_drp': ['dbsp_drp/data/*']},
+    package_data={'dbsp_drp': ['data/*']},
     install_requires=[
         "numpy",
         "astropy",
