@@ -1,0 +1,5 @@
+include README.md
+include 
+recursive-include dbsp_drp *
+
+global-exclude *.pyc *.o *.so *.DS_Store
