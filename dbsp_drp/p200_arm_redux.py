@@ -189,7 +189,7 @@ def flux(args: dict) -> None:
     spectrograph_def_par = spectrograph.default_pypeit_par()
     par = pypeitpar.PypeItPar.from_cfg_lines(cfg_lines=spectrograph_def_par.to_config(), merge_with=config_lines)
     # Write the par to disk
-    par_outfile = os.path.join(args['output_path'], f"{args['flux_file']}.par")
+    par_outfile = os.path.join(args['output_path'], f"{os.path.basename(args['flux_file'])}.par")
     print(f"Writing the parameters to {par_outfile}")
     par.to_config(par_outfile)
 
