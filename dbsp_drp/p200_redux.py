@@ -182,7 +182,7 @@ def main(args):
             best_sens = spec1d_table[stds & arm]['sensfunc'][np.abs(spec1d_table[stds & arm]['airmass'] - row['airmass']).argmin()]
             standards_fluxing.append(best_sens)
         elif row['frametype'] == 'standard':
-            if stds.sum() == 1:
+            if (stds & arm).sum() == 1:
                 best_sens = spec1d_table[stds & arm]['sensfunc'][np.abs(spec1d_table[stds & arm]['airmass'] - row['airmass']).argmin()]
                 standards_fluxing.append(best_sens)
             else:
