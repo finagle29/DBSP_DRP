@@ -5,6 +5,6 @@
 fileId=1uxR-kGDVvB6wLD7AW26OzzitYv0eZLr0
 fileName=TelFit_Lick_3100_11100_R10000.fits
 destPath=$(python -c "import pypeit; import os; print(os.path.join(os.path.dirname(pypeit.__file__), 'data', 'telluric', '${fileName}'))")
-curl -sc# /tmp/cookie "https://drive.google.com/uc?export=download&id=${fileId}" > /dev/null
+curl -sc /tmp/cookie "https://drive.google.com/uc?export=download&id=${fileId}" > /dev/null
 code="$(awk '/_warning_/ {print $NF}' /tmp/cookie)"
-curl -Lb# /tmp/cookie "https://drive.google.com/uc?export=download&confirm=${code}&id=${fileId}" -o ${destPath}
+curl -Lb /tmp/cookie "https://drive.google.com/uc?export=download&confirm=${code}&id=${fileId}" -o ${destPath}
