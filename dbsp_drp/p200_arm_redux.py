@@ -85,13 +85,12 @@ def write_setup(args: dict, context: Tuple[PypeItSetup, str]) -> List[str]:
     """
     ps, output_path = context
     # Use PypeItMetaData to write the complete PypeIt file
-    pypeit_file = os.path.join(output_path, '{0}.pypeit'.format(args['spectrograph']))
     config_list = [item.strip() for item in args['cfg_split'].split(',')]
 
     ps.user_cfg.append('[calibrations]')
     ps.user_cfg.append('master_dir = Master_' + args['spectrograph'].split('_')[-1])
 
-    return ps.fitstbl.write_pypeit(pypeit_file, cfg_lines=ps.user_cfg,
+    return ps.fitstbl.write_pypeit(output_path, cfg_lines=ps.user_cfg,
                                    write_bkg_pairs=args['background'], configs=config_list)
 
 def redux(args: dict) -> None:
