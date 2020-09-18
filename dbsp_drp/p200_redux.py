@@ -152,9 +152,11 @@ def main(args):
         p200_arm_redux.write_extraction_QA(options_red)
 
 
+    fname_len = len(os.path.abspath(options_red['output_path'])) + 15 # /blueNNNN.fits 
+    sensfunc_len = len(os.path.abspath(options_red['output_path'])) + 70 # /sens_blueNNNN-OBJ_DBSPb_YYYYMMMDDTHHMMSS.SPAT.fits
     # Find standards and make sensitivity functions
     spec1d_table = Table(names=('filename', 'arm', 'object', 'frametype', 'airmass', 'mjd', 'sensfunc'),
-                         dtype=('U100', 'U4', 'U20', 'U8', float, float, 'U100'))
+                         dtype=(f'U{fname_len}', 'U4', 'U20', 'U8', float, float, f'U{sensfunc_len}'))
 
     # Ingest spec_1d tables
     paths = glob.glob(os.path.join(args.output_path, "Science/spec1d*.fits"))
