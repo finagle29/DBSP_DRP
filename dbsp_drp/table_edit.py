@@ -93,18 +93,21 @@ class TableModel(QtCore.QAbstractTableModel):
         try:
             col = self._cols[index.column()]
             row = index.row()
+            am = False
             if col == 'ra':
                 ra = Angle(value, unit=u.hour)
                 value = ra.degree
                 if self._data['dec'][row]:
-                    update_airmass(self._data[row])
+                    am = True
             elif col == 'dec':
                 dec = Angle(value, unit=u.deg)
                 value = dec.degree
                 if self._data['ra'][row]:
-                    update_airmass(self._data[row])
+                    am = True
             self._data[col][row] = value
             self._mask[col][row] = False
+            if am:
+                update_airmass(self._data[row])
             self.dataChanged.emit(index, index)
             return True
         except:
