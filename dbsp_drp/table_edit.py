@@ -108,6 +108,7 @@ class TableModel(QtCore.QAbstractTableModel):
             self._mask[col][row] = False
             if am:
                 update_airmass(self._data[row])
+                self._mask['airmass'][row] = False
             self.dataChanged.emit(index, index)
             return True
         except:
