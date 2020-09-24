@@ -13,6 +13,7 @@ from astropy.io import fits
 from astropy.table import Table, Column
 import numpy as np
 from pypeit.pypeitsetup import PypeItSetup
+import tqdm
 
 from dbsp_drp import p200_arm_redux
 from dbsp_drp import table_edit
@@ -263,12 +264,17 @@ def main(args):
                     tellcorr_inputs.append(tmp)
 #                    options_red['spec1dfile'] = obj
 #                    p200_arm_redux.telluric_correct(options_red)
-        pool = multiprocessing.Pool(args.jobs)
-        pool.map(p200_arm_redux.telluric_correct, tellcorr_inputs)
+        if args.jobs == 1:
+            # do it in series
+            for tellcorr_input in tqdm.tqdm(tellcorr_inputs):
+                p200_arm_redux.telluric_correct(tellcorr_input)
+        else:
+            pool = multiprocessing.Pool(args.jobs)
+            list(tqdm.tqdm(pool.imap(p200_arm_redux.telluric_correct, tellcorr_inputs), total=len(tellcorr_inputs)))
         #for opts in tellcorr_inputs:    
         #    pool.apply_async(p200_arm_redux.telluric_correct, opts, error_callback=lambda e: print("error!"))
-        pool.close()
-        pool.join()
+            pool.close()
+            pool.join()
 
     
     # splicing method 1: choose single object closest to arm mean
