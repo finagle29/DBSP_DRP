@@ -201,18 +201,27 @@ def splice(args: dict) -> None:
     Splices red and blue spectra together.
     """
     for target, targ_dict in args['splicing_dict'].items():
-        bluefile = targ_dict['blue']
-        redfile = targ_dict['red']
-        with fits.open(bluefile) as spec_b:
-            with fits.open(redfile) as spec_r:
-                final_wvs, final_flam, final_flam_sig = adjust_and_combine_overlap(spec_b, spec_r, target)
-                # now write this to disk
-                t = astropy.table.Table([final_wvs, final_flam, final_flam_sig], names=('OPT_WAVE_SPLICED', 'OPT_FLAM_SPLICED', 'OPT_FLAM_SPLICED_SIG'))
-                # TODO: make output fits file nicer, possibly copy header from one of the blue/red files
-                t.write(os.path.join(args['output_path'], "Science", f'{target}.fits'), format='fits')
+        bluefile = targ_dict.get('blue')
+        redfile = targ_dict.get('red')
+        if bluefile is None and redfile is None:
+            continue
+        else:
+            final_wvs, final_flam, final_flam_sig = adjust_and_combine_overlap(bluefile, redfile, target)
+            # now write this to disk
+            t = astropy.table.Table([final_wvs, final_flam, final_flam_sig], names=('OPT_WAVE_SPLICED', 'OPT_FLAM_SPLICED', 'OPT_FLAM_SPLICED_SIG'))
+            # TODO: make output fits file nicer, possibly copy header from one of the blue/red files
+            t.write(os.path.join(args['output_path'], "Science", f'{target}.fits'), format='fits')
 
-
-def adjust_and_combine_overlap(spec_b: fits.HDUList, spec_r: fits.HDUList, target: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+def adjust_and_combine_overlap(bluefile: str, redfile: str, target: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    if bluefile is not None:
+        spec_b = fits.open(bluefile)
+        if redfile is None:
+            return spec_b[1].data['wave'], spec_b[1].data['flux'], spec_b[1].data['ivar'] ** -0.5
+    if redfile is not None:
+        spec_r = fits.open(redfile)
+        if bluefile is None:
+            return spec_r[1].data['wave'], spec_r[1].data['flux'], spec_r[1].data['ivar'] ** -0.5
+    
     # combination steps
     overlap_lo = spec_r[1].data['wave'][0]
     overlap_hi = spec_b[1].data['wave'][-1]
