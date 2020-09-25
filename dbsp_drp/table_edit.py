@@ -46,7 +46,10 @@ def get_zenith_ra_dec(time: str) -> astropy.coordinates.SkyCoord:
 class TableModel(QtCore.QAbstractTableModel):
     def __init__(self, data: Table, cols: tuple = None, del_files: list = None):
         super(TableModel, self).__init__()
-        self._data = data #Table(data, masked = True, copy = False) # this actually copies for some reason?
+        # would use
+        # self._data = Table(data, masked = True, copy = False)
+        # but it actually copies for some reason? MSR
+        self._data = data
         self._cols = cols if cols is not None else data.colnames
 
         if data.masked:
@@ -59,7 +62,7 @@ class TableModel(QtCore.QAbstractTableModel):
             self._mask.add_column(self._data[col] == None, name=col)
 
         self._colCount = len(self._cols)
-        
+
         self._modified_files = set()
         self._deleled_files = del_files
 
@@ -70,7 +73,7 @@ class TableModel(QtCore.QAbstractTableModel):
             value = self._data[col][row]
             mask = self._mask[col][row]
             if mask:
-                value = ma.masked
+                return str(ma.masked)
             if col == 'ra':
                 ra = Angle(value, unit=u.deg)
                 value = ra.to_string(unit=u.hour)
@@ -109,6 +112,7 @@ class TableModel(QtCore.QAbstractTableModel):
             if am:
                 update_airmass(self._data[row])
                 self._mask['airmass'][row] = False
+                # TODO: emit a dataChanged event for this row
             self.dataChanged.emit(index, index)
             return True
         except:
