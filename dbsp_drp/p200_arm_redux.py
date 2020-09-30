@@ -10,6 +10,8 @@ from pkg_resources import resource_filename
 from typing import Tuple, List
 
 import numpy as np
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 from astropy.io import fits
@@ -213,6 +215,8 @@ def splice(args: dict) -> None:
             t.write(os.path.join(args['output_path'], "Science", f'{target}.fits'), format='fits')
 
 def adjust_and_combine_overlap(bluefile: str, redfile: str, target: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    # TODO: propagate input masks
+
     if bluefile is not None:
         spec_b = fits.open(bluefile)
         if redfile is None:
@@ -275,30 +279,21 @@ def adjust_and_combine_overlap(bluefile: str, redfile: str, target: str) -> Tupl
     final_flam = np.concatenate((flam_b, olap_flam_avgd, flam_r))
     final_flam_sig = np.concatenate((flam_sig_b, olap_flam_sig_avgd, flam_sig_r))
 
-    plt.errorbar(spec_b[1].data['wave'][mask_b], spec_b[1].data['flux'][mask_b], yerr=spec_b[1].data['ivar'][mask_b] ** -0.5, lw=lw)
-    plt.errorbar(spec_r[1].data['wave'][mask_r], red_mult*spec_r[1].data['flux'][mask_r], yerr=red_mult*spec_r[1].data['ivar'][mask_r] ** -0.5, lw=lw)
-    plt.xlabel('Wavelength (Angstroms)')
-    plt.ylabel('Flux (erg/s/cm${}^2$/$\mathring{A}$)')
-    plt.title(f'Fluxed spectrum of {target}')
-    #plt.ylim(-100,600)
-    plt.ylim(0,20)
-    #plt.xlim(5000,6000)
-    #plt.savefig('ZTF20aagzdjp_fluxed_spectrum.png')
-    plt.show()
+    #plt.errorbar(spec_b[1].data['wave'][mask_b], spec_b[1].data['flux'][mask_b], yerr=spec_b[1].data['ivar'][mask_b] ** -0.5, lw=lw)
+    #plt.errorbar(spec_r[1].data['wave'][mask_r], red_mult*spec_r[1].data['flux'][mask_r], yerr=red_mult*spec_r[1].data['ivar'][mask_r] ** -0.5, lw=lw)
+    #plt.xlabel('Wavelength (Angstroms)')
+    #plt.ylabel('Flux (erg/s/cm${}^2$/$\mathring{A}$)')
+    #plt.title(f'Fluxed spectrum of {target}')
+    #plt.savefig(f'{target}_quickplot.png')
 
 
-    mask = final_flam_sig < 3
     plt.figure(figsize=(20,10))
-    plt.errorbar(final_wvs[mask], final_flam[mask], yerr=final_flam_sig[mask])
+    plt.errorbar(final_wvs, final_flam, yerr=final_flam_sig)
     plt.grid()
-    plt.ylim(0, 20)
-    plt.xlim(3000, 10500)
-    #plt.xlim(7000,8000)
     plt.xlabel('Wavelength (Angstroms)')
     plt.ylabel('Flux (erg/s/cm${}^2$/$\mathring{A}$)')
     plt.title(f'Fluxed spectrum of {target}')
-    #plt.savefig('ZTF20aagzdjp_fluxed_spectrum.png')
-    plt.show()
+    plt.savefig(f'{target}_quickplot.png')
 
     return final_wvs, final_flam, final_flam_sig
 
