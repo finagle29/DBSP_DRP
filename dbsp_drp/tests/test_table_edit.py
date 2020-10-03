@@ -4,6 +4,7 @@ from typing import Callable
 
 import pytest
 import astropy.table
+from astropy.io import fits
 import pypeit.pypeitsetup
 from PyQt5.QtCore import Qt
 from PyQt5 import QtGui
@@ -65,3 +66,28 @@ def test_table_model_setdata(table_model: table_edit.TableModel) -> None:
     assert model.data(ix, Qt.DisplayRole) == "4d20m00s"
 
     assert model.data(ix_am, Qt.BackgroundRole) is None
+
+def test_updating_fits_header(table_model: table_edit.TableModel) -> None:
+    model = table_model(DEFAULT_COLS, [])
+
+    ix = model.createIndex(0, 4)
+    model.setData(ix, "foo")
+
+    ix = model.createIndex(0, 2)
+    model.setData(ix, "4h20m")
+
+    ix = model.createIndex(0, 3)
+    model.setData(ix, "4d20m")
+    
+    ix_fname = model.createIndex(0,0)
+    fname = model.data(ix_fname, Qt.DisplayRole)
+    # secret knowledge!!
+    path = os.path.join(model._data['directory'][0], fname)
+
+    model._update_fits()
+    
+    hdul = fits.open(path)
+    assert hdul[0].header['OBJECT'] == "foo"
+    assert hdul[0].header['RA'] == "4:20:00"
+    assert hdul[0].header['DEC'] == "+4:20:00"
+    hdul.close()
