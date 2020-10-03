@@ -114,6 +114,7 @@ class TableModel(QtCore.QAbstractTableModel):
                 self._mask['airmass'][row] = False
                 # TODO: emit a dataChanged event for this row
             self.dataChanged.emit(index, index)
+            self._modified_row(index)
             return True
         except:
             return False
@@ -252,7 +253,6 @@ class Delegate(QtWidgets.QStyledItemDelegate):
     def setModelData(self, editor: QtWidgets.QLineEdit, model: TableModel, index: QtCore.QModelIndex) -> None:
         value = editor.text()
         model.setData(index, value)
-        model._modified_row(index)
 
     def updateEditorGeometry(self, editor: QtWidgets.QLineEdit, option: QtWidgets.QStyleOptionViewItem, index: QtCore.QModelIndex) -> None:
         editor.setGeometry(option.rect)
