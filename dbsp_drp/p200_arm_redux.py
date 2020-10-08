@@ -5,6 +5,7 @@ Automated Reduction Pipeline for one arm of P200 DBSP.
 import os
 import glob
 import shutil
+import fileinput
 
 from pkg_resources import resource_filename
 from typing import Tuple, List
@@ -35,6 +36,8 @@ from pypeit.spectrographs.util import load_spectrograph
 from pypeit.scripts.flux_calib import read_fluxfile
 from pypeit import fluxcalibrate
 from pypeit.par import pypeitpar
+
+from dbsp_drp.manual_tracing import ManualTracingGUI
 
 
 
@@ -424,6 +427,76 @@ def save_2dspecs(args: dict) -> None:
             }
     
     args['qa_dict'] = obj_png_dict
+
+def manual_extraction_GUI(args):
+    arm = 'blue' if 'blue' in args['spectrograph'] else 'red'
+    paths = glob.glob(os.path.join(args['output_path'], 'Science', f'spec2d_{arm}*.fits'))
+
+    gui_dict = {}
+    for path in paths:
+        # open fits file
+        spec = Spec2DObj.from_file(path, 1)
+        spec1d_file = path.replace('spec2d', 'spec1d')
+
+        if os.path.isfile(spec1d_file):
+            spec1ds = SpecObjs.from_fitsfile(spec1d_file)
+        else:
+            spec1ds = None
+
+        base_name = os.path.basename(path).split('_')[1]
+
+        all_left, all_right, _ = spec.slits.select_edges()
+        edges = [all_left, all_right]
+        traces = [spec1ds[i]['TRACE_SPAT'] for i in range(len(spec1ds))] if spec1ds is not None else None
+
+        gui_dict[base_name] = {
+            'spec': spec,
+            'edges': edges,
+            'traces': traces
+        }
+
+    # call GUI
+    out_shape = spec.sciimg.shape
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    gui = ManualTracingGUI(fig, ax, gui_dict)
+
+    manual_traces = gui.manual_dict
+
+    return manual_traces
+
+def manual_extraction(args: dict) -> list:
+    manual_dict = manual_extraction_GUI(args)
+    pypeit_file = args['pypeit_file']
+
+    new_pypeit_files = []
+    for target in manual_dict:
+        new_pypeit_file = f'{os.path.splitext(pypeit_file)[0]}_{target}.pypeit'
+        shutil.copy(pypeit_file, new_pypeit_file)
+        with fileinput.input(new_pypeit_file, inplace=True) as f:
+            # first add the manual traces
+            print('# Added by DBSP_DRP for manual extraction')
+            print('[reduce]')
+            print('[[extraction]]')
+            print('[[[manual]]]')
+            print(f"spat_spec = {str(manual_dict[target]['spat_spec']).strip('[]')}")
+            print(f"det = {str([1 for trace in manual_dict[target]['spat_spec']]).strip('[]')}")
+            print(f"fwhm = {str(manual_dict[target]['fwhm']).strip('[]')}")
+            for line in f:
+                if 'science' in line and '|' in line and target not in line:
+                    pass
+                elif 'standard' in line and '|' in line and manual_dict[target]['needs_std']:
+                    print(line)
+                else:
+                    print(line)
+        new_pypeit_files.append(new_pypeit_file)
+    return new_pypeit_files
+
+def re_redux(args: dict, pypeit_files: list) -> None:
+    for pypeit_file in pypeit_files:
+        these_opts = args.copy()
+        these_opts['pypeit_file'] = pypeit_file
+        redux(these_opts)
 
 def write_extraction_QA(args: dict) -> None:
     out_path = os.path.join(args['output_path'], 'QA')

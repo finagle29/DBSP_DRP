@@ -15,6 +15,10 @@ import numpy as np
 from pypeit.pypeitsetup import PypeItSetup
 import tqdm
 
+import matplotlib as mpl
+DEFAULT_MPL_BACKEND = mpl.get_backend()
+from matplotlib import pyplot as plt
+
 from dbsp_drp import p200_arm_redux
 from dbsp_drp import table_edit
 from dbsp_drp import fix_headers
@@ -48,6 +52,9 @@ def parser(options: Optional[List[str]] = None) -> argparse.Namespace:
 
     argparser.add_argument('-a', '--arm', default=None,
                            help='[red, blue] to only reduce one arm')
+
+    argparser.add_argument('-m', '--manual-extraction', default=False, action='store_true',
+                           help='manual extraction')
 
     argparser.add_argument('--debug', default=False, action='store_true',
                            help='debug')
@@ -106,7 +113,8 @@ def main(args):
         'plot': False,
         'do_not_reuse_masters': False,
         'debug': args.debug,
-        'qa_dict': {}
+        'qa_dict': {},
+        'manual_extraction': args.manual_extraction
     }
 
     #options_blue['show'] = True
@@ -142,6 +150,7 @@ def main(args):
 
     #options_red['calib_only'] = True
     #options_blue['calib_only'] = True
+    plt.switch_backend("agg")
     if do_red:
         p200_arm_redux.redux(options_red)
         p200_arm_redux.save_2dspecs(options_red)
@@ -152,6 +161,19 @@ def main(args):
     if do_red or do_blue:
         p200_arm_redux.write_extraction_QA(options_red)
 
+    # TODO: use a do/while loop to iterate on the manual extraction GUI until user is satisfied
+    if args['manual_extraction']:
+        # wait for user acknowledgement
+        input("Ready for manual extraction? If using GNU screen/tmux behind ssh, make sure to check that $DISPLAY is correct.")
+        plt.switch_backend(DEFAULT_MPL_BACKEND)
+        if do_red:
+            red_manual_pypeit_files = p200_arm_redux.manual_extraction(options_red)
+        if do_blue:
+            blue_manual_pypeit_files = p200_arm_redux.manual_extraction(options_blue)
+        if do_red:
+            p200_arm_redux.re_redux(options_red, red_manual_pypeit_files)
+        if do_blue:
+            p200_arm_redux.re_redux(options_blue, blue_manual_pypeit_files)
 
     fname_len = len(os.path.abspath(options_red['output_path'])) + 15 # /blueNNNN.fits 
     sensfunc_len = len(os.path.abspath(options_red['output_path'])) + 70 # /sens_blueNNNN-OBJ_DBSPb_YYYYMMMDDTHHMMSS.SPAT.fits
