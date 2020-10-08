@@ -124,7 +124,8 @@ def make_sensfunc(args: dict) -> str:
     Makes a sensitivity function
     """
     par = load_spectrograph(args['spectrograph']).default_pypeit_par()
-    outfile = os.path.join(args['output_path'], os.path.basename(args['spec1dfile']).replace('spec1d', 'sens'))
+    outfile = os.path.join(args['output_path'],
+        os.path.basename(args['spec1dfile']).replace('spec1d', 'sens'))
 
     #par['sensfunc']['UVIS']['extinct_correct'] = False
 
@@ -249,7 +250,8 @@ def adjust_and_combine_overlap(bluefile: str, redfile: str, target: str) -> Tupl
         astropy.stats.sigma_clipped_stats(spec_r[1].data['flux'][olap_r])[1])
     #red_mult = np.average(spec_aag[1].data['OPT_FLAM'][olap_b], weights=spec_aag[1].data['OPT_FLAM_SIG'][olap_b] ** -2.0)/np.average(spec_aag_red[1].data['OPT_FLAM'][olap_r], weights=spec_aag_red[1].data['OPT_FLAM_SIG'][olap_r] ** -2.0)
     if red_mult > 3 or 1/red_mult > 3:
-        msgs.warn(f"Red spectrum is {red_mult} times less flux than blue spectrum in overlap region. The red and blue traces may not correspond to the same object.")
+        msgs.warn(f"Red spectrum is {red_mult} times less flux than blue spectrum in overlap region." +
+            "The red and blue traces may not correspond to the same object.")
 
 
     # different dispersion.

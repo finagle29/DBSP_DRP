@@ -61,13 +61,15 @@ class TableModel(QtCore.QAbstractTableModel):
         for col in self._cols:
             self._mask.add_column(self._data[col] == None, name=col)
 
-        self._colCount = len(self._cols)
+        self._col_count = len(self._cols)
 
         self._modified_files = set()
         self._deleled_files = del_files
 
+        self._menu = None
+
     def data(self, index: QtCore.QModelIndex, role) -> Union[str, QtGui.QColor, None]:
-        if role == Qt.DisplayRole or role == Qt.EditRole:
+        if role in (Qt.DisplayRole, Qt.EditRole):
             col = self._cols[index.column()]
             row = index.row()
             value = self._data[col][row]
@@ -92,7 +94,10 @@ class TableModel(QtCore.QAbstractTableModel):
             if masked:
                 return QtGui.QColor(Qt.red)
 
-    def setData(self, index: QtCore.QModelIndex, value: object, role: Qt.ItemDataRole=Qt.EditRole) -> bool:
+    def setData(self, index: QtCore.QModelIndex, value: object,
+                role: Qt.ItemDataRole=Qt.EditRole)-> bool:
+        if role != Qt.EditRole:
+            return False
         try:
             col = self._cols[index.column()]
             row = index.row()
@@ -128,7 +133,7 @@ class TableModel(QtCore.QAbstractTableModel):
         return len(self._data)
 
     def columnCount(self, index: QtCore.QModelIndex) -> int:
-        return self._colCount
+        return self._col_count
 
     def headerData(self, section, orientation: Qt.Alignment, role: Qt.ItemDataRole) -> str:
         if role == Qt.DisplayRole:
@@ -176,18 +181,24 @@ class TableModel(QtCore.QAbstractTableModel):
             path = os.path.join(row['directory'][0], fname)
             with fits.open(path, mode='update') as hdul:
                 if not maskrow['ra']:
-                    update_header(hdul[0].header, 'RA', Angle(row['ra'][0], unit=u.deg).to_string(unit=u.hour, sep=':'),
-                                  f'Right Ascension. Modified {now_str}')
+                    update_header(hdul[0].header, 'RA',
+                        Angle(row['ra'][0], unit=u.deg).to_string(unit=u.hour, sep=':'),
+                        f'Right Ascension. Modified {now_str}')
                 if not maskrow['dec']:
-                    update_header(hdul[0].header, 'DEC', Angle(row['dec'][0], unit=u.deg).to_string(unit=u.deg, sep=':', alwayssign=True),
-                                  f'Declination. Modified {now_str}')
+                    update_header(hdul[0].header, 'DEC',
+                        Angle(row['dec'][0], unit=u.deg).to_string(unit=u.deg, sep=':',
+                            alwayssign=True),
+                        f'Declination. Modified {now_str}')
                 if not maskrow['airmass']:
-                    update_header(hdul[0].header, 'AIRMASS', f"{row['airmass'][0]:.3f}", f'Airmass. Modified {now_str}')
+                    update_header(hdul[0].header, 'AIRMASS', f"{row['airmass'][0]:.3f}",
+                        f'Airmass. Modified {now_str}')
                 if not maskrow['target']:
-                    update_header(hdul[0].header, 'OBJECT', row['target'][0], f'object title. Modified {now_str}')
+                    update_header(hdul[0].header, 'OBJECT', row['target'][0],
+                        f'object title. Modified {now_str}')
                 if not maskrow['dispangle']:
-                    update_header(hdul[0].header, 'ANGLE', Angle(row['dispangle'][0], unit=u.deg).to_string(unit=u.deg, sep=(' deg ', ' min'), fields=2),
-                                  f'Grating Angle. Modified {now_str}')
+                    update_header(hdul[0].header, 'ANGLE',
+                        Angle(row['dispangle'][0], unit=u.deg).to_string(unit=u.deg, sep=(' deg ', ' min'), fields=2),
+                        f'Grating Angle. Modified {now_str}')
                 if not maskrow['dispname']:
                     update_header(hdul[0].header, 'GRATING', row['dispname'][0], f'lines/mm & Blaze. Modified {now_str}')
 
