@@ -162,7 +162,7 @@ def main(args):
         p200_arm_redux.write_extraction_QA(options_red)
 
     # TODO: use a do/while loop to iterate on the manual extraction GUI until user is satisfied
-    if args['manual_extraction']:
+    if args.manual_extraction:
         # wait for user acknowledgement
         input("Ready for manual extraction? If using GNU screen/tmux behind ssh, make sure to check that $DISPLAY is correct.")
         plt.switch_backend(DEFAULT_MPL_BACKEND)
