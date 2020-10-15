@@ -59,24 +59,28 @@ class ManualTracingGUI:
             for trace in traces:
                 plt.axvline(np.median(trace), c='orange')
             
-            g_init = models.Const1D(amplitude=0.)
+            #g_init = models.Const1D(amplitude=0.)
             
             for trace in self.manual_dict[target]['spat_spec']:
                 spat = float(trace.split(":")[0])
                 plt.axvline(spat, c='blue')
                 
-                g_init += models.Gaussian1D(amplitude=1., mean=spat, stddev=1.)# + models.Linear1D(slope=0., intercept=0.)
+                g_init = models.Gaussian1D(amplitude=1., mean=spat, stddev=1.) + models.Linear1D(slope=0., intercept=0.)
                 fit_g = fitting.LevMarLSQFitter()
                 xs = np.arange(spec.sciimg.shape[1])
                 mask = np.abs(xs - spat) < 20
                 g = fit_g(g_init, xs[mask], np.mean(skysub_resid, axis=0)[mask])
                 fwhm = g.stddev_0.value * 2 * np.sqrt(2*np.log(2))
                 self.manual_dict[target]['fwhm'] = fwhm
+                # maybe modify spat_spec with fitted mean????
+                # not great tbh
+                # just tell user to be precise
                 print(fwhm)
                 plt.plot(g(xs), c='cyan')
+            plt.show()
         
         for target in self.manual_dict:
-            self.manual_dict[target]['needs_std'] = (self.spec_dict[target]['traces'] is None)
+            self.manual_dict[target]['needs_std'] = (self.specs_dict[target]['traces'] is None)
 
     
     @property
@@ -126,8 +130,11 @@ class ManualTracingGUI:
         # TODO: use pypeit order to draw manual traces
         for trace in self.manual_dict[self.target]:
             spat = float(trace.split(':')[0])
+            spec = float(trace.split(':')[1])
             line = self.axes.axvline(spat, c='blue')
             self._plotted_manual_traces.append(line)
+            point = self.axes.scatter(spat, spec, c='blue', marker='x')
+            self._plotted_manual_traces.append(point)
             #line = self.axes.axvline(spat/440, c='blue')
             #self._plotted_manual_traces.append(line)
         self.canvas.draw()
@@ -141,10 +148,12 @@ class ManualTracingGUI:
             # display next spectrum
             self.spec_index = (self.spec_index + 1) % len(self.targets)
             self.plot()
+            self.plot_manual_traces()
         elif key == 'left':
             # display previous spectrum
             self.spec_index = (self.spec_index - 1) % len(self.targets)
             self.plot()
+            self.plot_manual_traces()
         elif key == 'm':
             # save mouse cursor position
             self.manual_dict[self.target].append(f'{event.xdata}:{event.ydata}')
@@ -158,7 +167,7 @@ class ManualTracingGUI:
                 for i in range(len(manual_traces)):
                     this_spat = float(manual_traces[i].split(':')[0])
                     # 5 pixel threshold?
-                    if abs(this_spat - event.xdata) < 5:
+                    if abs(this_spat - event.xdata) < 10:
                         if best_trace_ix is None:
                             best_trace_ix = i
                             best_spat = this_spat

@@ -458,7 +458,6 @@ def manual_extraction_GUI(args):
         }
 
     # call GUI
-    out_shape = spec.sciimg.shape
     fig = plt.figure()
     ax = fig.add_subplot(111)
     gui = ManualTracingGUI(fig, ax, gui_dict)
@@ -473,6 +472,7 @@ def manual_extraction(args: dict) -> list:
 
     new_pypeit_files = []
     for target in manual_dict:
+        target_fname = target.split('-')[0]
         new_pypeit_file = f'{os.path.splitext(pypeit_file)[0]}_{target}.pypeit'
         shutil.copy(pypeit_file, new_pypeit_file)
         with fileinput.input(new_pypeit_file, inplace=True) as f:
@@ -485,7 +485,7 @@ def manual_extraction(args: dict) -> list:
             print(f"det = {str([1 for trace in manual_dict[target]['spat_spec']]).strip('[]')}")
             print(f"fwhm = {str(manual_dict[target]['fwhm']).strip('[]')}")
             for line in f:
-                if 'science' in line and '|' in line and target not in line:
+                if 'science' in line and '|' in line and target_fname not in line:
                     pass
                 elif 'standard' in line and '|' in line and manual_dict[target]['needs_std']:
                     print(line)
