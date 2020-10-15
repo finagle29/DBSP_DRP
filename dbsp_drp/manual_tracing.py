@@ -46,7 +46,7 @@ class ManualTracingGUI:
         self.plot()
         plt.show()
 
-        self.manual_dict = {k: {'spat_spec': v} for k, v in self.manual_dict.items() if v}
+        self.manual_dict = {k: {'spat_spec': v} for k, v in self.manual_dict.items() if len(v) > 0}
 
         # Should we try to find FWHM?
         # lets try:
