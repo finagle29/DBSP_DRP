@@ -119,6 +119,8 @@ def redux(args: dict) -> None:
     msgs.info('Generating QA HTML')
     pypeIt.build_qa()
 
+    return [pypeIt.spec_output_file(i) for i in range(len(pypeIt.fitstbl.table))]
+
 def make_sensfunc(args: dict) -> str:
     """
     Makes a sensitivity function
