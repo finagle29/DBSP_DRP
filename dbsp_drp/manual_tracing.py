@@ -55,13 +55,14 @@ class ManualTracingGUI:
             spec = targ_dict['spec']
             traces = targ_dict['traces']
             skysub_resid = self.compute_sky_resid(spec)
-            plt.plot(np.mean(skysub_resid, axis=0), c='gray')
-            for trace in traces:
-                plt.axvline(np.median(trace), c='orange')
             
             #g_init = models.Const1D(amplitude=0.)
             
             for trace in self.manual_dict[target]['spat_spec']:
+                plt.plot(np.mean(skysub_resid, axis=0), c='gray')
+                for trace in traces:
+                    plt.axvline(np.median(trace), c='orange')
+                
                 spat = float(trace.split(":")[0])
                 plt.axvline(spat, c='blue')
                 
@@ -72,12 +73,24 @@ class ManualTracingGUI:
                 g = fit_g(g_init, xs[mask], np.mean(skysub_resid, axis=0)[mask])
                 fwhm = g.stddev_0.value * 2 * np.sqrt(2*np.log(2))
                 self.manual_dict[target]['fwhm'] = fwhm
+                print(f"Fitted FHWM was found to be {fwhm:.2f} pix.")
+                
                 # maybe modify spat_spec with fitted mean????
                 # not great tbh
                 # just tell user to be precise
-                print(fwhm)
                 plt.plot(g(xs), c='cyan')
-            plt.show()
+                plt.xlim(spat - 20, spat + 20)
+                plt.ylim(-g.amplitude_0.value, 2*g.amplitude_0.value)
+                plt.show()
+                user_fwhm = input("If this looks right, hit enter. If the fit was bad, enter your estimate of this object's FWHM in pixels: ")
+                if user_fwhm:
+                    try:
+                        user_fwhm = float(user_fwhm.strip())
+                        self.manual_dict[target]['fwhm'] = user_fwhm
+                        print(f"Using manually entered FWHM of {user_fwhm:.2f}")
+                    except:
+                        print(f"Could not cast user-entered FWHM guess {user_fwhm} to a float.")
+                        print(f"Keeping fitted fwhm {fwhm}")
         
         for target in self.manual_dict:
             self.manual_dict[target]['needs_std'] = (self.specs_dict[target]['traces'] is None)
