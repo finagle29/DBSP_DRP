@@ -1,8 +1,32 @@
 dbsp\_drp package
 =================
 
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   dbsp_drp.tests
+
 Submodules
 ----------
+
+dbsp\_drp.fix\_headers module
+-----------------------------
+
+.. automodule:: dbsp_drp.fix_headers
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+dbsp\_drp.manual\_tracing module
+--------------------------------
+
+.. automodule:: dbsp_drp.manual_tracing
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
 dbsp\_drp.p200\_arm\_redux module
 ---------------------------------

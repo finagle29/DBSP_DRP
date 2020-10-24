@@ -3,18 +3,19 @@ from matplotlib import pyplot as plt
 import numpy as np
 from astropy.modeling import models, fitting
 
-
-from dbsp_drp import p200_arm_redux
-
 class ManualTracingGUI:
-    """GUI for manually identifying object traces
+    """
+    GUI for manually identifying object traces
 
     Takes in specs_dict:
-    specs_dict[target_name] == {
-        'spec': spectrum_2d,
-        'edges': [all_left_edges, all_right_edges],
-        'traces': traces
-    }
+
+    .. code-block::
+
+        specs_dict[target_name] == {
+            'spec': spectrum_2d,
+            'edges': [all_left_edges, all_right_edges],
+            'traces': traces
+        }
 
     How to use:
     Displays one spectrum at a time
@@ -124,6 +125,8 @@ class ManualTracingGUI:
         return (spec.sciimg - spec.skymodel) * np.sqrt(spec.ivarmodel) * (spec.bpmmask == 0)
     
     def plot(self):
+        from dbsp_drp import p200_arm_redux
+
         self.axes.clear()
         self.canvas.set_window_title(self.target)
         
