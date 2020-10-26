@@ -119,11 +119,11 @@ def redux(args: dict) -> None:
     msgs.info('Generating QA HTML')
     pypeIt.build_qa()
 
-    return list(filter([
+    return list(filter(os.path.isfile, [
             os.path.abspath(pypeIt.spec_output_file(i)) \
             for i in range(len(pypeIt.fitstbl.table)) \
             if pypeIt.fitstbl.table[i]['frametype'] in ['science', 'standard']
-        ], os.path.isfile))
+        ]))
 
 def make_sensfunc(args: dict) -> str:
     """
