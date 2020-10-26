@@ -119,7 +119,7 @@ def redux(args: dict) -> None:
     msgs.info('Generating QA HTML')
     pypeIt.build_qa()
 
-    return [pypeIt.spec_output_file(i) for i in range(len(pypeIt.fitstbl.table)) \
+    return [os.path.abspath(pypeIt.spec_output_file(i)) for i in range(len(pypeIt.fitstbl.table)) \
         if pypeIt.fitstbl.table[i]['frametype'] in ['science', 'standard']]
 
 def make_sensfunc(args: dict) -> str:
