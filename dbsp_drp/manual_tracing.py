@@ -54,15 +54,15 @@ class ManualTracingGUI:
         for target in self.manual_dict:
             targ_dict = self.specs_dict[target]
             spec = targ_dict['spec']
-            traces = targ_dict['traces']
+            traces = targ_dict['traces'] if targ_dict['traces'] is not None else []
             skysub_resid = self.compute_sky_resid(spec)
             
             #g_init = models.Const1D(amplitude=0.)
             
             for trace in self.manual_dict[target]['spat_spec']:
                 plt.plot(np.mean(skysub_resid, axis=0), c='gray')
-                for trace in traces:
-                    plt.axvline(np.median(trace), c='orange')
+                for trace_pypeit in traces:
+                    plt.axvline(np.median(trace_pypeit), c='orange')
                 
                 spat = float(trace.split(":")[0])
                 plt.axvline(spat, c='blue')
