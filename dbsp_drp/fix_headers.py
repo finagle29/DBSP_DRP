@@ -17,9 +17,9 @@ def _get_ra_or_dec(path, is_ra, header):
         if coord_str != '':
             try:
                 coord = Angle(coord_str, unit=unit)
-                header[{kw}] = coord.to_string()
+                header[kw] = coord.to_string()
             except:
-                header[{kw}] = coord_str
+                header[kw] = coord_str
 
 def main(basepath):
     paths = glob.glob(os.path.join(basepath, '*.fits'))
