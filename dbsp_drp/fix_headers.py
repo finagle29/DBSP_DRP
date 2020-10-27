@@ -11,14 +11,14 @@ def _get_ra_or_dec(path, is_ra, header):
     unit = 'hour' if is_ra else 'deg'
     try:
         coord = header[kw]
-    except:
+    except KeyError:
         coord_str = input(f"File {path} is missing {kw} keyword in header. Header may be severely malformed.\
-             Enter the {kw} of {header['OBJECT']} or an empty string if not known.")
+             Enter the {kw} of {header['OBJECT']} or an empty string if not known: ")
         if coord_str != '':
             try:
                 coord = Angle(coord_str, unit=unit)
-                header[kw] = coord.to_string()
-            except:
+                header[kw] = coord.to_string(unit=unit, sep=':')
+            except ValueError:
                 header[kw] = coord_str
 
 def main(basepath):
@@ -29,11 +29,10 @@ def main(basepath):
         with fits.open(path, mode='update', ignore_missing_end=True) as hdul:
             header = hdul[0].header
             try:
-                ang = Angle(header['ANGLE'], unit='deg').to_string()
-                header['ANGLE'] = ang
+                ang = Angle(header['ANGLE'], unit='deg').to_string(unit='deg', sep=(' deg ', ' min'), fields=2)
             except ValueError:
                 try:
-                    ang = Angle(header['GRATING']).to_string()
+                    ang = Angle(header['GRATING']).to_string(unit='deg', sep=(' deg ', ' min'), fields=2)
                     grat = header['ANGLE']
                     header['ANGLE'] = ang
                     header['GRATING'] = grat
