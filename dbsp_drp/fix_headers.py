@@ -23,8 +23,10 @@ def _get_ra_or_dec(is_ra, header):
 
 def main(basepath):
     paths = glob.glob(os.path.join(basepath, '*.fits'))
+    if not paths:
+        paths = glob.glob(f'{basepath}*.fits')
     for path in paths:
-        with fits.open(path, mode='update') as hdul:
+        with fits.open(path, mode='update', ignore_missing_end=True) as hdul:
             header = hdul[0].header
             try:
                 ang = Angle(header['ANGLE'], unit='deg').to_string()
