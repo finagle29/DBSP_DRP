@@ -6,7 +6,7 @@ from astropy.io import fits
 from astropy.coordinates import Angle
 
 
-def _get_ra_or_dec(is_ra, header):
+def _get_ra_or_dec(path, is_ra, header):
     kw = 'RA' if is_ra else 'DEC'
     unit = 'hour' if is_ra else 'deg'
     try:
@@ -40,5 +40,5 @@ def main(basepath):
                 except:
                     raise ValueError(f"ANGLE in header ({header['ANGLE']}) is not parseable as an angle\
                                     and neither is GRATING ({header['GRATING']}), the usual suspect")
-            _get_ra_or_dec(True, header)
-            _get_ra_or_dec(False, header)
+            _get_ra_or_dec(path, True, header)
+            _get_ra_or_dec(path, False, header)
