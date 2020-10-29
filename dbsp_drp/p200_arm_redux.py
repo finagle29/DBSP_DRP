@@ -256,7 +256,7 @@ def adjust_and_combine_overlap(bluefile: str, redfile: str, target: str) -> Tupl
         astropy.stats.sigma_clipped_stats(spec_r[1].data['flux'][olap_r])[1])
     #red_mult = np.average(spec_aag[1].data['OPT_FLAM'][olap_b], weights=spec_aag[1].data['OPT_FLAM_SIG'][olap_b] ** -2.0)/np.average(spec_aag_red[1].data['OPT_FLAM'][olap_r], weights=spec_aag_red[1].data['OPT_FLAM_SIG'][olap_r] ** -2.0)
     if red_mult > 3 or 1/red_mult > 3:
-        msgs.warn(f"Red spectrum is {red_mult} times less flux than blue spectrum in overlap region." +
+        msgs.warn(f"For {target}, red spectrum is {red_mult} times less flux than blue spectrum in overlap region." +
             "The red and blue traces may not correspond to the same object.")
 
 
@@ -548,11 +548,13 @@ def write_extraction_QA(args: dict) -> None:
 
     msgs.info("Writing Extraction QA page")
     result = indent(doc.getvalue())
-    with open(os.path.join(out_path, 'Extraction.html'), mode='wt') as f:
+    extraction_page = os.path.join(out_path, 'Extraction.html')
+    with open(extraction_page, mode='wt') as f:
         f.write(result)
 
     shutil.copy(resource_filename("dbsp_drp", "/data/dbsp_qa.js"), os.path.join(out_path, "dbsp_qa.js"))
     shutil.copy(resource_filename("dbsp_drp", "/data/dbsp_qa.css"), os.path.join(out_path, "dbsp_qa.css"))
+    msgs.info(f"Extraction QA page available at {extraction_page}")
 
 def coadd(args: dict) -> List[str]:
     """
