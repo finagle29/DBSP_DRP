@@ -598,7 +598,8 @@ def telluric_correct(args: dict):
     outfile = os.path.join(args['output_path'], "Science", (os.path.basename(args['spec1dfile'])).replace('.fits','_tellcorr.fits'))
     modelfile = os.path.join(args['output_path'], "Science", (os.path.basename(args['spec1dfile'])).replace('.fits','_tellmodel.fits'))
 
-    TelPoly = telluric.poly_telluric(args['spec1dfile'], par['tellfit']['tell_grid'], modelfile, outfile,
+    try:
+        TelPoly = telluric.poly_telluric(args['spec1dfile'], par['tellfit']['tell_grid'], modelfile, outfile,
                                          z_obj=par['tellfit']['redshift'],
                                          func=par['tellfit']['func'], model=par['tellfit']['model'],
                                          polyorder=par['tellfit']['polyorder'],
@@ -608,3 +609,5 @@ def telluric_correct(args: dict):
                                          minmax_coeff_bounds=par['tellfit']['minmax_coeff_bounds'],
                                          only_orders=par['tellfit']['only_orders'],
                                          debug_init=args['debug'], disp=args['debug'], debug=args['debug'], show=args['plot'])
+    except ValueError:
+        print(f"ERROR!! Telluric correction of {args['spec1dfile']} FAILED!")

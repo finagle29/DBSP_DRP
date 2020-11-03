@@ -323,6 +323,12 @@ def main(args):
                 best_spec = row['coadds'][best_ix]
             else:
                 best_spec = row['coadds'][best_ix].replace(".fits", "_tellcorr.fits")
+                if not os.path.isfile(best_spec):
+                    # Telluric correction failed.
+                    print(f"ERROR!! Telluric correction of spectrum {row['coadds'][best_ix]} FAILED!")
+                    print(f"The final spectrum for {target} will NOT be telluric corrected.")
+                    best_spec = row['coadds'][best_ix]
+
             
             if splicing_dict.get(target):
                 splicing_dict[target][row['arm']] = best_spec
