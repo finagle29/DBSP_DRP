@@ -26,7 +26,15 @@ def main(basepath):
     if not paths:
         paths = glob.glob(f'{basepath}*.fits')
     for path in paths:
-        with fits.open(path, mode='update', ignore_missing_end=True) as hdul:
+        if (os.path.getsize(path) % 2880):
+            size = os.path.getsize(path)
+            print(f"WARNING: {os.path.basename(path)} is {size} bytes long, which is NOT a multiple of 2880.")
+            print("Therefore it is an invalid FITS file.")
+            print("It will now be truncated to the next smallest multiple of 2880 bytes long")
+            with open(path, 'r+b') as f:
+                f.seek(-(size % 2880), SEEK_END)
+                f.truncate
+        with fits.open(path, mode='update') as hdul:
             header = hdul[0].header
             try:
                 ang = Angle(header['ANGLE'], unit='deg').to_string(unit='deg', sep=(' deg ', ' min'), fields=2)
