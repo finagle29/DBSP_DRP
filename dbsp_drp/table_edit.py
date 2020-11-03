@@ -275,10 +275,5 @@ def main(table, del_files: List[str]):
     window.show()
     app.exec_()
 
-
-if __name__ == '__main__':
-    blue_table = Table.read('/Users/milan/Documents/GitHub/DBSP_DRP/table_red.dat', format='ascii')
-
-    main(blue_table, [])
-    # TODO:
-    #   - default size / column sizing
+# TODO:
+#   - default size / column sizing
