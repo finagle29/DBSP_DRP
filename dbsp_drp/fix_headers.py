@@ -34,7 +34,7 @@ def main(basepath):
             print("It will now be truncated to the next smallest multiple of 2880 bytes long")
             with open(path, 'r+b') as f:
                 f.seek(-(size % 2880), io.SEEK_END)
-                f.truncate
+                f.truncate()
         with fits.open(path, mode='update') as hdul:
             header = hdul[0].header
             try:
