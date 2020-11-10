@@ -90,7 +90,7 @@ class TableModel(QtCore.QAbstractTableModel):
             return str(value)
         if role == Qt.BackgroundRole:
             col = self._cols[index.column()]
-            masked = self._mask[col][index.row()]
+            masked = self._mask[col][index.row()] or (self._data[col][index.row()] == 'None')
             if masked:
                 return QtGui.QColor(Qt.red)
 
