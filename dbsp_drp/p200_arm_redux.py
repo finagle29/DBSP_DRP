@@ -119,8 +119,14 @@ def redux(args: dict) -> None:
     msgs.info('Generating QA HTML')
     pypeIt.build_qa()
 
-    return list(filter(os.path.isfile, [
+    args['output_spec1ds'] |= set(filter(os.path.isfile, [
             os.path.abspath(pypeIt.spec_output_file(i)) \
+            for i in range(len(pypeIt.fitstbl.table)) \
+            if pypeIt.fitstbl.table[i]['frametype'] in ['science', 'standard']
+        ]))
+    
+    args['output_spec2ds'] |= set(filter(os.path.isfile, [
+            os.path.abspath(pypeIt.spec_output_file(i, True)) \
             for i in range(len(pypeIt.fitstbl.table)) \
             if pypeIt.fitstbl.table[i]['frametype'] in ['science', 'standard']
         ]))
@@ -361,7 +367,7 @@ def save_2dspecs(args: dict) -> None:
     obj_png_dict = args['qa_dict']
 
     arm = 'blue' if 'blue' in args['spectrograph'] else 'red'
-    paths = glob.glob(os.path.join(args['output_path'], 'Science', f'spec2d_{arm}*.fits'))
+    paths = args['output_spec2ds']
     
     out_path = os.path.join(args['output_path'], 'QA', 'PNGs', 'Extraction')
     if not os.path.exists(out_path):
@@ -438,7 +444,7 @@ def save_2dspecs(args: dict) -> None:
 
 def manual_extraction_GUI(args):
     arm = 'blue' if 'blue' in args['spectrograph'] else 'red'
-    paths = glob.glob(os.path.join(args['output_path'], 'Science', f'spec2d_{arm}*.fits'))
+    paths = args['output_spec2ds']
 
     gui_dict = {}
     for path in paths:
@@ -481,22 +487,28 @@ def manual_extraction(args: dict) -> list:
         target_fname = target.split('-')[0]
         new_pypeit_file = f'{os.path.splitext(pypeit_file)[0]}_{target}.pypeit'
         shutil.copy(pypeit_file, new_pypeit_file)
-        with fileinput.input(new_pypeit_file, inplace=True) as f:
-            # first add the manual traces
-            print('# Added by DBSP_DRP for manual extraction')
-            print('[reduce]')
-            print('[[extraction]]')
-            print('[[[manual]]]')
-            print(f"spat_spec = {str(manual_dict[target]['spat_spec']).strip('[]')}")
-            print(f"det = {str([1 for trace in manual_dict[target]['spat_spec']]).strip('[]')}")
-            print(f"fwhm = {str(manual_dict[target]['fwhm']).strip('[]')}")
-            for line in f:
-                if 'science' in line and '|' in line and target_fname not in line:
-                    pass
-                elif 'standard' in line and '|' in line and manual_dict[target]['needs_std']:
-                    print(line)
-                else:
-                    print(line)
+
+        manual_extract_lines = ['# Added by DBSP_DRP for manual extraction\n',
+            '[reduce]\n',
+            '[[extraction]]\n',
+            '[[[manual]]]\n',
+            f"spat_spec = {str(manual_dict[target]['spat_spec']).strip('[]')}\n",
+            f"det = {str([1 for trace in manual_dict[target]['spat_spec']]).strip('[]')}\n",
+            f"fwhm = {str(manual_dict[target]['fwhm']).strip('[]')}\n"
+        ]
+        # Maybe also turn down significance threshold
+
+        with open(pypeit_file, 'r') as pypeit_fd:
+            with open(new_pypeit_file, 'w') as new_pypeit_fd:
+                new_pypeit_fd.writelines(manual_extract_lines)
+                for line in pypeit_fd.readlines():
+                    if 'science' in line and '|' in line and target_fname not in line:
+                        pass
+                    elif 'standard' in line and '|' in line and manual_dict[target]['needs_std']:
+                        new_pypeit_fd.write(line)
+                    else:
+                        new_pypeit_fd.write(line)
+
         new_pypeit_files.append(new_pypeit_file)
     return new_pypeit_files
 
@@ -504,6 +516,7 @@ def re_redux(args: dict, pypeit_files: list) -> None:
     for pypeit_file in pypeit_files:
         these_opts = args.copy()
         these_opts['pypeit_file'] = pypeit_file
+        print(f"Using pypeit file {pypeit_file}")
         redux(these_opts)
 
 def write_extraction_QA(args: dict) -> None:

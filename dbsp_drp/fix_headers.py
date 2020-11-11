@@ -1,6 +1,5 @@
 import os
 import io
-import sys
 import glob
 
 from astropy.io import fits

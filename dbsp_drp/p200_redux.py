@@ -3,9 +3,9 @@ Automatic Reduction Pipeline for P200 DBSP.
 """
 
 import argparse
-import glob
 import os
 import time
+import copy
 import multiprocessing
 from typing import Optional, List
 
@@ -114,14 +114,16 @@ def main(args):
         'do_not_reuse_masters': False,
         'debug': args.debug,
         'qa_dict': {},
-        'manual_extraction': args.manual_extraction
+        'manual_extraction': args.manual_extraction,
+        'output_spec1ds': set(),
+        'output_spec2ds': set()
     }
 
     #options_blue['show'] = True
     #options_blue['calib_only'] = True
     #options_blue['do_not_reuse_masters'] = True
 
-    options_red = options_blue.copy()
+    options_red = copy.deepcopy(options_blue)
     options_red['spectrograph'] = 'p200_dbsp_red'
     options_red['root'] = os.path.join(args.root, 'red')
     options_red['qa_dict'] = options_blue['qa_dict']
@@ -151,13 +153,11 @@ def main(args):
     #options_red['calib_only'] = True
     #options_blue['calib_only'] = True
     plt.switch_backend("agg")
-    red_spec1ds = []
-    blue_spec1ds = []
     if do_red:
-        red_spec1ds = p200_arm_redux.redux(options_red)
+        p200_arm_redux.redux(options_red)
         p200_arm_redux.save_2dspecs(options_red)
     if do_blue:
-        blue_spec1ds = p200_arm_redux.redux(options_blue)
+        p200_arm_redux.redux(options_blue)
         p200_arm_redux.save_2dspecs(options_blue)
 
     if do_red or do_blue:
@@ -184,7 +184,7 @@ def main(args):
                          dtype=(f'U{fname_len}', 'U4', 'U20', 'U8', float, float, f'U{sensfunc_len}'))
 
     # Ingest spec_1d tables
-    paths = red_spec1ds + blue_spec1ds
+    paths = options_red['output_spec1ds'] | options_blue['output_spec1ds']
     for path in paths:
         with fits.open(path) as hdul:
             arm = 'red' if 'red' in os.path.basename(path) else 'blue'
