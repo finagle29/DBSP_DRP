@@ -228,7 +228,7 @@ def splice(args: dict) -> None:
             # now write this to disk
             t = astropy.table.Table([final_wvs, final_flam, final_flam_sig], names=('OPT_WAVE_SPLICED', 'OPT_FLAM_SPLICED', 'OPT_FLAM_SPLICED_SIG'))
             # TODO: make output fits file nicer, possibly copy header from one of the blue/red files
-            t.write(os.path.join(args['output_path'], "Science", f'{target}.fits'), format='fits')
+            t.write(os.path.join(args['output_path'], "Science", f'{target}.fits'), format='fits', overwrite=True)
 
 def adjust_and_combine_overlap(bluefile: str, redfile: str, target: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     # TODO: propagate input masks
