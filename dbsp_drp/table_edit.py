@@ -110,6 +110,10 @@ class TableModel(QtCore.QAbstractTableModel):
                 value = dec.degree
                 if self._data['ra'][row]:
                     am = True
+            elif col =='dispangle':
+                value = Angle(value, unit=u.deg).degree
+            elif col == 'mjd' or col == 'airmass':
+                value = float(value)
             self._data[col][row] = value
             self._mask[col][row] = False
             if am:
@@ -119,7 +123,8 @@ class TableModel(QtCore.QAbstractTableModel):
             self.dataChanged.emit(index, index)
             self._modified_row(index)
             return True
-        except:
+        except ValueError:
+            print(f"Error: could not parse {value} as the required type for column {col}.")
             return False
 
     def flags(self, index: QtCore.QModelIndex) -> Qt.ItemFlag:
