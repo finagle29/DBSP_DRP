@@ -66,8 +66,6 @@ class TableModel(QtCore.QAbstractTableModel):
         self._modified_files = set()
         self._deleled_files = del_files
 
-        self._menu = None
-
     def data(self, index: QtCore.QModelIndex, role) -> Union[str, QtGui.QColor, None]:
         if role in (Qt.DisplayRole, Qt.EditRole):
             col = self._cols[index.column()]
@@ -222,14 +220,15 @@ class TableView(QtWidgets.QTableView):
     def show_context_menu(self, point: QtCore.QPoint) -> None:
         index = self.indexAt(point)
         if index.isValid():
-            self._menu = QtWidgets.QMenu(self)
+            menu = QtWidgets.QMenu(self)
+            menu.setAttribute(Qt.WA_DeleteOnClose)
             frametype = self.model().frametype(index)
             if ('bias' in frametype) or ('arc' in frametype) or ('flat' in frametype):
-                action = self._menu.addAction('Set RA/Dec and Airmass to Zenith')
+                action = menu.addAction('Set RA/Dec and Airmass to Zenith')
                 action.triggered.connect(lambda: self.model()._set_data_to_zenith(index))
-            action = self._menu.addAction('Delete row')
+            action = menu.addAction('Delete row')
             action.triggered.connect(lambda: self.model()._delete_row(index))
-            self._menu.popup(self.viewport().mapToGlobal(point))
+            menu.popup(self.viewport().mapToGlobal(point))
 
 
 class MainWindow(QtWidgets.QMainWindow):
