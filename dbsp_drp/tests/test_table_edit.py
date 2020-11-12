@@ -67,6 +67,10 @@ def test_table_model_setdata(table_model: table_edit.TableModel) -> None:
 
     assert model.data(ix_am, Qt.BackgroundRole) is None
 
+    assert not model.setData(ix_am, "abc")
+    assert model.setData(ix_am, "1.234")
+    assert float(model.data(ix_am, Qt.DisplayRole)) == float("1.234")
+
 def test_updating_fits_header(table_model: table_edit.TableModel) -> None:
     model = table_model(DEFAULT_COLS, [])
 
@@ -78,14 +82,14 @@ def test_updating_fits_header(table_model: table_edit.TableModel) -> None:
 
     ix = model.createIndex(0, 3)
     model.setData(ix, "4d20m")
-    
+
     ix_fname = model.createIndex(0,0)
     fname = model.data(ix_fname, Qt.DisplayRole)
     # secret knowledge!!
     path = os.path.join(model._data['directory'][0], fname)
 
     model._update_fits()
-    
+
     hdul = fits.open(path)
     assert hdul[0].header['OBJECT'] == "foo"
     assert hdul[0].header['RA'] == "4:20:00"
