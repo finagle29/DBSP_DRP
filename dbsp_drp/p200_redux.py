@@ -195,11 +195,19 @@ def main(args):
     if do_red:
         for row in spec1d_table[(spec1d_table['arm'] == 'red') & (spec1d_table['frametype'] == 'standard')]:
             options_red['spec1dfile'] = row['filename']
-            spec1d_table['sensfunc'][spec1d_table['filename'] == row['filename']] = p200_arm_redux.make_sensfunc(options_red)
+            sensfunc = p200_arm_redux.make_sensfunc(options_red)
+            if sensfunc == "":
+                spec1d_table['frametype'][spec1d_table['filename'] == row['filename']] = 'science'
+            else:
+                spec1d_table['sensfunc'][spec1d_table['filename'] == row['filename']] = sensfunc
     if do_blue:
         for row in spec1d_table[(spec1d_table['arm'] == 'blue') & (spec1d_table['frametype'] == 'standard')]:
             options_blue['spec1dfile'] = row['filename']
-            spec1d_table['sensfunc'][spec1d_table['filename'] == row['filename']] = p200_arm_redux.make_sensfunc(options_blue)
+            sensfunc = p200_arm_redux.make_sensfunc(options_blue)
+            if sensfunc == "":
+                spec1d_table['frametype'][spec1d_table['filename'] == row['filename']] = 'science'
+            else:
+                spec1d_table['sensfunc'][spec1d_table['filename'] == row['filename']] = sensfunc
 
     stds = spec1d_table['frametype'] == 'standard'
     standards_fluxing = []

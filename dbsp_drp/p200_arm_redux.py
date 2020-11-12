@@ -27,6 +27,7 @@ from pypeit.pypeitsetup import PypeItSetup
 from pypeit import defs
 from pypeit import pypeit
 from pypeit import msgs
+from pypeit import pypmsgs
 from pypeit import sensfunc
 from pypeit import coadd1d
 from pypeit.core import telluric
@@ -135,37 +136,43 @@ def make_sensfunc(args: dict) -> str:
     """
     Makes a sensitivity function
     """
-    par = load_spectrograph(args['spectrograph']).default_pypeit_par()
-    outfile = os.path.join(args['output_path'],
-        os.path.basename(args['spec1dfile']).replace('spec1d', 'sens'))
+    try:
+        par = load_spectrograph(args['spectrograph']).default_pypeit_par()
+        outfile = os.path.join(args['output_path'],
+            os.path.basename(args['spec1dfile']).replace('spec1d', 'sens'))
 
-    #par['sensfunc']['UVIS']['extinct_correct'] = False
+        #par['sensfunc']['UVIS']['extinct_correct'] = False
 
-    sensobj = sensfunc.SensFunc.get_instance(args['spec1dfile'], outfile, par=par['sensfunc'], debug=args['debug'])
+        sensobj = sensfunc.SensFunc.get_instance(args['spec1dfile'], outfile, par=par['sensfunc'], debug=args['debug'])
 
-    if 'red' in args['spectrograph']:
-        # read in spec1dfile to get wavelengths
-        sobjs = SpecObjs.from_fitsfile(args['spec1dfile'])
-        wave_star = sobjs[0].OPT_WAVE
-        orig_mask = sensobj.counts_mask.copy()
+        if 'red' in args['spectrograph']:
+            # read in spec1dfile to get wavelengths
+            sobjs = SpecObjs.from_fitsfile(args['spec1dfile'])
+            wave_star = sobjs[0].OPT_WAVE
+            orig_mask = sensobj.counts_mask.copy()
 
-        mask_tell = np.ones_like(wave_star).astype(bool)
-        tell_opt = np.any([((wave_star >= 6270.00) & (wave_star <= 6290.00)), # H2O
-                           ((wave_star >= 6850.00) & (wave_star <= 6960.00)), # O2 telluric band
-                           ((wave_star >= 7580.00) & (wave_star <= 7750.00)), # O2 telluric band
-                           ((wave_star >= 7160.00) & (wave_star <= 7340.00)), # H2O
-                           ((wave_star >= 8150.00) & (wave_star <= 8250.00))], axis=0) # H2O
-        mask_tell[tell_opt] = False
+            mask_tell = np.ones_like(wave_star).astype(bool)
+            tell_opt = np.any([((wave_star >= 6270.00) & (wave_star <= 6290.00)), # H2O
+                            ((wave_star >= 6850.00) & (wave_star <= 6960.00)), # O2 telluric band
+                            ((wave_star >= 7580.00) & (wave_star <= 7750.00)), # O2 telluric band
+                            ((wave_star >= 7160.00) & (wave_star <= 7340.00)), # H2O
+                            ((wave_star >= 8150.00) & (wave_star <= 8250.00))], axis=0) # H2O
+            mask_tell[tell_opt] = False
 
-        sensobj.counts_mask &= mask_tell
+            sensobj.counts_mask &= mask_tell
 
 
-    sensobj.run()
-    if 'red' in args['spectrograph']:
-        sensobj.out_table['MASK_SENS'] = orig_mask
+        sensobj.run()
+        if 'red' in args['spectrograph']:
+            sensobj.out_table['MASK_SENS'] = orig_mask
 
-    sensobj.save()
-    return outfile
+        sensobj.save()
+        return outfile
+    except pypmsgs.PypeItError as err:
+        print(f"ERROR creating sensitivity function using {args['spec1dfile']}")
+        print("Changing its frametype to science")
+        print(str(err))
+        return ""
 
 def build_fluxfile(args: dict) -> str:
     """
