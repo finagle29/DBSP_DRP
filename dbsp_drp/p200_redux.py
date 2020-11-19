@@ -13,6 +13,7 @@ from astropy.io import fits
 from astropy.table import Table, Column
 import numpy as np
 from pypeit.pypeitsetup import PypeItSetup
+import pypeit.display
 import tqdm
 
 import matplotlib as mpl
@@ -109,8 +110,8 @@ def main(args):
         'background': None,
         'cfg_split': 'all',
         'calib_only': False,
-        'show': False,
-        'plot': False,
+        'show': args.debug,
+        'plot': args.debug,
         'do_not_reuse_masters': False,
         'debug': args.debug,
         'qa_dict': {},
@@ -127,6 +128,9 @@ def main(args):
     options_red['spectrograph'] = 'p200_dbsp_red'
     options_red['root'] = os.path.join(args.root, 'red')
     options_red['qa_dict'] = options_blue['qa_dict']
+
+    if args.debug:
+        pypeit.display.display.connect_to_ginga(raise_err=True, allow_new=True)
 
     if do_red:
         fix_headers.main(options_red['root'])
