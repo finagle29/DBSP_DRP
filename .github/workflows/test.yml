@@ -32,6 +32,8 @@ jobs:
           conda env create -f environment.yml
           source activate dbsp_drp
           pip install -e .
+          conda list
+          pip list
 
       - name: Testing with pytest
         run: |
