@@ -283,8 +283,8 @@ def adjust_and_combine_overlap(bluefile: str, redfile: str, target: str) -> Tupl
 
 
     olap_wvs_r = spec_r[1].data['wave'][olap_r]
-    olap_flam_r = spec_r[1].data['flux'][olap_r]
-    olap_flam_sig_r = spec_r[1].data['ivar'][olap_r] ** -0.5
+    olap_flam_r = red_mult * spec_r[1].data['flux'][olap_r]
+    olap_flam_sig_r = red_mult * spec_r[1].data['ivar'][olap_r] ** -0.5
     olap_wvs_b = spec_b[1].data['wave'][olap_b][:-1]
     olap_flam_b = spec_b[1].data['flux'][olap_b][:-1]
     olap_flam_sig_b = spec_b[1].data['ivar'][olap_b][:-1] ** -0.5
@@ -300,8 +300,8 @@ def adjust_and_combine_overlap(bluefile: str, redfile: str, target: str) -> Tupl
     olap_flam_sig_avgd = 1.0 / np.sqrt(np.mean(weights, axis=0))
 
     final_wvs = np.concatenate((wvs_b, olap_wvs_b, wvs_r))
-    final_flam = np.concatenate((flam_b, olap_flam_avgd, flam_r))
-    final_flam_sig = np.concatenate((flam_sig_b, olap_flam_sig_avgd, flam_sig_r))
+    final_flam = np.concatenate((flam_b, olap_flam_avgd, red_mult * flam_r))
+    final_flam_sig = np.concatenate((flam_sig_b, olap_flam_sig_avgd, red_mult * flam_sig_r))
 
     #plt.errorbar(spec_b[1].data['wave'][mask_b], spec_b[1].data['flux'][mask_b], yerr=spec_b[1].data['ivar'][mask_b] ** -0.5, lw=lw)
     #plt.errorbar(spec_r[1].data['wave'][mask_r], red_mult*spec_r[1].data['flux'][mask_r], yerr=red_mult*spec_r[1].data['ivar'][mask_r] ** -0.5, lw=lw)
