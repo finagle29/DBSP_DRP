@@ -35,4 +35,5 @@ jobs:
 
       - name: Testing with pytest
         run: |
+          source activate dbsp_drp
           pytest
