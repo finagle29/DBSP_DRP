@@ -399,7 +399,7 @@ def save_2dspecs(args: dict) -> None:
         mask = spec.bpmmask == 0
 
         out_shape = spec.sciimg.shape
-        fig_width = 0.15 + 4*out_shape[1]/100.
+        fig_width = 0.15 + 5*out_shape[1]/100.
         subfig_width = out_shape[1]/100. / fig_width
         padding_width = 0.15 / fig_width
         fig = plt.figure(figsize=(fig_width, out_shape[0]/100.), dpi=100)
@@ -409,19 +409,23 @@ def save_2dspecs(args: dict) -> None:
         ax = fig.add_axes([0, 0, subfig_width, 1])
         save_one2dspec(ax, spec.sciimg, edges, traces)
 
+        # sky model
+        ax = fig.add_axes([subfig_width + padding_width, 0, subfig_width, 1])
+        save_one2dspec(ax, spec.skymodel * mask, edges, traces)
+
         # sky subtracted science image
         #ax = fig.add_subplot(1, 4, 2)
-        ax = fig.add_axes([subfig_width + padding_width, 0, subfig_width, 1])
+        ax = fig.add_axes([2*(subfig_width + padding_width), 0, subfig_width, 1])
         save_one2dspec(ax, (spec.sciimg - spec.skymodel) * mask, edges, traces)
 
         # sky subtracted images divided by noise
         #ax = fig.add_subplot(1, 4, 3)
-        ax = fig.add_axes([2*(subfig_width + padding_width), 0, subfig_width, 1])
+        ax = fig.add_axes([3*(subfig_width + padding_width), 0, subfig_width, 1])
         save_one2dspec(ax, (spec.sciimg - spec.skymodel) * np.sqrt(spec.ivarmodel) * mask, edges, traces)
 
         # total residauls
         #ax = fig.add_subplot(1, 4, 4)
-        ax = fig.add_axes([3*(subfig_width + padding_width), 0, subfig_width, 1])
+        ax = fig.add_axes([4*(subfig_width + padding_width), 0, subfig_width, 1])
         save_one2dspec(ax, (spec.sciimg - spec.skymodel - spec.objmodel) * np.sqrt(spec.ivarmodel) * mask, edges, traces)
 
         # save figure
