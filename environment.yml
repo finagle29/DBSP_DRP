@@ -1,9 +1,9 @@
 name: dbsp_drp
 channels:
-- defaults
 - conda-forge
+- defaults
 dependencies:
-- python >= 3.7
+- python >= 3.8
 - numpy >= 1.16.0
 - astropy >= 4.0
 - scipy >= 1.4
