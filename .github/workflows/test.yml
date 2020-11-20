@@ -9,8 +9,8 @@ jobs:
       matrix:
         python-version: [3.7, 3.8]
       defaults:
-      run:
-        shell: bash -l {0}
+        run:
+          shell: bash -l {0}
     steps:
       - uses: actions/checkout@v2
 
@@ -22,11 +22,13 @@ jobs:
           channels: conda-forge
           channel-priority: strict
 
-      - name: Install DBSP_DRp
+      - run: |
+        conda info
+        conda config --show-sources
+        conda config --show
+
+      - name: Install DBSP_DRP
         run: |
-          conda info
-          conda config --show-sources
-          conda config --show
           pip install -e .
           conda list
           pip list
