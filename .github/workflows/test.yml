@@ -5,12 +5,13 @@ on: [push, pull_request]
 jobs:
   test:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
     strategy:
       matrix:
         python-version: [3.7, 3.8]
-      defaults:
-        run:
-          shell: bash -l {0}
+      
     steps:
       - uses: actions/checkout@v2
 
