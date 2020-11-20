@@ -22,13 +22,14 @@ jobs:
         with:
           update-conda: true
           python-version: ${{ matrix.python-version }}
-          conda-channels: conda-forge, anaconda
 
       # env activation as suggested by @s-weigand
       - name: Conda environment creation
         # might need 
         # conda env create -f environment.yml python=${{ matrix.python-version }}
         run: |
+          conda config --add channels conda-forge
+          conda config --set channel_priority strict
           conda env create -f environment.yml
           source activate dbsp_drp
           pip install -e .
