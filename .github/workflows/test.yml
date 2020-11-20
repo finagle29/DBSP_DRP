@@ -23,9 +23,9 @@ jobs:
           channel-priority: strict
 
       - run: |
-        conda info
-        conda config --show-sources
-        conda config --show
+          conda info
+          conda config --show-sources
+          conda config --show
 
       - name: Install DBSP_DRP
         run: |
