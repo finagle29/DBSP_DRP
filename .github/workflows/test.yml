@@ -20,7 +20,6 @@ jobs:
           environment-file: environment.yml
           activate-environment: dbsp_drp
           python-version: ${{ matrix.python-version }}
-          channels: conda-forge
           channel-priority: strict
 
       - run: |
