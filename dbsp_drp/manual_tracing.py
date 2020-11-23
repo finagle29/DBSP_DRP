@@ -47,7 +47,7 @@ class ManualTracingGUI:
         self.plot()
         plt.show()
 
-        self.manual_dict = {k: {'spat_spec': v} for k, v in self.manual_dict.items() if len(v) > 0}
+        self.manual_dict = {k: {'spat_spec': v, 'fwhm': []} for k, v in self.manual_dict.items() if len(v) > 0}
 
         # Should we try to find FWHM?
         # lets try:
@@ -73,7 +73,7 @@ class ManualTracingGUI:
                 mask = np.abs(xs - spat) < 20
                 g = fit_g(g_init, xs[mask], np.mean(skysub_resid, axis=0)[mask])
                 fwhm = g.stddev_0.value * 2 * np.sqrt(2*np.log(2))
-                self.manual_dict[target]['fwhm'] = fwhm
+                fwhm_to_use = fwhm
                 print(f"Fitted FHWM was found to be {fwhm:.2f} pix.")
                 
                 # maybe modify spat_spec with fitted mean????
@@ -87,11 +87,12 @@ class ManualTracingGUI:
                 if user_fwhm:
                     try:
                         user_fwhm = float(user_fwhm.strip())
-                        self.manual_dict[target]['fwhm'] = user_fwhm
+                        fwhm_to_use = user_fwhm
                         print(f"Using manually entered FWHM of {user_fwhm:.2f}")
-                    except:
+                    except ValueError:
                         print(f"Could not cast user-entered FWHM guess {user_fwhm} to a float.")
                         print(f"Keeping fitted fwhm {fwhm}")
+                self.manual_dict[target]['fwhm'].append(fwhm_to_use)
         
         for target in self.manual_dict:
             self.manual_dict[target]['needs_std'] = (self.specs_dict[target]['traces'] is None)
