@@ -6,8 +6,8 @@ import pytest
 import astropy.table
 from astropy.io import fits
 import pypeit.pypeitsetup
-from PyQt5.QtCore import Qt
-from PyQt5 import QtGui
+from PySide2.QtCore import Qt
+from PySide2 import QtGui
 
 from dbsp_drp import table_edit
 
