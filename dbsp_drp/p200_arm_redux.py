@@ -24,7 +24,6 @@ from astropy.visualization import ZScaleInterval, ImageNormalize
 from yattag import Doc, indent
 
 from pypeit.pypeitsetup import PypeItSetup
-from pypeit import defs
 from pypeit import pypeit
 from pypeit import msgs
 from pypeit import pypmsgs
@@ -56,17 +55,6 @@ def setup(args: dict) -> Tuple[PypeItSetup, str]:
     Returns:
         Tuple[PypeItSetup, str]: [description]
     """
-    # Check that the spectrograph is provided if using a file root
-    if args['root'] is not None:
-        if args['spectrograph'] is None:
-            raise ValueError('Must provide spectrograph identifier with file root.')
-        # Check that input spectrograph is supported
-        instruments_served = defs.pypeit_spectrographs
-        if args['spectrograph'] not in instruments_served:
-            raise ValueError('Instrument \'{0}\' unknown to PypeIt.\n'.format(args['spectrograph'])
-                             + '\tOptions are: {0}\n'.format(', '.join(instruments_served))
-                             + '\tSelect an available instrument or consult the documentation '
-                             + 'on how to add a new instrument.')
 
     # Get the output directory
     output_path = os.getcwd() if args['output_path'] is None else args['output_path']
