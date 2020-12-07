@@ -7,8 +7,8 @@ from astropy.table import Table
 import matplotlib.pyplot as plt
 from numpy import ma
 
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import Qt
+from PySide2 import QtCore, QtGui, QtWidgets
+from PySide2.QtCore import Qt
 
 from astropy.coordinates import Angle, SkyCoord, EarthLocation, AltAz, ICRS
 from astropy.time import Time
