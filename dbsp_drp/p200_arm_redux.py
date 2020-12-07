@@ -41,6 +41,24 @@ from dbsp_drp.manual_tracing import ManualTracingGUI
 
 
 
+def parse_pypeit_parameter_file(args: dict) -> None:
+    user_config_lines = []
+    read_lines = False
+    arm = 'red' if 'red' in args['spectrograph'] else 'blue'
+    other_arm = 'red' if 'blue' in arm else 'blue'
+
+    if os.path.isfile(args['parameter_file']):
+        with open(args['parameter_file']) as f:
+            for line in f.readlines():
+                if f'[{other_arm}]' in line:
+                    read_lines = False
+                if read_lines:
+                    user_config_lines.append(line)
+                if f'[{arm}]' in line:
+                    read_lines = True
+    args['user_config_lines'] = user_config_lines
+
+
 def setup(args: dict) -> Tuple[PypeItSetup, str]:
     """Does PypeIt setup, without writing the .pypeit file
 
@@ -83,6 +101,9 @@ def write_setup(args: dict, context: Tuple[PypeItSetup, str]) -> List[str]:
 
     ps.user_cfg.append('[calibrations]')
     ps.user_cfg.append('master_dir = Master_' + args['spectrograph'].split('_')[-1])
+
+    for user_cfg_line in args['user_config_lines']:
+        ps.user_cfg.append(user_cfg_line)
 
     return ps.fitstbl.write_pypeit(output_path, cfg_lines=ps.user_cfg,
                                    write_bkg_pairs=args['background'], configs=config_list)

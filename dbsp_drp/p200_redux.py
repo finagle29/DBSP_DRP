@@ -35,7 +35,8 @@ def parser(options: Optional[List[str]] = None) -> argparse.Namespace:
         argparse.Namespace: Parsed arguments
     """
     # Define command line arguments.
-    argparser = argparse.ArgumentParser(description="Automatic Data Reduction Pipeline for P200 DBSP")
+    argparser = argparse.ArgumentParser(description="Automatic Data Reduction Pipeline for P200 DBSP",
+        formatter_class=argparse.RawTextHelpFormatter)
 
     # Argument for fully-automatic (i.e. nightly) or with user-checking file typing
     argparser.add_argument('-i', '--no-interactive', default=True, action='store_false',
@@ -52,7 +53,7 @@ def parser(options: Optional[List[str]] = None) -> argparse.Namespace:
     # Argument for specifying only red/blue
 
     argparser.add_argument('-a', '--arm', default=None,
-                           help='[red, blue] to only reduce one arm')
+                           help='[red, blue] to only reduce one arm (does not splice)')
 
     argparser.add_argument('-m', '--manual-extraction', default=False, action='store_true',
                            help='manual extraction')
@@ -62,6 +63,15 @@ def parser(options: Optional[List[str]] = None) -> argparse.Namespace:
     argparser.add_argument('-j', '--jobs', type=int, default=1,
                             help='Number of processes to use')
 
+    argparser.add_argument('-p', '--parameter-file', type=str, default="",
+                           help="Path to parameter file. The parameter file should be formatted as follows:\n\n"
+                            "[blue]\n"
+                            "** PypeIt parameters for the blue side goes here **\n"
+                            "[red]\n"
+                            "** PypeIt parameters for the red side goes here **\n"
+                            "EOF\n\n"
+                            "The [red/blue] parameter blocks are optional, and their order does not matter.")
+    
     argparser.add_argument('-t', '--skip-telluric', default=False, action='store_true',
                            help='Skip telluric correction')
 
@@ -120,7 +130,8 @@ def main(args):
         'qa_dict': {},
         'manual_extraction': args.manual_extraction,
         'output_spec1ds': set(),
-        'output_spec2ds': set()
+        'output_spec2ds': set(),
+        'parameter_file': args.parameter_file
     }
 
     #options_blue['show'] = True
@@ -131,6 +142,9 @@ def main(args):
     options_red['spectrograph'] = 'p200_dbsp_red'
     options_red['root'] = os.path.join(args.root, 'red')
     options_red['qa_dict'] = options_blue['qa_dict']
+
+    p200_arm_redux.parse_pypeit_parameter_file(options_blue)
+    p200_arm_redux.parse_pypeit_parameter_file(options_red)
 
     if args.debug:
         pypeit.display.display.connect_to_ginga(raise_err=True, allow_new=True)
