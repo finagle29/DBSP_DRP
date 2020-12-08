@@ -158,16 +158,22 @@ class TableModel(QtCore.QAbstractTableModel):
 
         self._modified_files.add(self._data['filename'][row])
 
-    def _delete_row(self, index: QtCore.QModelIndex) -> None:
-        row = index.row()
+    def _delete_row(self, row: int) -> None:
         self._deleled_files.append(self._data['filename'][row])
         self._data.remove_row(row)
         self._mask.remove_row(row)
     
+    def _delete_rows(self, rows: List[int]) -> None:
+        # sort indices
+        list.sort(rows, reverse=True)
+        for row in rows:
+            self._delete_row(row)
+
+
     def _modified_row(self, index: QtCore.QModelIndex) -> None:
         row = index.row()
         self._modified_files.add(self._data['filename'][row])
-    
+
     def _update_fits(self) -> None:
         def update_header(header: fits.Header, keyword, new, comment):
             old = header.get(keyword)
@@ -175,7 +181,7 @@ class TableModel(QtCore.QAbstractTableModel):
             if old != new:
                 header[keyword] = new
                 header.comments[keyword] = comment
-        
+
         dt = datetime.now()
         now_str = dt.isoformat(timespec='seconds')
         for fname in self._modified_files:
@@ -231,8 +237,14 @@ class TableView(QtWidgets.QTableView):
             if ('bias' in frametype) or ('arc' in frametype) or ('flat' in frametype):
                 action = menu.addAction('Set RA/Dec and Airmass to Zenith')
                 action.triggered.connect(lambda: self.model()._set_data_to_zenith(index))
-            action = menu.addAction('Delete row')
-            action.triggered.connect(lambda: self.model()._delete_row(index))
+            # if multiple rows are selected
+            selected_rows = list(set(map(lambda ix: ix.row(), self.selectionModel().selectedIndexes())))
+            if len(selected_rows) > 1:
+                action = menu.addAction('Delete rows')
+                action.triggered.connect(lambda: self.model()._delete_rows(selected_rows))
+            else:
+                action = menu.addAction('Delete row')
+                action.triggered.connect(lambda: self.model()._delete_row(index.row()))
             menu.popup(self.viewport().mapToGlobal(point))
 
 
