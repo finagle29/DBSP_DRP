@@ -274,7 +274,6 @@ class Delegate(QtWidgets.QStyledItemDelegate):
 
 def main(table, del_files: List[str]):
     cols = ('filename', 'frametype', 'ra', 'dec', 'target', 'dispname', 'binning', 'mjd', 'airmass', 'exptime', 'dispangle', 'dichroic', 'slitwid')
-    instance = QtWidgets.QApplication.get
     if not QtWidgets.QApplication.instance():
         app = QtWidgets.QApplication([])
     else:
