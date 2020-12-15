@@ -191,7 +191,7 @@ def build_fluxfile(args: dict) -> str:
     Writes the fluxfile for fluxing.
     """
     # args['spec1dfiles'] is a dict mapping spec1d files to the sensitivity function file they should use
-    cfg_lines = args['user_config_lines']
+    cfg_lines = args['user_config_lines'][:]
     cfg_lines.append("\n")
     
     # data section
