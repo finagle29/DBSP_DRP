@@ -34,5 +34,5 @@ $ python setup.py install
 
 ## Usage
 ```shell_session
-$ dbsp_reduce -r /path/to/data/DBSP_YYYYMMDD -o /path/to/data/DBSP_YYYYMMDD_redux
+$ dbsp_reduce -r /path/to/data/DBSP_YYYYMMDD -d /path/to/data/DBSP_YYYYMMDD_redux
 ```
