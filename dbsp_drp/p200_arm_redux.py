@@ -20,7 +20,7 @@ import astropy.stats
 import astropy.table
 from astropy.visualization import ZScaleInterval, ImageNormalize
 
-
+from configobj import ConfigObj
 from yattag import Doc, indent
 
 from pypeit.pypeitsetup import PypeItSetup
@@ -57,7 +57,6 @@ def parse_pypeit_parameter_file(args: dict) -> None:
                 if f'[{arm}]' in line:
                     read_lines = True
     args['user_config_lines'] = user_config_lines
-
 
 def setup(args: dict) -> Tuple[PypeItSetup, str]:
     """Does PypeIt setup, without writing the .pypeit file
@@ -102,8 +101,9 @@ def write_setup(args: dict, context: Tuple[PypeItSetup, str]) -> List[str]:
     ps.user_cfg.append('[calibrations]')
     ps.user_cfg.append('master_dir = Master_' + args['spectrograph'].split('_')[-1])
 
-    for user_cfg_line in args['user_config_lines']:
-        ps.user_cfg.append(user_cfg_line)
+    user_configobj = ConfigObj(ps.user_cfg)
+    user_configobj.merge(ConfigObj(args['user_config_lines']))
+    ps.user_cfg = [line + "\n" for line in user_configobj.write()]
 
     return ps.fitstbl.write_pypeit(output_path, cfg_lines=ps.user_cfg,
                                    write_bkg_pairs=args['background'], configs=config_list)
@@ -147,6 +147,9 @@ def make_sensfunc(args: dict) -> str:
     """
     try:
         par = load_spectrograph(args['spectrograph']).default_pypeit_par()
+        default_cfg_lines = par.to_config()
+        par = pypeitpar.PypeItPar.from_cfg_lines(cfg_lines = default_cfg_lines, merge_with=args['user_config_lines'])
+
         outfile = os.path.join(args['output_path'],
             os.path.basename(args['spec1dfile']).replace('spec1d', 'sens'))
 
@@ -188,10 +191,8 @@ def build_fluxfile(args: dict) -> str:
     Writes the fluxfile for fluxing.
     """
     # args['spec1dfiles'] is a dict mapping spec1d files to the sensitivity function file they should use
-    cfg_lines = []
-    cfg_lines.append('[fluxcalib]')
-    #if 'red' in args['spectrograph']:
-    #cfg_lines.append('extinct_correct = False')
+    cfg_lines = args['user_config_lines']
+    cfg_lines.append("\n")
     
     # data section
     cfg_lines.append('flux read')
@@ -518,16 +519,33 @@ def manual_extraction(args: dict) -> list:
         ]
         # Maybe also turn down significance threshold
 
+        cfg_lines = []
+        setup_lines = []
+        setup = False
         with open(pypeit_file, 'r') as pypeit_fd:
-            with open(new_pypeit_file, 'w') as new_pypeit_fd:
-                new_pypeit_fd.writelines(manual_extract_lines)
-                for line in pypeit_fd.readlines():
-                    if 'science' in line and '|' in line and target_fname not in line:
-                        pass
-                    elif 'standard' in line and '|' in line and manual_dict[target]['needs_std']:
-                        new_pypeit_fd.write(line)
+            # need to have 2 arrays of lines, one for config, one for setup - end
+            for line in pypeit_fd.readlines():
+                if 'science' in line and '|' in line and target_fname not in line:
+                    pass
+                elif 'standard' in line and '|' in line and manual_dict[target]['needs_std']:
+                    setup_lines.append(line)
+                    #new_pypeit_fd.write(line)
+                else:
+                    if '# Setup' in line:
+                        setup=True
+                    if setup:
+                        setup_lines.append(line)
                     else:
-                        new_pypeit_fd.write(line)
+                        cfg_lines.append(line)
+
+        # Note: the user's parameter file is merged into these config lines
+        # so any manual settings user gives might override their GUI actions.
+        # Should probably caution user re: this.
+        final_cfg = ConfigObj(manual_extract_lines)
+        final_cfg.merge(ConfigObj(cfg_lines))
+        final_lines = [line + "\n" for line in final_cfg.write()] + setup_lines
+        with open(new_pypeit_file, 'w') as new_pypeit_fd:
+            new_pypeit_fd.writelines(final_lines)
 
         new_pypeit_files.append(new_pypeit_file)
     return new_pypeit_files
@@ -627,6 +645,8 @@ def telluric_correct(args: dict):
         if par['sensfunc']['IR']['telgridfile'] is not None:
             par['tellfit']['tell_grid'] = par['sensfunc']['IR']['telgridfile']
     
+    par = pypeitpar.PypeItPar.from_cfg_lines(cfg_lines=par.to_config(), merge_with=args['user_config_lines'])
+
     # Parse the output filename
     outfile = os.path.join(args['output_path'], "Science", (os.path.basename(args['spec1dfile'])).replace('.fits','_tellcorr.fits'))
     modelfile = os.path.join(args['output_path'], "Science", (os.path.basename(args['spec1dfile'])).replace('.fits','_tellmodel.fits'))
