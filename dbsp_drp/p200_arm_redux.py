@@ -622,8 +622,11 @@ def coadd(args: dict) -> List[str]:
     return outfiles
 
 def coadd_one_object(spec1dfiles: List[str], objids: List[str], coaddfile: str, args: dict):
+    par = load_spectrograph(args['spectrograph']).default_pypeit_par()
+    default_cfg_lines = par.to_config()
+    par = pypeitpar.PypeItPar.from_cfg_lines(cfg_lines = default_cfg_lines, merge_with=args['user_config_lines'])
     # Instantiate
-    coAdd1d = coadd1d.CoAdd1D.get_instance(spec1dfiles, objids, debug=args['debug'], show=args['debug'])
+    coAdd1d = coadd1d.CoAdd1D.get_instance(spec1dfiles, objids, par=par['coadd1d'], debug=args['debug'], show=args['debug'])
     # Run
     coAdd1d.run()
     # Save to file
