@@ -231,6 +231,12 @@ def flux(args: dict) -> None:
     FxCalib = fluxcalibrate.FluxCalibrate.get_instance(spec1dfiles, sensfiles, par=par['fluxcalib'], debug=args['debug'])
     msgs.info('Flux calibration complete')
 
+def get_raw_header_from_coadd(coadd: str, args: dict) -> str:
+    if coadd is not None:
+        return fits.open(os.path.join(os.path.dirname(args['root']), f"{os.path.basename(coadd).split('-')[0]}.fits"))[0].header
+    else:
+        return fits.Header()
+
 def splice(args: dict) -> None:
     """
     Splices red and blue spectra together.
@@ -238,14 +244,29 @@ def splice(args: dict) -> None:
     for target, targ_dict in args['splicing_dict'].items():
         bluefile = targ_dict.get('blue')
         redfile = targ_dict.get('red')
+
         if bluefile is None and redfile is None:
             continue
-        else:
-            final_wvs, final_flam, final_flam_sig = adjust_and_combine_overlap(bluefile, redfile, target)
-            # now write this to disk
-            t = astropy.table.Table([final_wvs, final_flam, final_flam_sig], names=('OPT_WAVE_SPLICED', 'OPT_FLAM_SPLICED', 'OPT_FLAM_SPLICED_SIG'))
-            # TODO: make output fits file nicer, possibly copy header from one of the blue/red files
-            t.write(os.path.join(args['output_path'], "Science", f'{target}.fits'), format='fits', overwrite=True)
+
+        final_wvs, final_flam, final_flam_sig = adjust_and_combine_overlap(bluefile, redfile, target)
+        ## Here we need something a little more involved to get FITS headers in
+        ## copy source red fits header
+        red_header = get_raw_header_from_coadd(redfile, args)
+        red_header_hdu = fits.PrimaryHDU(header=red_header)
+
+        ## copy source blue fits header
+        blue_header = get_raw_header_from_coadd(bluefile, args)
+        blue_header_hdu = fits.BinTableHDU(header=blue_header)
+
+        col_wvs = fits.Column(name='wave', array=final_wvs, unit='ANGSTROM', format='D')
+        col_flux = fits.Column(name='flux', array=final_flam, unit='E-17 ERG/S/CM^2/ANG', format='D')
+        col_error = fits.Column(name='sigma', array=final_flam_sig, unit='E-17 ERG/S/CM^2/ANG', format='D')
+
+        table_hdu = fits.BinTableHDU.from_columns([col_wvs, col_flux, col_error])
+
+        hdul = fits.HDUList(hdus=[red_header_hdu, blue_header_hdu, table_hdu])
+
+        hdul.writeto(os.path.join(args['output_path'], "Science", f'{target}.fits'), overwrite=True)
 
 def adjust_and_combine_overlap(bluefile: str, redfile: str, target: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     # TODO: propagate input masks
