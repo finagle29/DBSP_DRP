@@ -192,6 +192,7 @@ class ManualTracingGUI:
                             if (abs(this_spat - event.xdata) < abs(best_spat - event.xdata)):
                                 best_trace_ix = i
                                 best_spat = this_spat
-                
-                manual_traces.pop(best_trace_ix)
-                self.plot_manual_traces()
+
+                if best_trace_ix is not None:
+                    manual_traces.pop(best_trace_ix)
+                    self.plot_manual_traces()
