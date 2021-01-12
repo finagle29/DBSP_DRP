@@ -298,7 +298,8 @@ def adjust_and_combine_overlap(bluefile: str, redfile: str, target: str) -> Tupl
     red_mult = 1
     red_mult = (astropy.stats.sigma_clipped_stats(spec_b[1].data['flux'][olap_b])[1] /
         astropy.stats.sigma_clipped_stats(spec_r[1].data['flux'][olap_r])[1])
-    #red_mult = np.average(spec_aag[1].data['OPT_FLAM'][olap_b], weights=spec_aag[1].data['OPT_FLAM_SIG'][olap_b] ** -2.0)/np.average(spec_aag_red[1].data['OPT_FLAM'][olap_r], weights=spec_aag_red[1].data['OPT_FLAM_SIG'][olap_r] ** -2.0)
+    #red_mult = np.average(spec_aag[1].data['OPT_FLAM'][olap_b], weights=spec_aag[1].data['OPT_FLAM_SIG'][olap_b] ** -2.0)\
+    #   /np.average(spec_aag_red[1].data['OPT_FLAM'][olap_r], weights=spec_aag_red[1].data['OPT_FLAM_SIG'][olap_r] ** -2.0)
     if red_mult > 3 or 1/red_mult > 3:
         msgs.warn(f"For {target}, red spectrum is {red_mult} times less flux than blue spectrum in overlap region." +
             "The red and blue traces may not correspond to the same object.")

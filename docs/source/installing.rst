@@ -11,7 +11,7 @@ First download the `DBSP_DRP source <https://github.com/finagle29/DBSP_DRP/archi
 
 Now use the environment.yml file to create a conda environment with the required dependencies.
 
-.. code-block:: console
+.. code-block :: console
 
     $ cd /path/to/DBSP_DRP
     $ conda env create -f environment.yml
@@ -19,7 +19,7 @@ Now use the environment.yml file to create a conda environment with the required
 
 And use the standard ``setup.py`` invocation to install DBSP_DRP.
 
-.. code-block:: console
+.. code-block :: console
 
     $ python setup.py install
 
@@ -31,7 +31,7 @@ First download the provided `environment.yml file <https://raw.githubusercontent
 
 Now use the environment.yml file to create a conda environment with the required dependencies.
 
-.. code-block:: console
+.. code-block :: console
 
     $ cd /path/to/Downloads
     $ conda env create -f environment.yml
@@ -39,7 +39,7 @@ Now use the environment.yml file to create a conda environment with the required
 
 Now use ``pip`` to install DBSP_DRP
 
-.. code-block:: console
+.. code-block :: console
 
     $ pip install https://github.com/finagle29/DBSP_DRP/archive/master.tar.gz
 
@@ -52,7 +52,7 @@ and must be installed into the ``pypeit/data/telluric/`` directory of your PypeI
 
 To determine the location of your PypeIt installation, open the Python interpreter and run
 
-.. code-block:: Python
+.. code-block :: Python
 
     >>> import pypeit
     >>> import os
@@ -62,7 +62,7 @@ To determine the location of your PypeIt installation, open the Python interpret
 An easier alternative is to download and run `this script <https://raw.githubusercontent.com/finagle29/DBSP_DRP/master/bin/download_tellfile>`__,
 which will perform the download and install it into the current PypeIt installation.
 
-.. code-block:: console
+.. code-block :: console
 
     $ cd /path/to/Downloads
     $ chmod +x download_tellfile
@@ -70,7 +70,7 @@ which will perform the download and install it into the current PypeIt installat
 
 If you have multiple PypeIt installations on the same machine, you can create a hard link from the one PypeIt installation to the others so you can reuse the atmospheric model file.
 
-.. code-block:: console
+.. code-block :: console
 
     $ ln /path/to/stable/pypeit/data/telluric/TellFit.fits /path/to/other/pypeit/data/telluric/TellFit.fits
 

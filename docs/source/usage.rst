@@ -6,7 +6,7 @@ After :doc:`installing`, you are ready to reduce some DBSP data!
 
 The basic usage of DBSP_DRP is as follows:
 
-.. code-block:: console
+.. code-block :: console
 
     $ dbsp_reduce -r /path/to/data/DBSP_YYYYMMDD/ -d /output/path/DBSP_YYYYMMDD_redux
 
@@ -36,3 +36,29 @@ previously-marked trace to delete the trace. Once you are satisfied with the
 identification of traces on all of the spectra, close the matplotlib window to repeat
 this process for the other arm. After closing the second window, the manually marked
 spectra will be re-reduced.
+
+If you want to fine-tune the reduction parameters, create a parameter file like so:
+
+.. code-block :: cfg
+
+    # params.cfg
+    [blue]
+    # PypeIt reduction parameters to control the blue side reduction
+    [reduce]
+        [[skysub]]
+            no_local_sky = True
+        [[extraction]]
+            use_2dmodel_mask = False
+    [red]
+    # PypeIt parameters to control the red side reduction
+    [reduce]
+        [[skysub]]
+            no_local_sky = True
+        [[extraction]]
+            use_2dmodel_mask = False
+
+and use the option ``-p params.cfg``.
+
+See `PypeIt Parameters <https://pypeit.readthedocs.io/en/stable/pypeit_par.html>`_ for more
+details on the full set of available parameters.
+
