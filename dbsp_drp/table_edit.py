@@ -145,6 +145,17 @@ class TableModel(QtCore.QAbstractTableModel):
             if orientation == Qt.Vertical:
                 return ''
 
+    def removeRows(self, position: int, rows: int, index: QtCore.QModelIndex = QtCore.QModelIndex()) -> bool:
+        self.beginRemoveRows(index.parent(), position, position + rows - 1)
+
+        for row in range(rows):
+            self._deleled_files.append(self._data['filename'][position])
+            self._data.remove_row(position)
+            self._mask.remove_row(position)
+
+        self.endRemoveRows()
+        return True
+
     def frametype(self, index: QtCore.QModelIndex) -> str:
         return self._data['frametype'][index.row()]
 
@@ -157,18 +168,6 @@ class TableModel(QtCore.QAbstractTableModel):
         self._data['airmass'][row] = 1.0
 
         self._modified_files.add(self._data['filename'][row])
-
-    def _delete_row(self, row: int) -> None:
-        self._deleled_files.append(self._data['filename'][row])
-        self._data.remove_row(row)
-        self._mask.remove_row(row)
-    
-    def _delete_rows(self, rows: List[int]) -> None:
-        # sort indices
-        list.sort(rows, reverse=True)
-        for row in rows:
-            self._delete_row(row)
-
 
     def _modified_row(self, index: QtCore.QModelIndex) -> None:
         row = index.row()
@@ -233,18 +232,17 @@ class TableView(QtWidgets.QTableView):
         if index.isValid():
             menu = QtWidgets.QMenu(self)
             menu.setAttribute(Qt.WA_DeleteOnClose)
+
             frametype = self.model().frametype(index)
-            if ('bias' in frametype) or ('arc' in frametype) or ('flat' in frametype):
+            if any([x in frametype for x in ['bias', 'arc', 'flat']]):
                 action = menu.addAction('Set RA/Dec and Airmass to Zenith')
                 action.triggered.connect(lambda: self.model()._set_data_to_zenith(index))
-            # if multiple rows are selected
-            selected_rows = list(set(map(lambda ix: ix.row(), self.selectionModel().selectedIndexes())))
-            if len(selected_rows) > 1:
-                action = menu.addAction('Delete rows')
-                action.triggered.connect(lambda: self.model()._delete_rows(selected_rows))
-            else:
-                action = menu.addAction('Delete row')
-                action.triggered.connect(lambda: self.model()._delete_row(index.row()))
+
+            selected_rows = sorted(set(ix.row() for ix in self.selectionModel().selectedIndexes()), reverse=True)
+            action = menu.addAction(f'Delete row{"s" if len(selected_rows) > 1 else ""}')
+            action.triggered.connect(lambda: [self.model().removeRow(row) for row in selected_rows] +
+                [self.selectionModel().clear()])
+
             menu.popup(self.viewport().mapToGlobal(point))
 
 
