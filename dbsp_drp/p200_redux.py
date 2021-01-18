@@ -195,8 +195,10 @@ def main(args):
             blue_manual_pypeit_files = p200_arm_redux.manual_extraction(options_blue)
         if do_red:
             p200_arm_redux.re_redux(options_red, red_manual_pypeit_files)
+            p200_arm_redux.save_2dspecs(options_red)
         if do_blue:
             p200_arm_redux.re_redux(options_blue, blue_manual_pypeit_files)
+            p200_arm_redux.save_2dspecs(options_blue)
 
     fname_len = len(os.path.abspath(options_red['output_path'])) + 15 # /blueNNNN.fits 
     sensfunc_len = len(os.path.abspath(options_red['output_path'])) + 70 # /sens_blueNNNN-OBJ_DBSPb_YYYYMMMDDTHHMMSS.SPAT.fits
