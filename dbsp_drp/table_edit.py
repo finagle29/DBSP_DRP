@@ -256,7 +256,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
         self.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Expanding)
-    
+
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         self.table.model()._update_fits()
 
