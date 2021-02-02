@@ -37,10 +37,10 @@ def main(basepath):
         with fits.open(path, mode='update') as hdul:
             header = hdul[0].header
             try:
-                ang = Angle(header['ANGLE'], unit='deg').to_string(unit='deg', sep=(' deg ', ' min'), fields=2)
+                ang = Angle(header['ANGLE'].lower(), unit='deg').to_string(unit='deg', sep=(' deg ', ' min'), fields=2)
             except ValueError:
                 try:
-                    ang = Angle(header['GRATING']).to_string(unit='deg', sep=(' deg ', ' min'), fields=2)
+                    ang = Angle(header['GRATING'].lower()).to_string(unit='deg', sep=(' deg ', ' min'), fields=2)
                     grat = header['ANGLE']
                     header['ANGLE'] = ang
                     header['GRATING'] = grat
