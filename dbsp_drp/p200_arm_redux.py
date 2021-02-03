@@ -24,7 +24,8 @@ from configobj import ConfigObj
 from yattag import Doc, indent
 
 from pypeit.pypeitsetup import PypeItSetup
-from pypeit import pypeit
+import pypeit
+import pypeit.pypeit
 from pypeit import msgs
 from pypeit import pypmsgs
 from pypeit import sensfunc
@@ -117,7 +118,7 @@ def redux(args: dict) -> None:
         msgs.error("Bad extension for PypeIt reduction file."+msgs.newline()+".pypeit is required")
     logname = splitnm[0] + ".log"
 
-    pypeIt = pypeit.PypeIt(args['pypeit_file'], verbosity=2,
+    pypeIt = pypeit.pypeit.PypeIt(args['pypeit_file'], verbosity=2,
                            reuse_masters=not args['do_not_reuse_masters'],
                            overwrite=True, #args['overwrite'],
                            redux_path=args['output_path'], #args['redux_path'], # rethink these
@@ -248,38 +249,60 @@ def splice(args: dict) -> None:
         if bluefile is None and redfile is None:
             continue
 
-        final_wvs, final_flam, final_flam_sig = adjust_and_combine_overlap(bluefile, redfile, target)
+        ((final_wvs, final_flam, final_flam_sig),
+            (red_wvs, red_flam, red_sig),
+            (blue_wvs, blue_flam, blue_sig)) = adjust_and_combine_overlap(bluefile, redfile, target)
+
+        primary_header = fits.Header()
+        primary_header['DBSP_DRP_V'] = dbsp_drp.__version__
+        primary_header['PYPEIT_V'] = pypeit.__version__
+        primary_header['NUMPY_V'] = np.__version__
+        primary_header['ASTROPY_V'] = astropy.__version__
+        primary_hdu = fits.PrimaryHDU(header=primary_header)
+
         ## Here we need something a little more involved to get FITS headers in
         ## copy source red fits header
         red_header = get_raw_header_from_coadd(redfile, args)
-        red_header_hdu = fits.PrimaryHDU(header=red_header)
+        col_wvs = fits.Column(name='wave', array=red_wvs, unit='ANGSTROM', format='D')
+        col_flux = fits.Column(name='flux', array=red_flam, unit='E-17 ERG/S/CM^2/ANG', format='D')
+        col_error = fits.Column(name='sigma', array=red_sig, unit='E-17 ERG/S/CM^2/ANG', format='D')
+        red_hdu = fits.BinTableHDU.from_columns([col_wvs, col_flux, col_error], header=red_header, name="RED")
 
         ## copy source blue fits header
         blue_header = get_raw_header_from_coadd(bluefile, args)
-        blue_header_hdu = fits.BinTableHDU(header=blue_header)
+        col_wvs = fits.Column(name='wave', array=blue_wvs, unit='ANGSTROM', format='D')
+        col_flux = fits.Column(name='flux', array=blue_flam, unit='E-17 ERG/S/CM^2/ANG', format='D')
+        col_error = fits.Column(name='sigma', array=blue_sig, unit='E-17 ERG/S/CM^2/ANG', format='D')
+        blue_hdu = fits.BinTableHDU.from_columns([col_wvs, col_flux, col_error], header=blue_header, name="BLUE")
 
         col_wvs = fits.Column(name='wave', array=final_wvs, unit='ANGSTROM', format='D')
         col_flux = fits.Column(name='flux', array=final_flam, unit='E-17 ERG/S/CM^2/ANG', format='D')
         col_error = fits.Column(name='sigma', array=final_flam_sig, unit='E-17 ERG/S/CM^2/ANG', format='D')
+        table_hdu = fits.BinTableHDU.from_columns([col_wvs, col_flux, col_error], name="SPLICED")
 
-        table_hdu = fits.BinTableHDU.from_columns([col_wvs, col_flux, col_error])
-
-        hdul = fits.HDUList(hdus=[red_header_hdu, blue_header_hdu, table_hdu])
+        hdul = fits.HDUList(hdus=[primary_hdu, red_hdu, blue_hdu, table_hdu])
 
         hdul.writeto(os.path.join(args['output_path'], "Science", f'{target}.fits'), overwrite=True)
 
-def adjust_and_combine_overlap(bluefile: str, redfile: str, target: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+def adjust_and_combine_overlap(bluefile: str, redfile: str, target: str) -> Tuple[
+            Tuple[np.ndarray, np.ndarray, np.ndarray],
+            Tuple[np.ndarray, np.ndarray, np.ndarray],
+            Tuple[np.ndarray, np.ndarray, np.ndarray]]:
     # TODO: propagate input masks
 
     if bluefile is not None:
         spec_b = fits.open(bluefile)
         if redfile is None:
-            return spec_b[1].data['wave'], spec_b[1].data['flux'], spec_b[1].data['ivar'] ** -0.5
+            return ((spec_b[1].data['wave'], spec_b[1].data['flux'], spec_b[1].data['ivar'] ** -0.5),
+                (None, None, None),
+                (spec_b[1].data['wave'], spec_b[1].data['flux'], spec_b[1].data['ivar'] ** -0.5))
     if redfile is not None:
         spec_r = fits.open(redfile)
         if bluefile is None:
-            return spec_r[1].data['wave'], spec_r[1].data['flux'], spec_r[1].data['ivar'] ** -0.5
-    
+            return ((spec_r[1].data['wave'], spec_r[1].data['flux'], spec_r[1].data['ivar'] ** -0.5),
+                (spec_r[1].data['wave'], spec_r[1].data['flux'], spec_r[1].data['ivar'] ** -0.5),
+                (None, None, None))
+
     # combination steps
     overlap_lo = spec_r[1].data['wave'][0]
     overlap_hi = spec_b[1].data['wave'][-1]
@@ -351,7 +374,9 @@ def adjust_and_combine_overlap(bluefile: str, redfile: str, target: str) -> Tupl
     plt.title(f'Fluxed spectrum of {target}')
     plt.savefig(f'{target}_quickplot.png')
 
-    return final_wvs, final_flam, final_flam_sig
+    return ((final_wvs, final_flam, final_flam_sig),
+        (spec_r[1].data['wave'], spec_r[1].data['flux'], spec_r[1].data['ivar'] ** -0.5),
+        (spec_b[1].data['wave'], spec_b[1].data['flux'], spec_b[1].data['ivar'] ** -0.5))
 
 def interp_w_error(x: np.ndarray, xp: np.ndarray, yp: np.ndarray, err_yp: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     if len(xp) == 1:
