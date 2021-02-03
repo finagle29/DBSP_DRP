@@ -1,4 +1,7 @@
 include README.md
+include setup.cfg
+include pyproject.toml
+
 recursive-include dbsp_drp *
 
 global-exclude *.pyc *.o *.so *.DS_Store

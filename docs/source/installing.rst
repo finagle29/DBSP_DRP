@@ -7,22 +7,16 @@ Conda is the recommended pacakage manager used to install ``DBSP_DRP``.
 From Source
 ###########
 
-First download the `DBSP_DRP source <https://github.com/finagle29/DBSP_DRP/archive/master.zip>`__ and unzip it.
-
-Now use the environment.yml file to create a conda environment with the required dependencies.
-
 .. code-block :: console
 
-    $ cd /path/to/DBSP_DRP
+    $ git clone https://github.com/finagle29/DBSP_DRP.git
+    $ cd DBSP_DRP
     $ conda env create -f environment.yml
     $ conda activate dbsp_drp
+    $ pip install -e .
 
-And use the standard ``setup.py`` invocation to install DBSP_DRP.
-
-.. code-block :: console
-
-    $ python setup.py install
-
+This performs an editable install, which allows you to make modifications to the code and immediately see their effects.
+Importantly, this can be used in combination with ``git`` branches to test features in development.
 
 Using pip
 #########
@@ -41,13 +35,15 @@ Now use ``pip`` to install DBSP_DRP
 
 .. code-block :: console
 
-    $ pip install https://github.com/finagle29/DBSP_DRP/archive/master.tar.gz
+    $ pip install git+https://github.com/finagle29/DBSP_DRP.git
 
 ************
 Post-Install
 ************
 
-The telluric correction code provided by PypeIt relies on a large (5 GB) atmospheric model file, which can be downloaded `here <https://drive.google.com/drive/folders/1x5d2_L8pwLDmvvoFUCa-vIoluv3GpowA>`__
+The telluric correction code provided by PypeIt relies on a large (5 GB) atmospheric model file
+(TellFit_Lick_3100_11100_R10000.fits), which can be downloaded
+`here <https://drive.google.com/drive/folders/1x5d2_L8pwLDmvvoFUCa-vIoluv3GpowA>`__
 and must be installed into the ``pypeit/data/telluric/`` directory of your PypeIt installation.
 
 To determine the location of your PypeIt installation, open the Python interpreter and run
@@ -72,10 +68,10 @@ If you have multiple PypeIt installations on the same machine, you can create a 
 
 .. code-block :: console
 
-    $ ln /path/to/stable/pypeit/data/telluric/TellFit.fits /path/to/other/pypeit/data/telluric/TellFit.fits
+    $ ln /path/to/stable/pypeit/data/telluric/TellFit_Lick_3100_11100_R10000.fits /path/to/other/pypeit/data/telluric/TellFit_Lick_3100_11100_R10000.fits
 
 Make sure to use the same filename in both PypeIt installations.
-If you're not sure where your PypeIt installations are, run the previous Python code in each ``conda`` or ``venv`` environment you want to use ``DBSP_DRP`` in.
+If you're not sure where your PypeIt installations are, run the previous Python snippet in each ``conda`` or ``venv`` environment you want to use ``DBSP_DRP`` in.
 
 Testing your installation
 #########################
