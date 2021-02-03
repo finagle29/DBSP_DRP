@@ -186,7 +186,12 @@ def main(args):
     if args.manual_extraction:
         # wait for user acknowledgement
         input("Ready for manual extraction? If using GNU screen/tmux behind ssh, make sure to check that $DISPLAY is correct.")
-        plt.switch_backend(DEFAULT_MPL_BACKEND)
+        ## TL;DR This needs to be Qt5* if -i was set and we are using PySide2
+        if args.no_interactive:
+            plt.switch_backend("Qt5Agg")
+        else:
+            plt.switch_backend(DEFAULT_MPL_BACKEND)
+
         if do_red:
             red_manual_pypeit_files = p200_arm_redux.manual_extraction(options_red)
         if do_blue:

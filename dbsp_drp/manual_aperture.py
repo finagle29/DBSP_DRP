@@ -121,7 +121,7 @@ class ManualApertureGUI:
         self.background_area_vspans = []
         for bg_area in self.background_areas:
             self.background_area_vspans.append(self.axes.axvspan(bg_area[0], bg_area[1], color='gray'))
-        
+
         bg_patch = mpl.patches.Patch(color='gray', label='background region')
         blue_line = mpl.lines.Line2D([], [], color='blue', lw=1, label='manual trace')
         orange_line = mpl.lines.Line2D([], [], color='orange', lw=1, label="auto-id'd trace")
