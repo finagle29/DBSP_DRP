@@ -57,8 +57,25 @@ If you want to fine-tune the reduction parameters, create a parameter file like 
         [[extraction]]
             use_2dmodel_mask = False
 
-and use the option ``-p params.cfg``.
+and use the option ``-p params.cfg`` or its longer form ``--parameter-file params.cfg``.
 
 See `PypeIt Parameters <https://pypeit.readthedocs.io/en/stable/pypeit_par.html>`_ for more
 details on the full set of available parameters.
 
+Manual Aperture Selection and Sky Selection
+*******************************************
+Using the ``-m`` flag, after marking traces manually, for each frame you marked a trace on,
+a second GUI will pop up showing the collapsed flux, along with any automatically identified
+traces (in orange) and your manually placed traces (in blue) along with the FWHM of each shaded
+in a lighter color. In this GUI, you can left click and drag your manual traces (in blue) to
+adjust their position. Additionally, you can right click and drag the shaded FWHM regions to
+adjust their extent. To mark background regions, press b and then left click and drag to mark
+background regions by shading them in gray. You can delete a background region by holding your
+mouse over the shaded background regions and press d to delete. Once you are finished adjusting
+manual traces/FWHMs and marking background regions, close the GUI to be shown the GUI for the
+next object you marked a manual trace on.
+
+Make sure to select background regions on either side of your target for the best sky subtraction.
+
+If you are dealing with faint sources, it is a good idea to re-mark in blue any orange
+(automatically identified) traces in case parameter changes lose these objects.

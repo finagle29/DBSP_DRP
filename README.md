@@ -9,9 +9,10 @@ DBSP_DRP is a Data Reduction Pipeline for Palomar's workhorse spectrograph DBSP.
 It is built on top of [PypeIt](https://github.com/pypeit/PypeIt).
 DBSP_DRP automates the reduction, fluxing, telluric correction, and combining of the red and blue sides of one night's
 data.
-It adds two GUIs to allow for easier control of your reduction:
+It adds several GUIs to allow for easier control of your reduction:
 - select which data to reduce, and verify the correctness of your FITS headers in an editable table GUI
 - manually place traces for a sort of manually "forced" spectroscopy with the `-m` option
+- after manually placing traces, manually select sky regions and tweak the FWHM of your manual traces
 
 ## Prerequisites
 DBSP_DRP's dependencies are detailed in [environment.yml](environment.yml).

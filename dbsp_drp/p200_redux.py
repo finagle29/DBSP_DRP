@@ -53,7 +53,7 @@ def parser(options: Optional[List[str]] = None) -> argparse.Namespace:
     # Argument for specifying only red/blue
 
     argparser.add_argument('-a', '--arm', default=None,
-                           help='[red, blue] to only reduce one arm (does not splice)')
+                           help='[red, blue] to only reduce one arm (null splicing)')
 
     argparser.add_argument('-m', '--manual-extraction', default=False, action='store_true',
                            help='manual extraction')
@@ -71,7 +71,7 @@ def parser(options: Optional[List[str]] = None) -> argparse.Namespace:
                             "** PypeIt parameters for the red side goes here **\n"
                             "EOF\n\n"
                             "The [red/blue] parameter blocks are optional, and their order does not matter.")
-    
+
     argparser.add_argument('-t', '--skip-telluric', default=False, action='store_true',
                            help='Skip telluric correction')
 
@@ -169,8 +169,6 @@ def main(args):
         options_blue['pypeit_file'] = pypeit_file_blue
 
 
-
-
     #options_red['calib_only'] = True
     #options_blue['calib_only'] = True
     plt.switch_backend("agg")
@@ -200,7 +198,7 @@ def main(args):
             p200_arm_redux.re_redux(options_blue, blue_manual_pypeit_files)
             p200_arm_redux.save_2dspecs(options_blue)
 
-    fname_len = len(os.path.abspath(options_red['output_path'])) + 15 # /blueNNNN.fits 
+    fname_len = len(os.path.abspath(options_red['output_path'])) + 15 # /blueNNNN.fits
     sensfunc_len = len(os.path.abspath(options_red['output_path'])) + 70 # /sens_blueNNNN-OBJ_DBSPb_YYYYMMMDDTHHMMSS.SPAT.fits
     # Find standards and make sensitivity functions
     spec1d_table = Table(names=('filename', 'arm', 'object', 'frametype', 'airmass', 'mjd', 'sensfunc'),
@@ -325,11 +323,11 @@ def main(args):
             else:
                 pool = multiprocessing.Pool(args.jobs)
                 list(tqdm.tqdm(pool.imap(p200_arm_redux.telluric_correct, tellcorr_inputs), total=len(tellcorr_inputs)))
-            #for opts in tellcorr_inputs:    
+            #for opts in tellcorr_inputs:
             #    pool.apply_async(p200_arm_redux.telluric_correct, opts, error_callback=lambda e: print("error!"))
                 pool.close()
                 pool.join()
-    
+
     # splicing method 1: choose single object closest to arm mean
     # TODO: better splicing - make sure spatial fraction is similar on blue/red
     # TODO: better splicing - handle multiple observations of same target throughout night
@@ -358,7 +356,7 @@ def main(args):
                     print(f"The final spectrum for {target} will NOT be telluric corrected.")
                     best_spec = row['coadds'][best_ix]
 
-            
+
             if splicing_dict.get(target):
                 splicing_dict[target][row['arm']] = best_spec
             else:
@@ -366,5 +364,5 @@ def main(args):
         # splice
         options_red['splicing_dict'] = splicing_dict
         p200_arm_redux.splice(options_red)
-    
+
     print('Elapsed time: {0} seconds'.format(time.perf_counter() - t))

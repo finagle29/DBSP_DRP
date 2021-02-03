@@ -134,7 +134,7 @@ def redux(args: dict) -> None:
             for i in range(len(pypeIt.fitstbl.table)) \
             if pypeIt.fitstbl.table[i]['frametype'] in ['science', 'standard']
         ]))
-    
+
     args['output_spec2ds'] |= set(filter(os.path.isfile, [
             os.path.abspath(pypeIt.spec_output_file(i, True)) \
             for i in range(len(pypeIt.fitstbl.table)) \
@@ -193,7 +193,7 @@ def build_fluxfile(args: dict) -> str:
     # args['spec1dfiles'] is a dict mapping spec1d files to the sensitivity function file they should use
     cfg_lines = args['user_config_lines'][:]
     cfg_lines.append("\n")
-    
+
     # data section
     cfg_lines.append('flux read')
     for spec1d, sensfun in args['spec1dfiles'].items():
@@ -385,7 +385,7 @@ def interp_w_error(x: np.ndarray, xp: np.ndarray, yp: np.ndarray, err_yp: np.nda
 
 def save_one2dspec(ax: plt.Axes, spec: np.ndarray, edges: Tuple[np.ndarray, np.ndarray], traces: List[np.ndarray]) -> None:
     all_left, all_right = edges
-    
+
     norm = ImageNormalize(spec, interval=ZScaleInterval())
     im = ax.imshow(spec, origin='upper', norm=norm, cmap='gray')
     #im, norm = imshow_norm(spec, interval=ZScaleInterval(), cmap='gray')
@@ -407,7 +407,7 @@ def save_2dspecs(args: dict) -> None:
 
     arm = 'blue' if 'blue' in args['spectrograph'] else 'red'
     paths = args['output_spec2ds']
-    
+
     out_path = os.path.join(args['output_path'], 'QA', 'PNGs', 'Extraction')
     if not os.path.exists(out_path):
         os.makedirs(out_path)
@@ -422,7 +422,7 @@ def save_2dspecs(args: dict) -> None:
             spec1ds = None
             msgs.warn('Could not find spec1d file: {:s}'.format(spec1d_file) + msgs.newline() +
                   '             No objects were extracted.')
-        
+
         base_name = os.path.join(out_path, os.path.basename(path).split('_')[1])
 
         all_left, all_right, _ = spec.slits.select_edges()
@@ -482,7 +482,7 @@ def save_2dspecs(args: dict) -> None:
                 'time': [ut],
                 'fname': [fname]
             }
-    
+
     args['qa_dict'] = obj_png_dict
 
 def manual_extraction_GUI(args):
@@ -505,11 +505,13 @@ def manual_extraction_GUI(args):
         all_left, all_right, _ = spec.slits.select_edges()
         edges = [all_left, all_right]
         traces = [spec1ds[i]['TRACE_SPAT'] for i in range(len(spec1ds))] if spec1ds is not None else None
+        fwhms = [spec1ds[i]['FWHM'] for i in range(len(spec1ds))] if spec1ds is not None else None
 
         gui_dict[base_name] = {
             'spec': spec,
             'edges': edges,
-            'traces': traces
+            'traces': traces,
+            'fwhms': fwhms
         }
 
     # call GUI
@@ -521,40 +523,58 @@ def manual_extraction_GUI(args):
 
     return manual_traces
 
-def manual_extraction(args: dict) -> list:
-    manual_dict = manual_extraction_GUI(args)
-    pypeit_file = args['pypeit_file']
+def write_manual_pypeit_files(args: dict) -> List[str]:
+    """
+    Writes pypeit files based on the default pypeit file for this reduction,
+    but with filtered targets and additional manual parameter lines.
+
+    requires
+    args = {
+        'pypeit_file': default pypeit file,
+        'targets_list': [[target1, target2], [target3, target4]] will result in
+            1 & 2 being reduced together and 3 & 4 being reduced together. The
+            target names are blueNNNN-ZTF21abcd.
+        'manual_lines_fn': function mapping [target1, target2] to the cfg lines
+            they need
+        'needs_std_fn': function target1 -> bool, True if target1 needs a
+            standard star to be reduced alongside it
+    }
+
+    [extended_summary]
+
+    :param args: [description]
+    :type args: dict
+    :return: [description]
+    :rtype: List[str]
+    """
+    old_pypeit_file = args['pypeit_file']
+
+    targets_list = args['targets_list']
+    manual_lines_fn = args['manual_lines_fn']
+    needs_std_fn = args['needs_std_fn']
 
     new_pypeit_files = []
-    for target in manual_dict:
-        target_fname = target.split('-')[0]
-        new_pypeit_file = f'{os.path.splitext(pypeit_file)[0]}_{target}.pypeit'
-        shutil.copy(pypeit_file, new_pypeit_file)
+    for targets in targets_list:
+        if not targets:
+            continue
+        target_fnames = [target.split('-')[0] for target in targets]
+        new_pypeit_file = f'{os.path.splitext(old_pypeit_file)[0]}_{"_".join(targets)}.pypeit'
+        shutil.copy(old_pypeit_file, new_pypeit_file)
 
-        manual_extract_lines = ['# Added by DBSP_DRP for manual extraction\n',
-            '[reduce]\n',
-            '[[extraction]]\n',
-            '[[[manual]]]\n',
-            f"spat_spec = {str(manual_dict[target]['spat_spec']).strip('[]')}\n",
-            f"det = {str([1 for trace in manual_dict[target]['spat_spec']]).strip('[]')}\n",
-            f"fwhm = {str(manual_dict[target]['fwhm']).strip('[]')}\n"
-        ]
-        # Maybe also turn down significance threshold
+        manual_lines = manual_lines_fn(targets)
 
         cfg_lines = []
         setup_lines = []
         setup = False
-        with open(pypeit_file, 'r') as pypeit_fd:
-            # need to have 2 arrays of lines, one for config, one for setup - end
-            for line in pypeit_fd.readlines():
-                if 'science' in line and '|' in line and target_fname not in line:
+        with open(old_pypeit_file, 'r') as old_pypeit_fd:
+            for line in old_pypeit_fd.readlines():
+                if 'science' in line and '|' in line and all([targ_fname not in line for targ_fname in target_fnames]):
                     pass
-                elif 'standard' in line and '|' in line and manual_dict[target]['needs_std']:
+                elif 'standard' in line and '|' in line and any(needs_std_fn(target) for target in targets):
                     setup_lines.append(line)
-                    #new_pypeit_fd.write(line)
                 else:
                     if '# Setup' in line:
-                        setup=True
+                        setup = True
                     if setup:
                         setup_lines.append(line)
                     else:
@@ -563,7 +583,7 @@ def manual_extraction(args: dict) -> list:
         # Note: the user's parameter file is merged into these config lines
         # so any manual settings user gives might override their GUI actions.
         # Should probably caution user re: this.
-        final_cfg = ConfigObj(manual_extract_lines)
+        final_cfg = ConfigObj(manual_lines)
         final_cfg.merge(ConfigObj(cfg_lines))
         final_lines = [line + "\n" for line in final_cfg.write()] + setup_lines
         with open(new_pypeit_file, 'w') as new_pypeit_fd:
@@ -571,6 +591,24 @@ def manual_extraction(args: dict) -> list:
 
         new_pypeit_files.append(new_pypeit_file)
     return new_pypeit_files
+
+
+def manual_extraction(args: dict) -> list:
+    manual_dict = manual_extraction_GUI(args)
+
+    args['targets_list'] = [[key] for key in manual_dict.keys()]
+    args['manual_lines_fn'] = lambda targ: ['# Added by DBSP_DRP for manual extraction\n',
+            '[reduce]\n',
+            '[[extraction]]\n',
+            '[[[manual]]]\n',
+            f"spat_spec = {str(manual_dict[targ[0]]['spat_spec']).strip('[]')}\n",
+            f"det = {str([1 for trace in manual_dict[targ[0]]['spat_spec']]).strip('[]')}\n",
+            f"fwhm = {str(manual_dict[targ[0]]['fwhm']).strip('[]')}\n",
+            "[[skysub]]\n",
+            f"user_regions = {str(manual_dict[targ[0]]['bgs']).strip('[]')}\n"
+        ]
+    args['needs_std_fn'] = lambda targ: manual_dict[targ]['needs_std']
+    return write_manual_pypeit_files(args)
 
 def re_redux(args: dict, pypeit_files: list) -> None:
     for pypeit_file in pypeit_files:
@@ -669,7 +707,7 @@ def telluric_correct(args: dict):
     if par['tellfit']['tell_grid'] is None:
         if par['sensfunc']['IR']['telgridfile'] is not None:
             par['tellfit']['tell_grid'] = par['sensfunc']['IR']['telgridfile']
-    
+
     par = pypeitpar.PypeItPar.from_cfg_lines(cfg_lines=par.to_config(), merge_with=args['user_config_lines'])
 
     # Parse the output filename
