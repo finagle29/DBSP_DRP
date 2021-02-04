@@ -38,6 +38,7 @@ from pypeit.scripts.flux_calib import read_fluxfile
 from pypeit import fluxcalibrate
 from pypeit.par import pypeitpar
 
+import dbsp_drp
 from dbsp_drp.manual_tracing import ManualTracingGUI
 
 
