@@ -20,6 +20,14 @@ dbsp\_drp.fix\_headers module
    :undoc-members:
    :show-inheritance:
 
+dbsp\_drp.manual\_aperture module
+---------------------------------
+
+.. automodule:: dbsp_drp.manual_aperture
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 dbsp\_drp.manual\_tracing module
 --------------------------------
 
