@@ -13,6 +13,7 @@ Welcome to DBSP_DRP's documentation!
    installing
    usage
    modules
+   qa
 
 
 Indices and tables
