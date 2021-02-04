@@ -273,7 +273,7 @@ class ManualApertureGUI:
                 # edit end of previous area
                 self.background_areas[i-1][1] = self.background_areas[i][1]
                 # delete this area from list
-                self.background_areas.remove(i)
+                self.background_areas.pop(i)
             else:
                 # go to next one
                 i += 1
