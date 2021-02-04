@@ -4,6 +4,38 @@ Using DBSP_DRP
 
 After :doc:`installing`, you are ready to reduce some DBSP data!
 
+.. code-block :: console
+
+    $ dbsp_reduce --help
+    usage: dbsp_reduce [-h] [-i] [-r ROOT] [-d OUTPUT_PATH] [-a ARM] [-m]
+                       [--debug] [-j JOBS] [-p PARAMETER_FILE] [-t]
+
+    Automatic Data Reduction Pipeline for P200 DBSP
+
+    optional arguments:
+        -h, --help            show this help message and exit
+        -i, --no-interactive  Interactive file-checking?
+        -r ROOT, --root ROOT  File path+root, e.g. /data/DBSP_20200127
+        -d OUTPUT_PATH, --output_path OUTPUT_PATH
+                              Path to top-level output directory.  Default is the current working directory.
+        -a ARM, --arm ARM     [red, blue] to only reduce one arm (null splicing)
+        -m, --manual-extraction
+                              manual extraction
+        --debug               debug
+        -j JOBS, --jobs JOBS  Number of processes to use
+        -p PARAMETER_FILE, --parameter-file PARAMETER_FILE
+                              Path to parameter file. The parameter file should be formatted as follows:
+
+                              [blue]
+                              ** PypeIt parameters for the blue side goes here **
+                              [red]
+                              ** PypeIt parameters for the red side goes here **
+                              EOF
+
+                              The [red/blue] parameter blocks are optional, and their order does not matter.
+        -t, --skip-telluric   Skip telluric correction
+
+
 The basic usage of DBSP_DRP is as follows:
 
 .. code-block :: console
@@ -25,17 +57,7 @@ flag ``--debug``.
 
 If you want to check that your target traces have been correctly identified, and
 manually select them if they were missed, add the flag ``--manual-extraction`` or
-``-m`` for short. After the first round of reducing the red and/or blue sides,
-``dbsp_reduce`` will open a matplotlib window to display the sky-subtracted spectra,
-along with any object traces that were automatically detected. Using the left and
-right arrow keys, you can cycle through the spectra. If your science target was not
-automatically detected, you can zoom in on the trace using the standard matplotlib
-zoom tool and then with your mouse over the trace, press the m key to mark that
-trace. If you make a mistake, you can press d with your mouse over a
-previously-marked trace to delete the trace. Once you are satisfied with the
-identification of traces on all of the spectra, close the matplotlib window to repeat
-this process for the other arm. After closing the second window, the manually marked
-spectra will be re-reduced.
+``-m`` for short. Check out :doc:`manual_extraction` for more details.
 
 If you want to fine-tune the reduction parameters, create a parameter file like so:
 
@@ -61,21 +83,3 @@ and use the option ``-p params.cfg`` or its longer form ``--parameter-file param
 
 See `PypeIt Parameters <https://pypeit.readthedocs.io/en/stable/pypeit_par.html>`_ for more
 details on the full set of available parameters.
-
-Manual Aperture Selection and Sky Selection
-*******************************************
-Using the ``-m`` flag, after marking traces manually, for each frame you marked a trace on,
-a second GUI will pop up showing the collapsed flux, along with any automatically identified
-traces (in orange) and your manually placed traces (in blue) along with the FWHM of each shaded
-in a lighter color. In this GUI, you can left click and drag your manual traces (in blue) to
-adjust their position. Additionally, you can right click and drag the shaded FWHM regions to
-adjust their extent. To mark background regions, press b and then left click and drag to mark
-background regions by shading them in gray. You can delete a background region by holding your
-mouse over the shaded background regions and press d to delete. Once you are finished adjusting
-manual traces/FWHMs and marking background regions, close the GUI to be shown the GUI for the
-next object you marked a manual trace on.
-
-Make sure to select background regions on either side of your target for the best sky subtraction.
-
-If you are dealing with faint sources, it is a good idea to re-mark in blue any orange
-(automatically identified) traces in case parameter changes lose these objects.

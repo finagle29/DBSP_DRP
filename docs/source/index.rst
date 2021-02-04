@@ -12,6 +12,7 @@ Welcome to DBSP_DRP's documentation!
 
    installing
    usage
+   manual_extraction
    modules
    qa
 
