@@ -107,6 +107,8 @@ def main(args):
 
     t = time.perf_counter()
 
+    os.chdir(args.output_path)
+
     if args.arm:
         do_red = args.arm.lower() == 'red'
         do_blue = args.arm.lower() == 'blue'
