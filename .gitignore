@@ -4,6 +4,7 @@ __pycache__
 .DS_Store
 .pylintrc
 *.egg-info
+dbsp_drp/version.py
 
 # docs output
 docs/html/
