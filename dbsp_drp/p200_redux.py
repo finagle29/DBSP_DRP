@@ -107,7 +107,10 @@ def main(args):
 
     t = time.perf_counter()
 
-    os.chdir(args.output_path)
+    if os.path.isdir(args.output_path):
+        os.chdir(args.output_path)
+    else:
+        os.makedirs(args.output_path, exist_ok=True)
 
     if args.arm:
         do_red = args.arm.lower() == 'red'
