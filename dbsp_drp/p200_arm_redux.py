@@ -634,7 +634,12 @@ def manual_extraction(args: dict) -> list:
             f"user_regions = {str(manual_dict[targ[0]]['bgs']).strip('[]')}\n"
         ]
     args['needs_std_fn'] = lambda targ: manual_dict[targ]['needs_std']
-    return write_manual_pypeit_files(args)
+    ret = write_manual_pypeit_files(args)
+    # cleanup args so that multiprocessing can pickle it
+    del args['targets_list']
+    del args['manual_lines_fn']
+    del args['needs_std_fn']
+    return ret
 
 def re_redux(args: dict, pypeit_files: list) -> None:
     for pypeit_file in pypeit_files:
