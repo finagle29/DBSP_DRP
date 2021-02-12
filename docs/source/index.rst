@@ -15,6 +15,7 @@ Welcome to DBSP_DRP's documentation!
    manual_extraction
    modules
    qa
+   outputs
 
 
 Indices and tables
