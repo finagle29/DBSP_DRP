@@ -10,7 +10,7 @@ import multiprocessing
 from typing import Optional, List
 
 from astropy.io import fits
-from astropy.table import Table, Column
+from astropy.table import Table, Column, Row
 import numpy as np
 from pypeit.pypeitsetup import PypeItSetup
 import pypeit.display
@@ -74,6 +74,10 @@ def parser(options: Optional[List[str]] = None) -> argparse.Namespace:
 
     argparser.add_argument('-t', '--skip-telluric', default=False, action='store_true',
                            help='Skip telluric correction')
+
+    argparser.add_argument('-c', '--null-coadd', default=False, action='store_true',
+                           help="Don't coadd consecutive exposures of the same target.\n"
+                                "By default consective exposures will be coadded.")
 
     return argparser.parse_args() if options is None else argparser.parse_args(options)
 
@@ -206,17 +210,21 @@ def main(args):
     fname_len = len(os.path.abspath(options_red['output_path'])) + 15 # /blueNNNN.fits
     sensfunc_len = len(os.path.abspath(options_red['output_path'])) + 70 # /sens_blueNNNN-OBJ_DBSPb_YYYYMMMDDTHHMMSS.SPAT.fits
     # Find standards and make sensitivity functions
-    spec1d_table = Table(names=('filename', 'arm', 'object', 'frametype', 'airmass', 'mjd', 'sensfunc'),
-                         dtype=(f'U{fname_len}', 'U4', 'U20', 'U8', float, float, f'U{sensfunc_len}'))
+    spec1d_table = Table(names=('filename', 'arm', 'object', 'frametype',
+                            'airmass', 'mjd', 'sensfunc', 'exptime'),
+                         dtype=(f'U{fname_len}', 'U4', 'U20', 'U8',
+                            float, float, f'U{sensfunc_len}', float))
 
     # Ingest spec_1d tables
     paths = options_red['output_spec1ds'] | options_blue['output_spec1ds']
     for path in paths:
         with fits.open(path) as hdul:
             arm = 'red' if 'red' in os.path.basename(path) else 'blue'
-            spec1d_table.add_row((path, arm, hdul[0].header['TARGET'], hdul[1].header['OBJTYPE'],
-                                  hdul[0].header['AIRMASS'], hdul[0].header['MJD'], ''))
+            spec1d_table.add_row((path, arm, hdul[0].header['TARGET'],
+                hdul[1].header['OBJTYPE'], hdul[0].header['AIRMASS'],
+                hdul[0].header['MJD'], '', hdul[0].header['EXPTIME']))
     spec1d_table.add_index('filename')
+    spec1d_table.sort(['arm', 'mjd'])
 
     if do_red:
         for row in spec1d_table[(spec1d_table['arm'] == 'red') & (spec1d_table['frametype'] == 'standard')]:
@@ -269,21 +277,52 @@ def main(args):
         p200_arm_redux.flux(options_blue)
 
     # TODO: coadd - intelligent coadding of multiple files
+    # first make a column "coaddID" that is the same for frames to be coadded
+    coaddIDs = []
+    if args.null_coadd:
+        coaddIDs = range(len(spec1d_table))
+    else:
+        previous_row : Row = None
+        S_PER_DAY = 24 * 60 * 60
+        thresh = 15
+        for i, row in enumerate(spec1d_table):
+            if i == 0:
+                coaddIDs.append(0)
+            else:
+                # if this is the same object as the last one
+                # and they were taken consecutively
+                if ((row['object'] == previous_row['object']) and
+                    ((row['mjd']*S_PER_DAY - previous_row['mjd']*S_PER_DAY
+                        - previous_row['exptime']) < previous_row['exptime'])):
+                    coaddIDs.append(coaddIDs[-1])
+                else:
+                    coaddIDs.append(coaddIDs[-1] + 1)
+            previous_row = row
+
+    spec1d_table.add_column(coaddIDs, name="coadd_id")
+
     #options_blue['debug'] = True
     #options_red['debug'] = True
     # figure out where on detector likely target is
     all_spats = []
+    all_fracpos = []
     # for each spec1d file
     for filename in spec1d_table['filename']:
         with fits.open(filename) as hdul:
             spats = []
+            fracpos = []
             for i in range(1, len(hdul) - 1):
                 # grab all of its extensions' spatial positions
                 spats.append(int(hdul[i].name.split('-')[0].lstrip('SPAT')))
+                fracpos.append(hdul[i].header['SPAT_FRACPOS'])
             all_spats.append(spats)
+            all_fracpos.append(fracpos)
     # add to table???
     spec1d_table.add_column(all_spats, name="spats")
-    spec1d_table.add_column(Column(name="coadds", dtype=object, length=len(spec1d_table))) # need to make this dtype object
+    spec1d_table.add_column(all_fracpos, name="fracpos")
+    # need to make this dtype object
+    spec1d_table.add_column(Column(name="coadds", dtype=object, length=len(spec1d_table)))
+    spec1d_table.add_column([False]*len(all_spats), name="processed")
 
     # for each arm
         # find median/mean of spatial positions
@@ -300,14 +339,26 @@ def main(args):
 
     # coadd
     # probolem here
-    if do_red:
-        for row in spec1d_table[spec1d_table['arm'] == 'red']:
-            options_red['spec1dfile'] = row['filename']
-            spec1d_table.loc[row['filename']]['coadds'] = p200_arm_redux.coadd(options_red)
-    if do_blue:
-        for row in spec1d_table[spec1d_table['arm'] == 'blue']:
-            options_blue['spec1dfile'] = row['filename']
-            spec1d_table.loc[row['filename']]['coadds'] = p200_arm_redux.coadd(options_blue)
+    #options_red['debug'] = True
+    #options_red['plot'] = True
+    # iterate over coadd_ids
+    coadd_to_spec1d = {}
+    for coadd_id in set(coaddIDs):
+        subtable = spec1d_table[spec1d_table['coadd_id'] == coadd_id]
+        fname_spats = {row['filename']: row['spats'].copy() for row in subtable}
+        grouped_spats_list = p200_arm_redux.group_coadds(fname_spats)
+        if all(subtable['arm'] == 'red'):
+            options_red['grouped_spats_list'] = grouped_spats_list
+            coadds = p200_arm_redux.coadd(options_red)
+        if all(subtable['arm'] == 'blue'):
+            options_blue['grouped_spats_list'] = grouped_spats_list
+            coadds = p200_arm_redux.coadd(options_blue)
+        assert all(subtable['arm'] == 'red') or all(subtable['arm'] == 'blue'),\
+            "Something went wrong with coadding..."
+        for row in subtable:
+            spec1d_table.loc[row['filename']]['coadds'] = coadds
+        for i, coadd in enumerate(coadds):
+            coadd_to_spec1d[coadd] = list(zip(grouped_spats_list[i]['fnames'], grouped_spats_list[i]['spats']))
 
     if not args.skip_telluric:
         # telluric correct
@@ -333,6 +384,22 @@ def main(args):
                 pool.close()
                 pool.join()
 
+            # Maybe do something here to verify that telluric correction succeeded
+            # and if so, change the coadd names
+            for tellcorr_input in tellcorr_inputs:
+                coadd = tellcorr_input['spec1dfile']
+                tell = coadd.replace(".fits", "_tellcorr.fits")
+                # check if tell exists and is newer than coadd
+                if os.path.isfile(tell) and (os.path.getmtime(tell) > os.path.getmtime(coadd)):
+                    # modify coadd
+                    for row in spec1d_table:
+                        if coadd in row['coadds']:
+                            ix = row['coadds'].index(coadd)
+                            spec1d_table.loc[row['filename']]['coadds'][ix] = tell
+                    coadd_to_spec1d[tell] = coadd_to_spec1d[coadd]
+                    del coadd_to_spec1d[coadd]
+
+
     # splicing method 1: choose single object closest to arm mean
     # TODO: better splicing - make sure spatial fraction is similar on blue/red
     # TODO: better splicing - handle multiple observations of same target throughout night
@@ -340,6 +407,74 @@ def main(args):
     splicing_dict = {}
     blue_mask = spec1d_table['arm'] == 'blue'
     red_mask = spec1d_table['arm'] == 'red'
+
+    ## Need to find red + blue fracpos for standards
+    # hopefully standards only have one star each?
+    # or should i actually try to do matching there
+    if do_red or do_blue:
+        FRACPOS_TOL = 0.01
+        if do_red and do_blue:
+            # real matching + splicing
+            std_fracpos_sums = []
+            for row in spec1d_table[stds]:
+                # find closest mjd frame of other arm
+                if not row['processed']:
+                    other_arm = spec1d_table['arm'] != row['arm']
+                    corresponding_row = spec1d_table[other_arm & stds][np.abs(spec1d_table[other_arm & stds]['mjd'] - row['mjd']).argmin()]
+                    std_fracpos_sums.append(row['fracpos'][0] + corresponding_row['fracpos'][0])
+                    spec1d_table.loc[row['filename']]['processed'] = True
+                    spec1d_table.loc[corresponding_row['filename']]['processed'] = True
+            FRACPOS_SUM = np.mean(std_fracpos_sums)
+            FRACPOS_TOL = FRACPOS_SUM * .01
+
+        # setup splicing dict
+        splicing_dict = {}
+        # for each target
+        for row in spec1d_table:
+            target = row['object']
+            arm = row['arm']
+            # for each of its fracpos
+            for i, fracpos in enumerate(row['fracpos']):
+                coadd = row['coadds'][i]
+                targ_dict = splicing_dict.get(target)
+                # normalize fracpos to red
+                if do_red and do_blue and arm == 'blue':
+                    fracpos = FRACPOS_SUM - fracpos
+                # if it's not in the dict
+                if targ_dict is None:
+                    # put it in the dict
+                    splicing_dict[target] = {fracpos: {
+                        arm: {
+                            'spec1ds': coadd_to_spec1d[coadd],
+                            'coadd': coadd
+                        }
+                    }}
+                # else
+                else:
+                    close_enough = False
+                    # for each existing fracpos
+                    for fracpos_existing in list(targ_dict):
+                        # if its close enough
+                        if abs(fracpos_existing - fracpos) < FRACPOS_TOL:
+                            # put it in the dict
+                            splicing_dict[target][fracpos_existing][arm] = {
+                                'spec1ds': coadd_to_spec1d[coadd],
+                                'coadd': coadd
+                            }
+                            close_enough = True
+                            break
+                    if not close_enough:
+                        ## This should be if it is close enough to NONE
+                        splicing_dict[target][fracpos] = {arm: {
+                            'spec1ds': coadd_to_spec1d[coadd],
+                            'coadd': coadd
+                        }}
+        # And now, actually splice!
+        options_red['splicing_dict'] = splicing_dict
+        p200_arm_redux.splice(options_red)
+
+    """
+    # if do_red or do_blue ????
     if do_red or do_blue:
         # make splicing dict
         for row in spec1d_table:
@@ -369,5 +504,6 @@ def main(args):
         # splice
         options_red['splicing_dict'] = splicing_dict
         p200_arm_redux.splice(options_red)
+        """
 
     print('Elapsed time: {0} seconds'.format(time.perf_counter() - t))

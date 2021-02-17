@@ -239,7 +239,80 @@ def get_raw_header_from_coadd(coadd: str, args: dict) -> str:
     else:
         return fits.Header()
 
+def get_raw_hdus_from_spec1d(spec1d_list: List[str], args: dict) -> List[fits.BinTableHDU]:
+    ret = []
+    for (spec1d, spat) in spec1d_list:
+        raw_fname = os.path.join(os.path.dirname(args['root']), f"{os.path.basename(spec1d).split('_')[1].split('-')[0]}.fits")
+        # get the raw header
+        with fits.open(raw_fname) as raw_hdul:
+            raw_header = raw_hdul[0].header.copy()
+        # get the spectrum
+        with fits.open(spec1d) as spec1d_hdul:
+            for hdu in spec1d_hdul:
+                if f'SPAT{spat:04d}' in hdu.name:
+                    raw_data = hdu.data.copy()
+        wave_col = fits.Column(name='wave', array=raw_data['OPT_WAVE'], unit='ANGSTROM', format='D')
+        flux_col = fits.Column(name='flux', array=raw_data['OPT_FLAM'], unit='E-17 ERG/S/CM^2/ANG', format='D')
+        sigma_col = fits.Column(name='sigma', array=raw_data['OPT_FLAM_SIG'], unit='E-17 ERG/S/CM^2/ANG', format='D')
+        ret.append(fits.BinTableHDU.from_columns([wave_col, flux_col, sigma_col],
+            name=os.path.splitext(os.path.basename(raw_fname))[0].upper(),
+            header=raw_header))
+    return ret
+
+
 def splice(args: dict) -> None:
+    """
+    Splices red and blue spectra together.
+    """
+    for target, targets_dict in args['splicing_dict'].items():
+        label = 'a'
+        for _, arm_dict in targets_dict.items():
+            red_dict = arm_dict.get('red', {})
+            blue_dict = arm_dict.get('blue', {})
+
+            bluefile = blue_dict.get('coadd')
+            redfile = red_dict.get('coadd')
+            if bluefile is None and redfile is None:
+                continue
+
+            ((final_wvs, final_flam, final_flam_sig),
+                (red_wvs, red_flam, red_sig),
+                (blue_wvs, blue_flam, blue_sig)) = adjust_and_combine_overlap(bluefile, redfile, target)
+
+            primary_header = fits.Header()
+            primary_header['DBSP_DRP_V'] = dbsp_drp.__version__
+            primary_header['PYPEIT_V'] = pypeit.__version__
+            primary_header['NUMPY_V'] = np.__version__
+            primary_header['ASTROPY_V'] = astropy.__version__
+            primary_hdu = fits.PrimaryHDU(header=primary_header)
+
+            raw_red_hdus = get_raw_hdus_from_spec1d(red_dict.get('spec1ds', []), args)
+            raw_blue_hdus = get_raw_hdus_from_spec1d(blue_dict.get('spec1ds', []), args)
+
+
+            col_wvs = fits.Column(name='wave', array=red_wvs, unit='ANGSTROM', format='D')
+            col_flux = fits.Column(name='flux', array=red_flam, unit='E-17 ERG/S/CM^2/ANG', format='D')
+            col_error = fits.Column(name='sigma', array=red_sig, unit='E-17 ERG/S/CM^2/ANG', format='D')
+            red_hdu = fits.BinTableHDU.from_columns([col_wvs, col_flux, col_error], name="RED")
+
+            col_wvs = fits.Column(name='wave', array=blue_wvs, unit='ANGSTROM', format='D')
+            col_flux = fits.Column(name='flux', array=blue_flam, unit='E-17 ERG/S/CM^2/ANG', format='D')
+            col_error = fits.Column(name='sigma', array=blue_sig, unit='E-17 ERG/S/CM^2/ANG', format='D')
+            blue_hdu = fits.BinTableHDU.from_columns([col_wvs, col_flux, col_error], name="BLUE")
+
+            col_wvs = fits.Column(name='wave', array=final_wvs, unit='ANGSTROM', format='D')
+            col_flux = fits.Column(name='flux', array=final_flam, unit='E-17 ERG/S/CM^2/ANG', format='D')
+            col_error = fits.Column(name='sigma', array=final_flam_sig, unit='E-17 ERG/S/CM^2/ANG', format='D')
+            table_hdu = fits.BinTableHDU.from_columns([col_wvs, col_flux, col_error], name="SPLICED")
+
+            hdul = fits.HDUList(hdus=[primary_hdu, *raw_red_hdus, *raw_blue_hdus, red_hdu, blue_hdu, table_hdu])
+
+            hdul.writeto(os.path.join(args['output_path'], "Science", f'{target}_{label}.fits'), overwrite=True)
+            label = chr(ord(label) + 1)
+
+
+
+def splice_old(args: dict) -> None:
     """
     Splices red and blue spectra together.
     """
@@ -367,13 +440,13 @@ def adjust_and_combine_overlap(bluefile: str, redfile: str, target: str) -> Tupl
     #plt.savefig(f'{target}_quickplot.png')
 
 
-    plt.figure(figsize=(20,10))
-    plt.errorbar(final_wvs, final_flam, yerr=final_flam_sig)
-    plt.grid()
-    plt.xlabel('Wavelength (Angstroms)')
-    plt.ylabel('Flux (erg/s/cm${}^2$/$\mathring{A}$)')
-    plt.title(f'Fluxed spectrum of {target}')
-    plt.savefig(f'{target}_quickplot.png')
+    #plt.figure(figsize=(20,10))
+    #plt.errorbar(final_wvs, final_flam, yerr=final_flam_sig)
+    #plt.grid()
+    #plt.xlabel('Wavelength (Angstroms)')
+    #plt.ylabel('Flux (erg/s/cm${}^2$/$\mathring{A}$)')
+    #plt.title(f'Fluxed spectrum of {target}')
+    #plt.savefig(f'{target}_quickplot.png')
 
     return ((final_wvs, final_flam, final_flam_sig),
         (spec_r[1].data['wave'], spec_r[1].data['flux'], spec_r[1].data['ivar'] ** -0.5),
@@ -565,13 +638,6 @@ def write_manual_pypeit_files(args: dict) -> List[str]:
         'needs_std_fn': function target1 -> bool, True if target1 needs a
             standard star to be reduced alongside it
     }
-
-    [extended_summary]
-
-    :param args: [description]
-    :type args: dict
-    :return: [description]
-    :rtype: List[str]
     """
     old_pypeit_file = args['pypeit_file']
 
@@ -701,15 +767,37 @@ def write_extraction_QA(args: dict) -> None:
 def coadd(args: dict) -> List[str]:
     """
     takes in args['spec1dfile'] and coadds each spectrum in the spec1dfile
+    takes in args['grouped_spats_list'], a list of dicts mapping 'fnames' to a
+        list of filenames and 'spats' to a list of integer spatial pixel
+        positions.
+    Returns a list of filenames of coadded spectra.
     """
     outfiles = []
-    hdul = fits.open(args['spec1dfile'])
-    for hdu in hdul:
-        if 'SPAT' in hdu.name:
-            basename = os.path.basename(args['spec1dfile']).split("_")[1]
-            outfile = os.path.join(args['output_path'], "Science", f"{basename}_{hdu.name}.fits")
-            coadd_one_object([args['spec1dfile']], [hdu.name], outfile, args)
-            outfiles.append(outfile)
+    for d in args['grouped_spats_list']:
+        fnames = d['fnames']
+        spats = d['spats']
+        basename = '_'.join([os.path.basename(fname).split("_")[1].split("-")[0]
+            for fname in fnames]) + "_" + \
+                os.path.basename(fnames[0]).split("_")[1].split("-")[1]
+
+        objnames = []
+        for spat, fname in zip(spats, fnames):
+            hdul = fits.open(fname)
+            for hdu in hdul:
+                if f'SPAT{spat:04d}' in hdu.name:
+                    objnames.append(hdu.name)
+
+        outfile = os.path.join(args['output_path'], "Science", f"{basename}_{'_'.join(objnames)}.fits")
+        coadd_one_object(fnames, objnames, outfile, args)
+        outfiles.append(outfile)
+    # delete if above works
+    #hdul = fits.open(args['spec1dfile'])
+    #for hdu in hdul:
+    #    if 'SPAT' in hdu.name:
+    #        basename = os.path.basename(args['spec1dfile']).split("_")[1]
+    #        outfile = os.path.join(args['output_path'], "Science", f"{basename}_{hdu.name}.fits")
+    #        coadd_one_object([args['spec1dfile']], [hdu.name], outfile, args)
+    #        outfiles.append(outfile)
     return outfiles
 
 def coadd_one_object(spec1dfiles: List[str], objids: List[str], coaddfile: str, args: dict):
@@ -758,3 +846,34 @@ def telluric_correct(args: dict):
                                          debug_init=args['debug'], disp=args['debug'], debug=args['debug'], show=args['plot'])
     except ValueError:
         print(f"ERROR!! Telluric correction of {args['spec1dfile']} FAILED!")
+
+def group_coadds(fname_to_spats: dict):
+    """
+    Groups coadds. Destroys input.
+
+    Takes in dict mapping filenames to a list of integer spatial positions
+    Returns list of dicts mapping 'fnames' to a list of filenames and 'spats'
+        to a list of integer spatial positions.
+    """
+    # input is dict mapping fname to spats
+    # end result is mapping from arb. label of trace -> spats list and fnames list
+    THRESHOLD = 2
+    result = []
+    while any(fname_to_spats.values()):
+        potential_group = [(spats[0], fname) for fname, spats in fname_to_spats.items()]
+        potential_group.sort(key=lambda x: x[0])
+        min_spat, its_fname = potential_group.pop()
+        fname_to_spats[its_fname].pop()
+        # new group!
+        result.append({'spats': [min_spat], 'fnames': [its_fname]})
+        # see if any of the others in the potential group are in:
+        for spat, fname in potential_group:
+            if spat - min_spat < THRESHOLD:
+                result[-1]['spats'].append(spat)
+                result[-1]['fnames'].append(fname)
+                fname_to_spats[fname].pop()
+
+        # filter dict to remove fnames with no spats left
+        fname_to_spats = {fname: spats for fname, spats in fname_to_spats.items() if spats}
+
+    return result
