@@ -3,6 +3,26 @@ from matplotlib import pyplot as plt
 import numpy as np
 from astropy import stats
 from pypeit.spec2dobj import Spec2DObj
+from matplotlib.backend_tools import ToolBase
+from PySide2 import QtWidgets
+
+plt.rcParams['toolbar'] = 'toolmanager'
+
+class HelpTool(ToolBase):
+    """
+    Print help text.
+    """
+    # keyboard shortcut
+    default_keymap = 'h'
+    description = 'Help'
+    image = 'help'
+
+    def trigger(self, *args, **kwargs):
+        QtWidgets.QMessageBox.information(None, "Help", "How to use:\n"
+        "   - to designate background regions, press (b)ackground and then click and drag\n"
+        "   - left-click and drag blue (manual) traces around\n"
+        "   - right-click and drag to change FWHM of blue (manual) traces\n"
+        "   - press (d)elete to delete background regions under the cursor\n")
 
 class ManualApertureGUI:
     """
@@ -68,6 +88,10 @@ class ManualApertureGUI:
         collapsed_spec, _, _ = stats.sigma_clipped_stats(self.plot_spec, mask=(self.spec.bpmmask != 0) | (self.collapse_mask != 1), axis=0, sigma=3.0,
                                         cenfunc='median', stdfunc=lambda x, axis: stats.mad_std(x, axis=axis, ignore_nan=True))
         self.collapsed_spec = collapsed_spec
+
+        self.canvas.manager.toolmanager.remove_tool("help")
+        self.canvas.manager.toolmanager.add_tool('Help', HelpTool)
+        self.canvas.manager.toolbar.add_tool('Help', HelpTool)
 
         # Initial plot!
         self.plot()
