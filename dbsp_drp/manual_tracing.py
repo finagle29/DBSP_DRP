@@ -2,6 +2,7 @@ import matplotlib as mpl
 from matplotlib import pyplot as plt
 import numpy as np
 from dbsp_drp import manual_aperture
+from dbsp_drp.gui_helpers import HelpTool
 
 class ManualTracingGUI:
     """
@@ -24,6 +25,16 @@ class ManualTracingGUI:
     press m to lay down a (m)anual trace under your cursor
     press d to (d)elete a manual trace near your cursor
     press c, then left-click and drag to set the region to view the (c)ollapsed flux
+    """
+
+    helptext = """GUI for manually identifying object traces
+    Displays one spectrum at a time
+
+    How to use:
+        - use left and right arrow keys to go back and forth between spectra
+        - press m to lay down a (m)anual trace under your cursor
+        - press d to (d)elete a manual trace near your cursor
+        - press c, then left-click and drag to set the region to view the (c)ollapsed flux
     """
 
     def __init__(self, figure, axes, specs_dict):
@@ -56,6 +67,10 @@ class ManualTracingGUI:
         self.drawing_collapse_region = False
         self.collapse_region = [None, None]
         self.collapse_region_artist = None
+
+        self.canvas.manager.toolmanager.remove_tool("help")
+        self.canvas.manager.toolmanager.add_tool('Help', HelpTool, helptext=self.helptext)
+        self.canvas.manager.toolbar.add_tool('Help', 'help')
 
         # Initial plot!
         self.plot()
