@@ -364,12 +364,15 @@ def main(args):
         # telluric correct
         if do_red:
             tellcorr_inputs = []
+            tell_coadd_fnames = set()
             for row in spec1d_table[spec1d_table['arm'] == 'red']:
                 if isinstance(row['coadds'], list):
                     for obj in row['coadds']:
-                        tmp = options_red.copy()
-                        tmp['spec1dfile'] = obj
-                        tellcorr_inputs.append(tmp)
+                        if not obj in tell_coadd_fnames:
+                            tmp = options_red.copy()
+                            tmp['spec1dfile'] = obj
+                            tellcorr_inputs.append(tmp)
+                            tell_coadd_fnames.add(obj)
     #                    options_red['spec1dfile'] = obj
     #                    p200_arm_redux.telluric_correct(options_red)
             if args.jobs == 1:
@@ -386,8 +389,7 @@ def main(args):
 
             # Maybe do something here to verify that telluric correction succeeded
             # and if so, change the coadd names
-            for tellcorr_input in tellcorr_inputs:
-                coadd = tellcorr_input['spec1dfile']
+            for coadd in tell_coadd_fnames:
                 tell = coadd.replace(".fits", "_tellcorr.fits")
                 # check if tell exists and is newer than coadd
                 if os.path.isfile(tell) and (os.path.getmtime(tell) > os.path.getmtime(coadd)):
