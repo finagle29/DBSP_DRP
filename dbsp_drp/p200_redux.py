@@ -207,8 +207,10 @@ def main(args):
             p200_arm_redux.re_redux(options_blue, blue_manual_pypeit_files)
             p200_arm_redux.save_2dspecs(options_blue)
 
-    fname_len = len(os.path.abspath(options_red['output_path'])) + 15 # /blueNNNN.fits
-    sensfunc_len = len(os.path.abspath(options_red['output_path'])) + 70 # /sens_blueNNNN-OBJ_DBSPb_YYYYMMMDDTHHMMSS.SPAT.fits
+    # /blueNNNN.fits
+    fname_len = len(os.path.abspath(options_red['output_path'])) + 15
+    # /sens_blueNNNN-OBJ_DBSPb_YYYYMMMDDTHHMMSS.SPAT.fits
+    sensfunc_len = len(os.path.abspath(options_red['output_path'])) + 70
     # Find standards and make sensitivity functions
     spec1d_table = Table(names=('filename', 'arm', 'object', 'frametype',
                             'airmass', 'mjd', 'sensfunc', 'exptime'),
@@ -276,7 +278,7 @@ def main(args):
     if do_blue:
         p200_arm_redux.flux(options_blue)
 
-    # TODO: coadd - intelligent coadding of multiple files
+    # coadd - intelligent coadding of multiple files
     # first make a column "coaddID" that is the same for frames to be coadded
     coaddIDs = []
     if args.null_coadd:
@@ -320,10 +322,12 @@ def main(args):
     # add to table???
     spec1d_table.add_column(all_spats, name="spats")
     spec1d_table.add_column(all_fracpos, name="fracpos")
-    # need to make this dtype object
+    # this needs to be dtype object to allow for variable length lists
     spec1d_table.add_column(Column(name="coadds", dtype=object, length=len(spec1d_table)))
     spec1d_table.add_column([False]*len(all_spats), name="processed")
 
+    ## Deprecated I think
+    """
     # for each arm
         # find median/mean of spatial positions
     if do_blue:
@@ -336,9 +340,9 @@ def main(args):
         red_spats = [spat for spats in red_spats for spat in spats]
         avg_red_spat = np.mean(red_spats)
         std_red_spats = np.std(red_spats)
+    """
 
     # coadd
-    # probolem here
     #options_red['debug'] = True
     #options_red['plot'] = True
     # iterate over coadd_ids
@@ -402,9 +406,8 @@ def main(args):
                     del coadd_to_spec1d[coadd]
 
 
-    # splicing method 1: choose single object closest to arm mean
-    # TODO: better splicing - make sure spatial fraction is similar on blue/red
-    # TODO: better splicing - handle multiple observations of same target throughout night
+    # current splicing - make sure spatial fraction is similar on blue/red
+    # TODO: handle multiple observations of same target throughout night with null coadding
     # splice data
     splicing_dict = {}
     blue_mask = spec1d_table['arm'] == 'blue'
@@ -466,7 +469,7 @@ def main(args):
                             close_enough = True
                             break
                     if not close_enough:
-                        ## This should be if it is close enough to NONE
+                        # If this fracpos isn't close enough to any others
                         splicing_dict[target][fracpos] = {arm: {
                             'spec1ds': coadd_to_spec1d[coadd],
                             'coadd': coadd
