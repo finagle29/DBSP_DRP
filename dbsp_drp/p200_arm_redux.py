@@ -794,6 +794,7 @@ def coadd(args: dict) -> List[str]:
             for hdu in hdul:
                 if f'SPAT{spat:04d}' in hdu.name:
                     objnames.append(hdu.name)
+                    break
 
         outfile = os.path.join(args['output_path'], "Science", f"{basename}_{'_'.join(objnames)}.fits")
         coadd_one_object([os.path.join(args['output_path'], 'Science', fname) for fname in fnames],
@@ -874,15 +875,15 @@ def group_coadds(fname_to_spats: dict):
         potential_group = [(spats[0], fname) for fname, spats in fname_to_spats.items()]
         potential_group.sort(key=lambda x: x[0])
         min_spat, its_fname = potential_group.pop()
-        fname_to_spats[its_fname].pop()
+        fname_to_spats[its_fname].remove(min_spat)
         # new group!
         result.append({'spats': [min_spat], 'fnames': [its_fname]})
         # see if any of the others in the potential group are in:
         for spat, fname in potential_group:
-            if spat - min_spat < THRESHOLD:
+            if spat - min_spat < THRESHOLD: # might want to abs this and double check the sorting
                 result[-1]['spats'].append(spat)
                 result[-1]['fnames'].append(fname)
-                fname_to_spats[fname].pop()
+                fname_to_spats[fname].remove(spat)
 
         # filter dict to remove fnames with no spats left
         fname_to_spats = {fname: spats for fname, spats in fname_to_spats.items() if spats}
