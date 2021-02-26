@@ -218,14 +218,14 @@ def main(args):
                             float, float, f'U{sensfunc_len}', float))
 
     # Ingest spec_1d tables
-    paths = options_red['output_spec1ds'] | options_blue['output_spec1ds']
-    for path in paths:
+    spec1ds = options_red['output_spec1ds'] | options_blue['output_spec1ds']
+    for spec1d in spec1ds:
+        path = os.path.join(args.output_path, 'Science', spec1d)
         with fits.open(path) as hdul:
-            fname = os.path.basename(path)
             head0 = hdul[0].header
             head1 = hdul[1].header
             arm = 'red' if 'red' in head0['PYP_SPEC'] else 'blue'
-            spec1d_table.add_row((fname, arm, head0['TARGET'],
+            spec1d_table.add_row((spec1d, arm, head0['TARGET'],
                 head1['OBJTYPE'], head0['AIRMASS'],
                 head0['MJD'], '', head0['EXPTIME']))
     spec1d_table.add_index('filename')
@@ -313,7 +313,7 @@ def main(args):
     all_fracpos = []
     # for each spec1d file
     for filename in spec1d_table['filename']:
-        path = os.join(args.output_path, 'Science', filename)
+        path = os.path.join(args.output_path, 'Science', filename)
         with fits.open(path) as hdul:
             spats = []
             fracpos = []

@@ -131,13 +131,13 @@ def redux(args: dict) -> None:
     msgs.info('Generating QA HTML')
     pypeIt.build_qa()
 
-    args['output_spec1ds'] |= set(filter(os.path.isfile, [
+    args['output_spec1ds'] |= set(filter(lambda f: os.path.isfile(os.path.join(args['output_path'], 'Science', f)), [
             os.path.basename(pypeIt.spec_output_file(i)) \
             for i in range(len(pypeIt.fitstbl.table)) \
             if pypeIt.fitstbl.table[i]['frametype'] in ['science', 'standard']
         ]))
 
-    args['output_spec2ds'] |= set(filter(os.path.isfile, [
+    args['output_spec2ds'] |= set(filter(lambda f: os.path.isfile(os.path.join(args['output_path'], 'Science', f)), [
             os.path.basename(pypeIt.spec_output_file(i, True)) \
             for i in range(len(pypeIt.fitstbl.table)) \
             if pypeIt.fitstbl.table[i]['frametype'] in ['science', 'standard']
@@ -181,7 +181,7 @@ def make_sensfunc(args: dict) -> str:
             sensobj.out_table['MASK_SENS'] = orig_mask
 
         sensobj.save()
-        return outfile
+        return os.path.basename(outfile)
     except pypmsgs.PypeItError as err:
         print(f"ERROR creating sensitivity function using {args['spec1dfile']}")
         print("Changing its frametype to science")
@@ -199,7 +199,9 @@ def build_fluxfile(args: dict) -> str:
     # data section
     cfg_lines.append('flux read')
     for spec1d, sensfun in args['spec1dfiles'].items():
-        cfg_lines.append(f'  {os.path.join(args["output_path"], "Science", spec1d)} {sensfun}')
+        spec_path = os.path.join(args['output_path'], 'Science', spec1d)
+        sens_path = os.path.join(args['output_path'], sensfun)
+        cfg_lines.append(f'  {spec_path} {sens_path}')
     cfg_lines.append('flux end')
 
     ofile = os.path.join(args['output_path'], f'{args["spectrograph"]}.flux')
@@ -509,13 +511,14 @@ def save_2dspecs(args: dict) -> None:
     obj_png_dict = args['qa_dict']
 
     arm = 'blue' if 'blue' in args['spectrograph'] else 'red'
-    paths = args['output_spec2ds']
+    fnames = args['output_spec2ds']
 
     out_path = os.path.join(args['output_path'], 'QA', 'PNGs', 'Extraction')
     if not os.path.exists(out_path):
         os.makedirs(out_path)
 
-    for path in paths:
+    for fname in fnames:
+        path = os.path.join(args['output_path'], 'Science', fname)
         # open fits file
         spec = Spec2DObj.from_file(path, 1)
         spec1d_file = path.replace('spec2d', 'spec1d')
@@ -821,6 +824,7 @@ def telluric_correct(args: dict):
     """
     method to telluric correct one coadded file
     """
+    spec1dfile = os.path.join(args['output_path'], 'Science', args['spec1dfile'])
     spectrograph = load_spectrograph(args['spectrograph'])
     par = spectrograph.default_pypeit_par()
 
@@ -839,7 +843,6 @@ def telluric_correct(args: dict):
     outfile = os.path.join(args['output_path'], 'Science', args['spec1dfile'].replace('.fits','_tellcorr.fits'))
     modelfile = os.path.join(args['output_path'], 'Science', args['spec1dfile'].replace('.fits','_tellmodel.fits'))
 
-    spec1dfile = os.path.join(args['output_path'], 'Science', args['spec1dfile'])
 
     try:
         TelPoly = telluric.poly_telluric(spec1dfile, par['tellfit']['tell_grid'], modelfile, outfile,
