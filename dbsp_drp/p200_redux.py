@@ -321,6 +321,8 @@ def main(args):
                 # grab all of its extensions' spatial positions
                 spats.append(int(hdul[i].name.split('-')[0].lstrip('SPAT')))
                 fracpos.append(hdul[i].header['SPAT_FRACPOS'])
+            spats.sort()
+            fracpos.sort()
             all_spats.append(spats)
             all_fracpos.append(fracpos)
     # add to table???

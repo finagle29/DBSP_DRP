@@ -249,7 +249,8 @@ def get_raw_hdus_from_spec1d(spec1d_list: List[str], args: dict) -> List[fits.Bi
         with fits.open(raw_fname) as raw_hdul:
             raw_header = raw_hdul[0].header.copy()
         # get the spectrum
-        with fits.open(spec1d) as spec1d_hdul:
+        spec1d_path = os.path.join(args['output_path'], 'Science', spec1d)
+        with fits.open(spec1d_path) as spec1d_hdul:
             for hdu in spec1d_hdul:
                 if f'SPAT{spat:04d}' in hdu.name:
                     raw_data = hdu.data.copy()
@@ -290,6 +291,8 @@ def splice(args: dict) -> None:
             primary_header['PYPEIT_V'] = pypeit.__version__
             primary_header['NUMPY_V'] = np.__version__
             primary_header['ASTROPY_V'] = astropy.__version__
+            primary_header['B_COADD'] = bluefile
+            primary_header['R_COADD'] = redfile
             primary_hdu = fits.PrimaryHDU(header=primary_header)
 
             raw_red_hdus = get_raw_hdus_from_spec1d(red_dict.get('spec1ds', []), args)
@@ -313,6 +316,14 @@ def splice(args: dict) -> None:
 
             hdul = fits.HDUList(hdus=[primary_hdu, *raw_red_hdus, *raw_blue_hdus, red_hdu, blue_hdu, table_hdu])
 
+            log_msg = f"{target}_{label}.fits contains "
+            if redfile is None:
+                log_msg += f"{os.path.basename(bluefile)}"
+            elif bluefile is None:
+                log_msg += f"{os.path.basename(redfile)}"
+            else:
+                log_msg += f"{os.path.basename(redfile)} and {os.path.basename(bluefile)}"
+            print(log_msg)
             hdul.writeto(os.path.join(args['output_path'], "Science", f'{target}_{label}.fits'), overwrite=True)
             label = chr(ord(label) + 1)
 
