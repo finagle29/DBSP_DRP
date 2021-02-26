@@ -132,13 +132,13 @@ def redux(args: dict) -> None:
     pypeIt.build_qa()
 
     args['output_spec1ds'] |= set(filter(os.path.isfile, [
-            os.path.abspath(pypeIt.spec_output_file(i)) \
+            os.path.basename(pypeIt.spec_output_file(i)) \
             for i in range(len(pypeIt.fitstbl.table)) \
             if pypeIt.fitstbl.table[i]['frametype'] in ['science', 'standard']
         ]))
 
     args['output_spec2ds'] |= set(filter(os.path.isfile, [
-            os.path.abspath(pypeIt.spec_output_file(i, True)) \
+            os.path.basename(pypeIt.spec_output_file(i, True)) \
             for i in range(len(pypeIt.fitstbl.table)) \
             if pypeIt.fitstbl.table[i]['frametype'] in ['science', 'standard']
         ]))
@@ -148,20 +148,20 @@ def make_sensfunc(args: dict) -> str:
     Makes a sensitivity function
     """
     try:
+        spec1dfile = os.path.join(args['output_path'], 'Science', args['spec1dfile'])
         par = load_spectrograph(args['spectrograph']).default_pypeit_par()
         default_cfg_lines = par.to_config()
         par = pypeitpar.PypeItPar.from_cfg_lines(cfg_lines = default_cfg_lines, merge_with=args['user_config_lines'])
 
-        outfile = os.path.join(args['output_path'],
-            os.path.basename(args['spec1dfile']).replace('spec1d', 'sens'))
+        outfile = os.path.join(args['output_path'], args['spec1dfile'].replace('spec1d', 'sens'))
 
         #par['sensfunc']['UVIS']['extinct_correct'] = False
 
-        sensobj = sensfunc.SensFunc.get_instance(args['spec1dfile'], outfile, par=par['sensfunc'], debug=args['debug'])
+        sensobj = sensfunc.SensFunc.get_instance(spec1dfile, outfile, par=par['sensfunc'], debug=args['debug'])
 
         if 'red' in args['spectrograph']:
             # read in spec1dfile to get wavelengths
-            sobjs = SpecObjs.from_fitsfile(args['spec1dfile'])
+            sobjs = SpecObjs.from_fitsfile(spec1dfile)
             wave_star = sobjs[0].OPT_WAVE
             orig_mask = sensobj.counts_mask.copy()
 
@@ -199,7 +199,7 @@ def build_fluxfile(args: dict) -> str:
     # data section
     cfg_lines.append('flux read')
     for spec1d, sensfun in args['spec1dfiles'].items():
-        cfg_lines.append(f'  {spec1d} {sensfun}')
+        cfg_lines.append(f'  {os.path.join(args["output_path"], "Science", spec1d)} {sensfun}')
     cfg_lines.append('flux end')
 
     ofile = os.path.join(args['output_path'], f'{args["spectrograph"]}.flux')
@@ -272,6 +272,10 @@ def splice(args: dict) -> None:
 
             bluefile = blue_dict.get('coadd')
             redfile = red_dict.get('coadd')
+            if bluefile is not None:
+                bluefile = os.path.join(args['output_path'], 'Science', bluefile)
+            if redfile is not None:
+                redfile = os.path.join(args['output_path'], 'Science', redfile)
             if bluefile is None and redfile is None:
                 continue
 
@@ -776,20 +780,22 @@ def coadd(args: dict) -> List[str]:
     for d in args['grouped_spats_list']:
         fnames = d['fnames']
         spats = d['spats']
-        basename = '_'.join([os.path.basename(fname).split("_")[1].split("-")[0]
+        basename = '_'.join([fname.split("_")[1].split("-")[0]
             for fname in fnames]) + "_" + \
-                os.path.basename(fnames[0]).split("_")[1].split("-")[1]
+                fnames[0].split("_")[1].split("-")[1]
 
         objnames = []
         for spat, fname in zip(spats, fnames):
-            hdul = fits.open(fname)
+            path = os.path.join(args['output_path'], 'Science', fname)
+            hdul = fits.open(path)
             for hdu in hdul:
                 if f'SPAT{spat:04d}' in hdu.name:
                     objnames.append(hdu.name)
 
         outfile = os.path.join(args['output_path'], "Science", f"{basename}_{'_'.join(objnames)}.fits")
-        coadd_one_object(fnames, objnames, outfile, args)
-        outfiles.append(outfile)
+        coadd_one_object([os.path.join(args['output_path'], 'Science', fname) for fname in fnames],
+            objnames, outfile, args)
+        outfiles.append(os.path.basename(outfile))
     # delete if above works
     #hdul = fits.open(args['spec1dfile'])
     #for hdu in hdul:
@@ -830,11 +836,13 @@ def telluric_correct(args: dict):
     par = pypeitpar.PypeItPar.from_cfg_lines(cfg_lines=par.to_config(), merge_with=args['user_config_lines'])
 
     # Parse the output filename
-    outfile = os.path.join(args['output_path'], "Science", (os.path.basename(args['spec1dfile'])).replace('.fits','_tellcorr.fits'))
-    modelfile = os.path.join(args['output_path'], "Science", (os.path.basename(args['spec1dfile'])).replace('.fits','_tellmodel.fits'))
+    outfile = os.path.join(args['output_path'], 'Science', args['spec1dfile'].replace('.fits','_tellcorr.fits'))
+    modelfile = os.path.join(args['output_path'], 'Science', args['spec1dfile'].replace('.fits','_tellmodel.fits'))
+
+    spec1dfile = os.path.join(args['output_path'], 'Science', args['spec1dfile'])
 
     try:
-        TelPoly = telluric.poly_telluric(args['spec1dfile'], par['tellfit']['tell_grid'], modelfile, outfile,
+        TelPoly = telluric.poly_telluric(spec1dfile, par['tellfit']['tell_grid'], modelfile, outfile,
                                          z_obj=par['tellfit']['redshift'],
                                          func=par['tellfit']['func'], model=par['tellfit']['model'],
                                          polyorder=par['tellfit']['polyorder'],

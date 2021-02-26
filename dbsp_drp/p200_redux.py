@@ -207,10 +207,10 @@ def main(args):
             p200_arm_redux.re_redux(options_blue, blue_manual_pypeit_files)
             p200_arm_redux.save_2dspecs(options_blue)
 
-    # /blueNNNN.fits
-    fname_len = len(os.path.abspath(options_red['output_path'])) + 15
-    # /sens_blueNNNN-OBJ_DBSPb_YYYYMMMDDTHHMMSS.SPAT.fits
-    sensfunc_len = len(os.path.abspath(options_red['output_path'])) + 70
+    # spec1d_blueNNNN-OBJ_DBSPb_YYYYMMMDDTHHMMSS.SPAT.fits
+    fname_len = 72
+    # sens_blueNNNN-OBJ_DBSPb_YYYYMMMDDTHHMMSS.SPAT.fits
+    sensfunc_len = 70
     # Find standards and make sensitivity functions
     spec1d_table = Table(names=('filename', 'arm', 'object', 'frametype',
                             'airmass', 'mjd', 'sensfunc', 'exptime'),
@@ -221,10 +221,13 @@ def main(args):
     paths = options_red['output_spec1ds'] | options_blue['output_spec1ds']
     for path in paths:
         with fits.open(path) as hdul:
-            arm = 'red' if 'red' in os.path.basename(path) else 'blue'
-            spec1d_table.add_row((path, arm, hdul[0].header['TARGET'],
-                hdul[1].header['OBJTYPE'], hdul[0].header['AIRMASS'],
-                hdul[0].header['MJD'], '', hdul[0].header['EXPTIME']))
+            fname = os.path.basename(path)
+            head0 = hdul[0].header
+            head1 = hdul[1].header
+            arm = 'red' if 'red' in head0['PYP_SPEC'] else 'blue'
+            spec1d_table.add_row((fname, arm, head0['TARGET'],
+                head1['OBJTYPE'], head0['AIRMASS'],
+                head0['MJD'], '', head0['EXPTIME']))
     spec1d_table.add_index('filename')
     spec1d_table.sort(['arm', 'mjd'])
 
@@ -310,7 +313,8 @@ def main(args):
     all_fracpos = []
     # for each spec1d file
     for filename in spec1d_table['filename']:
-        with fits.open(filename) as hdul:
+        path = os.join(args.output_path, 'Science', filename)
+        with fits.open(path) as hdul:
             spats = []
             fracpos = []
             for i in range(1, len(hdul) - 1):
@@ -395,8 +399,10 @@ def main(args):
             # and if so, change the coadd names
             for coadd in tell_coadd_fnames:
                 tell = coadd.replace(".fits", "_tellcorr.fits")
+                tellpath = os.path.join(args.output_path, 'Science', tell)
+                coaddpath = os.path.join(args.output_path, 'Science', coadd)
                 # check if tell exists and is newer than coadd
-                if os.path.isfile(tell) and (os.path.getmtime(tell) > os.path.getmtime(coadd)):
+                if os.path.isfile(tellpath) and (os.path.getmtime(tellpath) > os.path.getmtime(coaddpath)):
                     # modify coadd
                     for row in spec1d_table:
                         if coadd in row['coadds']:
