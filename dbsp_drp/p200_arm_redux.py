@@ -604,13 +604,15 @@ def save_2dspecs(args: dict) -> None:
 
 def manual_extraction_GUI(args):
     arm = 'blue' if 'blue' in args['spectrograph'] else 'red'
-    paths = args['output_spec2ds']
+    spec2ds = args['output_spec2ds']
 
     gui_dict = {}
-    for path in paths:
+    for spec2d in spec2ds:
+        path = os.path.join(args['output_path'], 'Science', spec2d)
         # open fits file
         spec = Spec2DObj.from_file(path, 1)
-        spec1d_file = path.replace('spec2d', 'spec1d')
+        spec1d_file = spec2d.replace('spec2d', 'spec1d', 1)
+        spec1d_file = os.path.join(args['output_path'], 'Science', spec1d_file)
 
         if os.path.isfile(spec1d_file):
             spec1ds = SpecObjs.from_fitsfile(spec1d_file)
