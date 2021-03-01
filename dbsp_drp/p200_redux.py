@@ -8,6 +8,7 @@ import time
 import copy
 import multiprocessing
 from typing import Optional, List
+import pickle
 
 from astropy.io import fits
 from astropy.table import Table, Column, Row
@@ -424,6 +425,7 @@ def main(args):
     ## Need to find red + blue fracpos for standards
     # hopefully standards only have one star each?
     # or should i actually try to do matching there
+    fracpos_diff_list = []
     if do_red or do_blue:
         FRACPOS_TOL = 0.01
         if do_red and do_blue:
@@ -468,6 +470,7 @@ def main(args):
                     # for each existing fracpos
                     for fracpos_existing in list(targ_dict):
                         # if its close enough
+                        fracpos_diff_list.append(abs(fracpos_existing - fracpos))
                         if abs(fracpos_existing - fracpos) < FRACPOS_TOL:
                             # put it in the dict
                             splicing_dict[target][fracpos_existing][arm] = {
@@ -485,6 +488,8 @@ def main(args):
         # And now, actually splice!
         options_red['splicing_dict'] = splicing_dict
         p200_arm_redux.splice(options_red)
+
+    pickle.dump((fracpos_diff_list, FRACPOS_SUM), "fracpos_data.pickle")
 
     """
     # if do_red or do_blue ????
