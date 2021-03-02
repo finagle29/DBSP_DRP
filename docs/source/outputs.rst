@@ -22,14 +22,17 @@ for the same arm).
 These files can be visually inspected using the command ``pypeit_show_1dspec --exten N SPEC1D_FILE``
 to view extension N of the file.
 
-PypeIt 1D Coadd files ``redNNNN-target_SPATNNNN-SLITMMMM-DET01.fits`` described in more detail
+PypeIt 1D Coadd files ``redNNNN_redNNNN_target_SPATNNNN-SLITMMMM-DET01_SPATNNNN-SLITMMMM-DET01.fits`` described in more detail
 `here <https://pypeit.readthedocs.io/en/latest/coadd1d.html#current-coadd1d-data-model>`_.
-These files only exist to separate out multiple objects on the same frame into their own file.
+These files exist to separate out multiple objects on the same frame into their own file, and to
+coadd consecutive exposures of the same frame.
 These files can be visually inspected using the command ``lt_xspec COADD_FILE``.
+The filename will repeat the raw data file and spatial pixel information for each coadded file.
 
 Telluric-corrected 1D Coadd files have ``_tellcorr`` appended to the base filename of the coadd file.
 
-The final data product of DBSP_DRP is a FITS file named ``target.fits`` with structure described below.
+The final data product of DBSP_DRP is a FITS file named ``target_char.fits`` with structure described below,
+where ``char`` is a one letter designation of which object along the slit it is.
 
 .. table:: table
     :widths: 16 7 20 20
@@ -38,10 +41,26 @@ The final data product of DBSP_DRP is a FITS file named ``target.fits`` with str
     Extension Number Name     Header                                                  Data
     ================ ======== ======================================================= =================================================
     0                PRIMARY  Version info about DBSP_DRP, PypeIt, numpy and astropy  None
-    1                RED      Header from raw red side fits file                      Fluxed (and telluric-corrected) red side spectrum
-    2                BLUE     Header from raw blue side fits file                     Fluxed blue side spectrum
-    3                SPLICED  Empty                                                   Final spliced spectrum
+    1                RED0031  Header from raw red side fits file                      Fluxed (not telluric-corrected) red side spectrum
+    2                RED0032  Header from raw red side fits file                      Fluxed (not telluric-corrected) red side spectrum
+    3                BLUE0032 Header from raw blue side fits file                     Fluxed blue side spectrum
+    4                BLUE0032 Header from raw blue side fits file                     Fluxed blue side spectrum
+    5                RED      Header from raw red side fits file                      Fluxed (and telluric-corrected) red side spectrum
+    6                BLUE     Header from raw blue side fits file                     Fluxed blue side spectrum
+    7                SPLICED  Empty                                                   Final spliced spectrum
     ================ ======== ======================================================= =================================================
+
+The header on the 0th extension also contains cards named ``B_COADD`` and ``R_COADD`` which contain the filename
+of the blue and red coadd files, respectively, that were spliced together. This is useful for determining which
+traces a particular final output file corresponds to.
+
+If *n* red side files were coadded and *m* blue side files were coadded, then extensions 1 through *n* would contain the
+red side raw headers and fluxed spectrum from each individual file, extensions 1+*n* through 1+*n*+*m* would contain the
+blue side raw headers and fluxed spectra from each individual file, and the last 3 extensions are the red coadd, blue
+coadd, and final spliced spectrum.
+
+If an object was not observed in the blue (red) then there will be no raw blue (red) frames, and the BLUE (RED) extension
+would still exist, but contain no data.
 
 Each of the data tables contain columns for `wave`, `flux`, and `sigma`, with wavelength in Angstroms
 and both flux and sigma in units of 10\ :sup:`-17`\ erg/s/cm\ :sup:`2`\ /Ang.

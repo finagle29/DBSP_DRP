@@ -49,6 +49,10 @@ recommended to add the ``-j N`` flag to use N jobs for the telluric correction.
 header data is correct for all of the files. Add the option ``-i`` or
 ``--no-interactive`` to turn this behavior off.
 
+If you only want to reduce a subset of your data, you can select unwanted files in the
+header validation table GUI and right click to delete them from the current reduction run.
+Be sure to always keep the standard stars you need for fluxing in the data reduction.
+
 If you want to only reduce the red arm or the blue arm, add the flag ``--arm red``
 or ``-a blue`` for short.
 
