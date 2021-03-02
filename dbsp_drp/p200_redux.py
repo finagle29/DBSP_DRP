@@ -489,7 +489,8 @@ def main(args):
         options_red['splicing_dict'] = splicing_dict
         p200_arm_redux.splice(options_red)
 
-    pickle.dump((fracpos_diff_list, FRACPOS_SUM), "fracpos_data.pickle")
+    with open("fracpos_data.pickle", "wb") as f:
+        pickle.dump((fracpos_diff_list, FRACPOS_SUM), f)
 
     """
     # if do_red or do_blue ????
