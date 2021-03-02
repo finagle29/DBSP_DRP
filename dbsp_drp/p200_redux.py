@@ -440,7 +440,7 @@ def main(args):
                     spec1d_table.loc[row['filename']]['processed'] = True
                     spec1d_table.loc[corresponding_row['filename']]['processed'] = True
             FRACPOS_SUM = np.mean(std_fracpos_sums)
-            FRACPOS_TOL = FRACPOS_SUM * .01
+            FRACPOS_TOL = FRACPOS_SUM * .025
 
         # setup splicing dict
         splicing_dict = {}
