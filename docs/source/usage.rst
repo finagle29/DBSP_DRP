@@ -34,6 +34,8 @@ After :doc:`installing`, you are ready to reduce some DBSP data!
 
                               The [red/blue] parameter blocks are optional, and their order does not matter.
         -t, --skip-telluric   Skip telluric correction
+        -c, --null-coadd      Don't coadd consecutive exposures of the same target.
+                              By default consective exposures of the same target will be coadded.
 
 
 The basic usage of DBSP_DRP is as follows:
