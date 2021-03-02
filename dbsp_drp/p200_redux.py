@@ -328,8 +328,10 @@ def main(args):
             all_fracpos.append(fracpos)
     # add to table???
     # these needs to be dtype object so they stay as lists and aren't coerced to np.ndarray
-    spec1d_table.add_column(Column(data=all_spats, name="spats", dtype=object))
-    spec1d_table.add_column(Column(data=all_fracpos, name="fracpos", dtype=object))
+    spec1d_table.add_column(Column(name="spats", dtype=object, length=len(spec1d_table)))
+    spec1d_table.add_column(Column(name="fracpos", dtype=object, length=len(spec1d_table)))
+    spec1d_table['spats'] = all_spats
+    spec1d_table['fracpos'] = all_fracpos
     # this needs to be dtype object to allow for variable length lists
     spec1d_table.add_column(Column(name="coadds", dtype=object, length=len(spec1d_table)))
     spec1d_table.add_column([False]*len(all_spats), name="processed")
