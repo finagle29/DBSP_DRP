@@ -777,7 +777,6 @@ def write_extraction_QA(args: dict) -> None:
 
 def coadd(args: dict) -> List[str]:
     """
-    takes in args['spec1dfile'] and coadds each spectrum in the spec1dfile
     takes in args['grouped_spats_list'], a list of dicts mapping 'fnames' to a
         list of filenames and 'spats' to a list of integer spatial pixel
         positions.

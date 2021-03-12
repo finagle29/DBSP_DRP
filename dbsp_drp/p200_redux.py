@@ -17,8 +17,6 @@ from pypeit.pypeitsetup import PypeItSetup
 import pypeit.display
 import tqdm
 
-import matplotlib as mpl
-mpl.use("Qt5Agg")
 from matplotlib import pyplot as plt
 
 from dbsp_drp import p200_arm_redux
@@ -182,6 +180,11 @@ def main(args):
     #options_red['calib_only'] = True
     #options_blue['calib_only'] = True
     plt.switch_backend("agg")
+    # TODO: parallelize this
+    # Would need to look like
+    # Splitting up the .pypeit files into bits and pieces
+    # Oooh what if I just do the calibration first
+    # and then parallelize the reduction
     if do_red:
         p200_arm_redux.redux(options_red)
         p200_arm_redux.save_2dspecs(options_red)
@@ -211,15 +214,17 @@ def main(args):
     if args.manual_extraction:
         # wait for user acknowledgement
         input("Ready for manual extraction? If using GNU screen/tmux behind ssh, make sure to check that $DISPLAY is correct.")
+        plt.switch_backend("Qt5Agg")
 
         if do_red:
             red_manual_pypeit_files = p200_arm_redux.manual_extraction(options_red)
         if do_blue:
             blue_manual_pypeit_files = p200_arm_redux.manual_extraction(options_blue)
-        if do_red:
+        ## TODO: only re-save extraction QA plots for targets that were re-reduced
+        if do_red and red_manual_pypeit_files:
             p200_arm_redux.re_redux(options_red, red_manual_pypeit_files)
             p200_arm_redux.save_2dspecs(options_red)
-        if do_blue:
+        if do_blue and blue_manual_pypeit_files:
             p200_arm_redux.re_redux(options_blue, blue_manual_pypeit_files)
             p200_arm_redux.save_2dspecs(options_blue)
 
@@ -266,6 +271,7 @@ def main(args):
 
     stds = spec1d_table['frametype'] == 'standard'
     standards_fluxing = []
+    # TODO: allow use of archival sensitivity functions, use them if no standard present
     for row in spec1d_table:
         arm = spec1d_table['arm'] == row['arm']
         if row['frametype'] == 'science':
@@ -450,6 +456,10 @@ def main(args):
             std_fracpos_sums = []
             for row in spec1d_table[stds]:
                 # find closest mjd frame of other arm
+                ## TODO:
+                # sometimes standard frames have multiple fracpos
+                # I need to handle that, either by checking the S/N of the traces and choosing the highest
+                # or something else
                 if not row['processed']:
                     other_arm = spec1d_table['arm'] != row['arm']
                     corresponding_row = spec1d_table[other_arm & stds][np.abs(spec1d_table[other_arm & stds]['mjd'] - row['mjd']).argmin()]
