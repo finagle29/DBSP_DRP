@@ -366,54 +366,6 @@ def splice(args: dict) -> None:
             hdul.writeto(os.path.join(args['output_path'], "Science", f'{target}_{label}.fits'), overwrite=True)
             label = chr(ord(label) + 1)
 
-
-
-def splice_old(args: dict) -> None:
-    """
-    Splices red and blue spectra together.
-    """
-    for target, targ_dict in args['splicing_dict'].items():
-        bluefile = targ_dict.get('blue')
-        redfile = targ_dict.get('red')
-
-        if bluefile is None and redfile is None:
-            continue
-
-        ((final_wvs, final_flam, final_flam_sig),
-            (red_wvs, red_flam, red_sig),
-            (blue_wvs, blue_flam, blue_sig)) = adjust_and_combine_overlap(bluefile, redfile, target)
-
-        primary_header = fits.Header()
-        primary_header['DBSP_DRP_V'] = dbsp_drp.__version__
-        primary_header['PYPEIT_V'] = pypeit.__version__
-        primary_header['NUMPY_V'] = np.__version__
-        primary_header['ASTROPY_V'] = astropy.__version__
-        primary_hdu = fits.PrimaryHDU(header=primary_header)
-
-        ## Here we need something a little more involved to get FITS headers in
-        ## copy source red fits header
-        red_header = get_raw_header_from_coadd(redfile, args)
-        col_wvs = fits.Column(name='wave', array=red_wvs, unit='ANGSTROM', format='D')
-        col_flux = fits.Column(name='flux', array=red_flam, unit='E-17 ERG/S/CM^2/ANG', format='D')
-        col_error = fits.Column(name='sigma', array=red_sig, unit='E-17 ERG/S/CM^2/ANG', format='D')
-        red_hdu = fits.BinTableHDU.from_columns([col_wvs, col_flux, col_error], header=red_header, name="RED")
-
-        ## copy source blue fits header
-        blue_header = get_raw_header_from_coadd(bluefile, args)
-        col_wvs = fits.Column(name='wave', array=blue_wvs, unit='ANGSTROM', format='D')
-        col_flux = fits.Column(name='flux', array=blue_flam, unit='E-17 ERG/S/CM^2/ANG', format='D')
-        col_error = fits.Column(name='sigma', array=blue_sig, unit='E-17 ERG/S/CM^2/ANG', format='D')
-        blue_hdu = fits.BinTableHDU.from_columns([col_wvs, col_flux, col_error], header=blue_header, name="BLUE")
-
-        col_wvs = fits.Column(name='wave', array=final_wvs, unit='ANGSTROM', format='D')
-        col_flux = fits.Column(name='flux', array=final_flam, unit='E-17 ERG/S/CM^2/ANG', format='D')
-        col_error = fits.Column(name='sigma', array=final_flam_sig, unit='E-17 ERG/S/CM^2/ANG', format='D')
-        table_hdu = fits.BinTableHDU.from_columns([col_wvs, col_flux, col_error], name="SPLICED")
-
-        hdul = fits.HDUList(hdus=[primary_hdu, red_hdu, blue_hdu, table_hdu])
-
-        hdul.writeto(os.path.join(args['output_path'], "Science", f'{target}.fits'), overwrite=True)
-
 def adjust_and_combine_overlap(bluefile: str, redfile: str, target: str) -> Tuple[
             Tuple[np.ndarray, np.ndarray, np.ndarray],
             Tuple[np.ndarray, np.ndarray, np.ndarray],
@@ -852,14 +804,6 @@ def coadd(args: dict) -> List[str]:
         coadd_one_object([os.path.join(args['output_path'], 'Science', fname) for fname in fnames],
             objnames, outfile, args)
         outfiles.append(os.path.basename(outfile))
-    # delete if above works
-    #hdul = fits.open(args['spec1dfile'])
-    #for hdu in hdul:
-    #    if 'SPAT' in hdu.name:
-    #        basename = os.path.basename(args['spec1dfile']).split("_")[1]
-    #        outfile = os.path.join(args['output_path'], "Science", f"{basename}_{hdu.name}.fits")
-    #        coadd_one_object([args['spec1dfile']], [hdu.name], outfile, args)
-    #        outfiles.append(outfile)
     return outfiles
 
 def coadd_one_object(spec1dfiles: List[str], objids: List[str], coaddfile: str, args: dict):
