@@ -192,6 +192,21 @@ def main(args):
     if do_red or do_blue:
         p200_arm_redux.write_extraction_QA(options_red)
 
+    if do_red:
+        options_red['verification_counter'] = 0
+        red_pypeit_files = p200_arm_redux.verify_spec1ds(options_red)
+        while red_pypeit_files:
+            p200_arm_redux.re_redux(options_red, red_pypeit_files)
+            red_pypeit_files = p200_arm_redux.verify_spec1ds(options_red)
+            p200_arm_redux.save_2dspecs(options_red)
+    if do_blue:
+        options_blue['verification_counter'] = 0
+        blue_pypeit_files = p200_arm_redux.verify_spec1ds(options_blue)
+        while blue_pypeit_files:
+            p200_arm_redux.re_redux(options_blue, blue_pypeit_files)
+            blue_pypeit_files = p200_arm_redux.verify_spec1ds(options_blue)
+            p200_arm_redux.save_2dspecs(options_blue)
+
     # TODO: use a do/while loop to iterate on the manual extraction GUI until user is satisfied
     if args.manual_extraction:
         # wait for user acknowledgement

@@ -143,6 +143,34 @@ def redux(args: dict) -> None:
             if pypeIt.fitstbl.table[i]['frametype'] in ['science', 'standard']
         ]))
 
+def delete_duplicate_hdus_by_name(hdul: fits.HDUList, base_name: str = ""):
+    if len({hdu.name for hdu in hdul}) < len([hdu.name for hdu in hdul]):
+        print(f'{base_name} has duplicate traces, deleting them')
+
+        names = set()
+        for hdu in list(hdul):
+            if hdu.name in names:
+                hdul.pop(hdul.index_of(hdu))
+            else:
+                names.add(hdu.name)
+
+def verify_spec1ds(args: dict) -> List[str]:
+    """
+    Verifies validity of spec1d files, fixes some, and generates and returns a
+    list of pypeit files for targets that need to be rerun.
+    """
+    # TODO: have different reasons files can be flagged for re-reduction, with
+    # a corresponding set of parameters to change
+    # TODO: have redux produce and this function consume a set
+    # args['unverified_spec1ds'] so only changed files are re-checked
+    targets_list = []
+    for spec1d in args['output_spec1ds']:
+        path = os.path.join(args['output_path'], 'Science', spec1d)
+        with fits.open(path, mode='update') as hdul:
+            delete_duplicate_hdus_by_name(hdul, base_name = spec1d.split('_')[1])
+
+    return []
+
 def make_sensfunc(args: dict) -> str:
     """
     Makes a sensitivity function
