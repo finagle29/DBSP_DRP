@@ -130,12 +130,12 @@ class ManualTracingGUI:
         return (spec.sciimg - spec.skymodel) * np.sqrt(spec.ivarmodel) * (spec.bpmmask == 0)
 
     def plot(self):
-        from dbsp_drp import p200_arm_redux
+        from dbsp_drp import qa
 
         self.axes.clear()
         self.canvas.set_window_title(self.target)
 
-        p200_arm_redux.save_one2dspec(self.axes, self.sky_resid, self.edges, self.traces)
+        qa.save_one2dspec(self.axes, self.sky_resid, self.edges, self.traces)
         plt.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
 
         if self.manual_dict[self.target]['collapse_region']:
