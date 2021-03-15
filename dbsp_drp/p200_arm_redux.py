@@ -143,16 +143,22 @@ def redux(args: dict) -> None:
             if pypeIt.fitstbl.table[i]['frametype'] in ['science', 'standard']
         ]))
 
-def delete_duplicate_hdus_by_name(hdul: fits.HDUList, base_name: str = ""):
-    if len({hdu.name for hdu in hdul}) < len([hdu.name for hdu in hdul]):
+def delete_duplicate_hdus_by_name(path: str, base_name: str = ""):
+    """
+    Removes `SpecObj`s with identical names, leaving one behind.
+    """
+    specobjs = SpecObjs.from_fitsfile(path)
+    if len({sobj['NAME'] for sobj in specobjs}) < specobjs.nobj:
         print(f'{base_name} has duplicate traces, deleting them')
-
         names = set()
-        for hdu in list(hdul):
-            if hdu.name in names:
-                hdul.pop(hdul.index_of(hdu))
+        for i, sobj in enumerate(specobjs):
+            if sobj['NAME'] in names:
+                specobjs.remove_sobj(i)
             else:
-                names.add(hdu.name)
+                names.add(sobj['NAME'])
+        specobjs.write_to_fits(specobjs.header, path, overwrite=True)
+        specobjs.write_info(os.path.splitext(path)[0] + '.txt', "MultiSlit")
+
 
 def verify_spec1ds(args: dict) -> List[str]:
     """
@@ -167,9 +173,11 @@ def verify_spec1ds(args: dict) -> List[str]:
     targets_list = []
     for spec1d in args['output_spec1ds']:
         path = os.path.join(args['output_path'], 'Science', spec1d)
-        with fits.open(path, mode='update') as hdul:
-            base_name = spec1d.split('_')[1]
-            delete_duplicate_hdus_by_name(hdul, base_name)
+        base_name = spec1d.split('_')[1]
+
+        delete_duplicate_hdus_by_name(path, base_name)
+
+        with fits.open(path) as hdul:
             for hdu in hdul:
                 if 'SPAT' in hdu.name:
                     names = hdu.data.dtype.names
