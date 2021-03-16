@@ -404,7 +404,7 @@ def main(args):
     # or should i actually try to do matching there
     fracpos_diff_list = []
     if do_red or do_blue:
-        FRACPOS_TOL = 0.01
+        FRACPOS_TOL = 0.025
         if do_red and do_blue:
             # real matching + splicing
             std_fracpos_sums = []
