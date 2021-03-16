@@ -17,21 +17,20 @@ from pypeit import msgs
 
 import dbsp_drp
 
-def get_raw_header_from_coadd(coadd: str, args: dict) -> str:
+def get_raw_header_from_coadd(coadd: str, root: str) -> str:
     if coadd is not None:
-        return fits.open(os.path.join(os.path.dirname(args['root']), f"{os.path.basename(coadd).split('-')[0]}.fits"))[0].header
-    else:
-        return fits.Header()
+        return fits.open(os.path.join(os.path.dirname(root), f"{os.path.basename(coadd).split('-')[0]}.fits"))[0].header
+    return fits.Header()
 
-def get_raw_hdus_from_spec1d(spec1d_list: List[str], args: dict) -> List[fits.BinTableHDU]:
+def get_raw_hdus_from_spec1d(spec1d_list: List[str], root: str, output_path: str) -> List[fits.BinTableHDU]:
     ret = []
     for (spec1d, spat) in spec1d_list:
-        raw_fname = os.path.join(os.path.dirname(args['root']), f"{os.path.basename(spec1d).split('_')[1].split('-')[0]}.fits")
+        raw_fname = os.path.join(os.path.dirname(root), f"{os.path.basename(spec1d).split('_')[1].split('-')[0]}.fits")
         # get the raw header
         with fits.open(raw_fname) as raw_hdul:
             raw_header = raw_hdul[0].header.copy()
         # get the spectrum
-        spec1d_path = os.path.join(args['output_path'], 'Science', spec1d)
+        spec1d_path = os.path.join(output_path, 'Science', spec1d)
         with fits.open(spec1d_path) as spec1d_hdul:
             for hdu in spec1d_hdul:
                 if f'SPAT{spat:04d}' in hdu.name:
@@ -45,11 +44,11 @@ def get_raw_hdus_from_spec1d(spec1d_list: List[str], args: dict) -> List[fits.Bi
     return ret
 
 
-def splice(args: dict) -> None:
+def splice(splicing_dict: dict, root: str, output_path: str) -> None:
     """
     Splices red and blue spectra together.
     """
-    for target, targets_dict in args['splicing_dict'].items():
+    for target, targets_dict in splicing_dict.items():
         label = 'a'
         for _, arm_dict in targets_dict.items():
             red_dict = arm_dict.get('red', {})
@@ -58,9 +57,9 @@ def splice(args: dict) -> None:
             bluefile = blue_dict.get('coadd')
             redfile = red_dict.get('coadd')
             if bluefile is not None:
-                bluefile = os.path.join(args['output_path'], 'Science', bluefile)
+                bluefile = os.path.join(output_path, 'Science', bluefile)
             if redfile is not None:
-                redfile = os.path.join(args['output_path'], 'Science', redfile)
+                redfile = os.path.join(output_path, 'Science', redfile)
             if bluefile is None and redfile is None:
                 continue
 
@@ -77,8 +76,8 @@ def splice(args: dict) -> None:
             primary_header['R_COADD'] = redfile
             primary_hdu = fits.PrimaryHDU(header=primary_header)
 
-            raw_red_hdus = get_raw_hdus_from_spec1d(red_dict.get('spec1ds', []), args)
-            raw_blue_hdus = get_raw_hdus_from_spec1d(blue_dict.get('spec1ds', []), args)
+            raw_red_hdus = get_raw_hdus_from_spec1d(red_dict.get('spec1ds', []), root, output_path)
+            raw_blue_hdus = get_raw_hdus_from_spec1d(blue_dict.get('spec1ds', []), root, output_path)
 
 
             col_wvs = fits.Column(name='wave', array=red_wvs, unit='ANGSTROM', format='D')
@@ -106,7 +105,7 @@ def splice(args: dict) -> None:
             else:
                 log_msg += f"{os.path.basename(redfile)} and {os.path.basename(bluefile)}"
             print(log_msg)
-            hdul.writeto(os.path.join(args['output_path'], "Science", f'{target}_{label}.fits'), overwrite=True)
+            hdul.writeto(os.path.join(output_path, "Science", f'{target}_{label}.fits'), overwrite=True)
             label = chr(ord(label) + 1)
 
 def adjust_and_combine_overlap(bluefile: str, redfile: str, target: str) -> Tuple[
@@ -116,35 +115,30 @@ def adjust_and_combine_overlap(bluefile: str, redfile: str, target: str) -> Tupl
     # TODO: propagate input masks
 
     if bluefile is not None:
-        spec_b = fits.open(bluefile)
+        spec_b = fits.open(bluefile)[1].data
         if redfile is None:
-            return ((spec_b[1].data['wave'], spec_b[1].data['flux'], spec_b[1].data['ivar'] ** -0.5),
+            return ((spec_b['wave'], spec_b['flux'], spec_b['ivar'] ** -0.5),
                 (None, None, None),
-                (spec_b[1].data['wave'], spec_b[1].data['flux'], spec_b[1].data['ivar'] ** -0.5))
+                (spec_b['wave'], spec_b['flux'], spec_b['ivar'] ** -0.5))
     if redfile is not None:
-        spec_r = fits.open(redfile)
+        spec_r = fits.open(redfile)[1].data
         if bluefile is None:
-            return ((spec_r[1].data['wave'], spec_r[1].data['flux'], spec_r[1].data['ivar'] ** -0.5),
-                (spec_r[1].data['wave'], spec_r[1].data['flux'], spec_r[1].data['ivar'] ** -0.5),
+            return ((spec_r['wave'], spec_r['flux'], spec_r['ivar'] ** -0.5),
+                (spec_r['wave'], spec_r['flux'], spec_r['ivar'] ** -0.5),
                 (None, None, None))
 
     # combination steps
-    overlap_lo = spec_r[1].data['wave'][0]
-    overlap_hi = spec_b[1].data['wave'][-1]
+    overlap_lo = spec_r['wave'][0]
+    overlap_hi = spec_b['wave'][-1]
     # maybe need to fix the overlaps?
     # need more finely spaced grid to be completely contained within coarser grid
 
-    lw = 0.5
-
-    mask_b = ~((spec_b[1].data['ivar'] < 0.1) & (spec_b[1].data['wave'] > overlap_lo))
-    mask_r = ~((spec_r[1].data['ivar'] < 0.1) & (spec_r[1].data['wave'] < overlap_hi))
-
-    olap_r = (spec_r[1].data['wave'] < overlap_hi)
-    olap_b = (spec_b[1].data['wave'] > overlap_lo)
+    olap_r = (spec_r['wave'] < overlap_hi)
+    olap_b = (spec_b['wave'] > overlap_lo)
 
     red_mult = 1
-    red_mult = (astropy.stats.sigma_clipped_stats(spec_b[1].data['flux'][olap_b])[1] /
-        astropy.stats.sigma_clipped_stats(spec_r[1].data['flux'][olap_r])[1])
+    red_mult = (astropy.stats.sigma_clipped_stats(spec_b['flux'][olap_b])[1] /
+        astropy.stats.sigma_clipped_stats(spec_r['flux'][olap_r])[1])
     #red_mult = np.average(spec_aag[1].data['OPT_FLAM'][olap_b], weights=spec_aag[1].data['OPT_FLAM_SIG'][olap_b] ** -2.0)\
     #   /np.average(spec_aag_red[1].data['OPT_FLAM'][olap_r], weights=spec_aag_red[1].data['OPT_FLAM_SIG'][olap_r] ** -2.0)
     if red_mult > 3 or 1/red_mult > 3:
@@ -153,20 +147,20 @@ def adjust_and_combine_overlap(bluefile: str, redfile: str, target: str) -> Tupl
 
 
     # different dispersion.
-    wvs_b = spec_b[1].data['wave'][~olap_b]
-    wvs_r = spec_r[1].data['wave'][~olap_r]
-    flam_b = spec_b[1].data['flux'][~olap_b]
-    flam_r = spec_r[1].data['flux'][~olap_r]
-    flam_sig_b = spec_b[1].data['ivar'][~olap_b] ** -0.5
-    flam_sig_r = spec_r[1].data['ivar'][~olap_r] ** -0.5
+    wvs_b = spec_b['wave'][~olap_b]
+    wvs_r = spec_r['wave'][~olap_r]
+    flam_b = spec_b['flux'][~olap_b]
+    flam_r = spec_r['flux'][~olap_r]
+    flam_sig_b = spec_b['ivar'][~olap_b] ** -0.5
+    flam_sig_r = spec_r['ivar'][~olap_r] ** -0.5
 
 
-    olap_wvs_r = spec_r[1].data['wave'][olap_r]
-    olap_flam_r = red_mult * spec_r[1].data['flux'][olap_r]
-    olap_flam_sig_r = red_mult * spec_r[1].data['ivar'][olap_r] ** -0.5
-    olap_wvs_b = spec_b[1].data['wave'][olap_b][:-1]
-    olap_flam_b = spec_b[1].data['flux'][olap_b][:-1]
-    olap_flam_sig_b = spec_b[1].data['ivar'][olap_b][:-1] ** -0.5
+    olap_wvs_r = spec_r['wave'][olap_r]
+    olap_flam_r = red_mult * spec_r['flux'][olap_r]
+    olap_flam_sig_r = red_mult * spec_r['ivar'][olap_r] ** -0.5
+    olap_wvs_b = spec_b['wave'][olap_b][:-1]
+    olap_flam_b = spec_b['flux'][olap_b][:-1]
+    olap_flam_sig_b = spec_b['ivar'][olap_b][:-1] ** -0.5
 
     olap_flam_r_interp = np.interp(olap_wvs_b, olap_wvs_r, olap_flam_r)
     olap_flam_r_interp, olap_flam_sig_r_interp = interp_w_error(olap_wvs_b, olap_wvs_r, olap_flam_r, olap_flam_sig_r)
@@ -182,25 +176,9 @@ def adjust_and_combine_overlap(bluefile: str, redfile: str, target: str) -> Tupl
     final_flam = np.concatenate((flam_b, olap_flam_avgd, red_mult * flam_r))
     final_flam_sig = np.concatenate((flam_sig_b, olap_flam_sig_avgd, red_mult * flam_sig_r))
 
-    #plt.errorbar(spec_b[1].data['wave'][mask_b], spec_b[1].data['flux'][mask_b], yerr=spec_b[1].data['ivar'][mask_b] ** -0.5, lw=lw)
-    #plt.errorbar(spec_r[1].data['wave'][mask_r], red_mult*spec_r[1].data['flux'][mask_r], yerr=red_mult*spec_r[1].data['ivar'][mask_r] ** -0.5, lw=lw)
-    #plt.xlabel('Wavelength (Angstroms)')
-    #plt.ylabel('Flux (erg/s/cm${}^2$/$\mathring{A}$)')
-    #plt.title(f'Fluxed spectrum of {target}')
-    #plt.savefig(f'{target}_quickplot.png')
-
-
-    #plt.figure(figsize=(20,10))
-    #plt.errorbar(final_wvs, final_flam, yerr=final_flam_sig)
-    #plt.grid()
-    #plt.xlabel('Wavelength (Angstroms)')
-    #plt.ylabel('Flux (erg/s/cm${}^2$/$\mathring{A}$)')
-    #plt.title(f'Fluxed spectrum of {target}')
-    #plt.savefig(f'{target}_quickplot.png')
-
     return ((final_wvs, final_flam, final_flam_sig),
-        (spec_r[1].data['wave'], spec_r[1].data['flux'], spec_r[1].data['ivar'] ** -0.5),
-        (spec_b[1].data['wave'], spec_b[1].data['flux'], spec_b[1].data['ivar'] ** -0.5))
+        (spec_r['wave'], spec_r['flux'], spec_r['ivar'] ** -0.5),
+        (spec_b['wave'], spec_b['flux'], spec_b['ivar'] ** -0.5))
 
 def interp_w_error(x: np.ndarray, xp: np.ndarray, yp: np.ndarray, err_yp: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     if len(xp) == 1:

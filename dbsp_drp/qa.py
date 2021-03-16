@@ -41,18 +41,17 @@ def save_one2dspec(ax: plt.Axes, spec: np.ndarray, edges: Tuple[np.ndarray, np.n
         for trace in traces:
             ax.plot(trace, xs, 'orange', lw=1)
 
-def save_2dspecs(args: dict) -> None:
-    obj_png_dict = args['qa_dict']
+def save_2dspecs(qa_dict: dict, output_spec2ds: List[str], output_path: str, spectrograph: str) -> None:
+    obj_png_dict = qa_dict
 
-    arm = 'blue' if 'blue' in args['spectrograph'] else 'red'
-    fnames = args['output_spec2ds']
+    arm = 'blue' if 'blue' in spectrograph else 'red'
 
-    out_path = os.path.join(args['output_path'], 'QA', 'PNGs', 'Extraction')
+    out_path = os.path.join(output_path, 'QA', 'PNGs', 'Extraction')
     if not os.path.exists(out_path):
         os.makedirs(out_path)
 
-    for fname in fnames:
-        path = os.path.join(args['output_path'], 'Science', fname)
+    for fname in output_spec2ds:
+        path = os.path.join(output_path, 'Science', fname)
         # open fits file
         spec = Spec2DObj.from_file(path, 1)
         spec1d_file = path.replace('spec2d', 'spec1d')
@@ -77,7 +76,6 @@ def save_2dspecs(args: dict) -> None:
         fig = plt.figure(figsize=(fig_width, out_shape[0]/100.), dpi=100)
 
         # science image
-        #ax = fig.add_subplot(1, 4, 1)
         ax = fig.add_axes([0, 0, subfig_width, 1])
         save_one2dspec(ax, spec.sciimg, edges, traces)
 
@@ -86,17 +84,14 @@ def save_2dspecs(args: dict) -> None:
         save_one2dspec(ax, spec.skymodel * mask, edges, traces)
 
         # sky subtracted science image
-        #ax = fig.add_subplot(1, 4, 2)
         ax = fig.add_axes([2*(subfig_width + padding_width), 0, subfig_width, 1])
         save_one2dspec(ax, (spec.sciimg - spec.skymodel) * mask, edges, traces)
 
         # sky subtracted images divided by noise
-        #ax = fig.add_subplot(1, 4, 3)
         ax = fig.add_axes([3*(subfig_width + padding_width), 0, subfig_width, 1])
         save_one2dspec(ax, (spec.sciimg - spec.skymodel) * np.sqrt(spec.ivarmodel) * mask, edges, traces)
 
         # total residauls
-        #ax = fig.add_subplot(1, 4, 4)
         ax = fig.add_axes([4*(subfig_width + padding_width), 0, subfig_width, 1])
         save_one2dspec(ax, (spec.sciimg - spec.skymodel - spec.objmodel) * np.sqrt(spec.ivarmodel) * mask, edges, traces)
 
@@ -123,16 +118,15 @@ def save_2dspecs(args: dict) -> None:
                 'fname': [fname]
             }
 
-    args['qa_dict'] = obj_png_dict
+    return obj_png_dict
 
-def write_extraction_QA(args: dict) -> None:
-    out_path = os.path.join(args['output_path'], 'QA')
+def write_extraction_QA(qa_dict: dict, output_path: str) -> None:
+    out_path = os.path.join(output_path, 'QA')
 
     pngs = [os.path.basename(fullpath) for fullpath in glob.glob(os.path.join(out_path, 'PNGs', 'Extraction', '*.png'))]
     pngs = sorted(pngs)
 
     objnames = [png.split('-')[1].split('_')[0] for png in pngs]
-    qa_dict = args['qa_dict']
 
     doc, tag, text = Doc().tagtext()
     doc.asis('<!DOCTYPE html>')

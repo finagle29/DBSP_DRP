@@ -11,7 +11,8 @@ from pypeit import coadd1d
 from pypeit.spectrographs.util import load_spectrograph
 from pypeit.par import pypeitpar
 
-def coadd(args: dict) -> List[str]:
+def coadd(grouped_spats_list: List[dict], output_path: str, spectrograph: str,
+        user_config_lines: List[str], debug: bool = False) -> List[str]:
     """
     takes in args['grouped_spats_list'], a list of dicts mapping 'fnames' to a
         list of filenames and 'spats' to a list of integer spatial pixel
@@ -19,7 +20,7 @@ def coadd(args: dict) -> List[str]:
     Returns a list of filenames of coadded spectra.
     """
     outfiles = []
-    for d in args['grouped_spats_list']:
+    for d in grouped_spats_list:
         fnames = d['fnames']
         spats = d['spats']
         basename = '_'.join([fname.split("_")[1].split("-")[0]
@@ -28,25 +29,26 @@ def coadd(args: dict) -> List[str]:
 
         objnames = []
         for spat, fname in zip(spats, fnames):
-            path = os.path.join(args['output_path'], 'Science', fname)
+            path = os.path.join(output_path, 'Science', fname)
             hdul = fits.open(path)
             for hdu in hdul:
                 if f'SPAT{spat:04d}' in hdu.name:
                     objnames.append(hdu.name)
                     break
 
-        outfile = os.path.join(args['output_path'], "Science", f"{basename}_{'_'.join(objnames)}.fits")
-        coadd_one_object([os.path.join(args['output_path'], 'Science', fname) for fname in fnames],
-            objnames, outfile, args)
+        outfile = os.path.join(output_path, "Science", f"{basename}_{'_'.join(objnames)}.fits")
+        coadd_one_object([os.path.join(output_path, 'Science', fname) for fname in fnames],
+            objnames, outfile, spectrograph, user_config_lines, debug)
         outfiles.append(os.path.basename(outfile))
     return outfiles
 
-def coadd_one_object(spec1dfiles: List[str], objids: List[str], coaddfile: str, args: dict):
-    par = load_spectrograph(args['spectrograph']).default_pypeit_par()
+def coadd_one_object(spec1dfiles: List[str], objids: List[str], coaddfile: str,
+        spectrograph: str, user_config_lines: List[str], debug: bool = False):
+    par = load_spectrograph(spectrograph).default_pypeit_par()
     default_cfg_lines = par.to_config()
-    par = pypeitpar.PypeItPar.from_cfg_lines(cfg_lines = default_cfg_lines, merge_with=args['user_config_lines'])
+    par = pypeitpar.PypeItPar.from_cfg_lines(cfg_lines = default_cfg_lines, merge_with=user_config_lines)
     # Instantiate
-    coAdd1d = coadd1d.CoAdd1D.get_instance(spec1dfiles, objids, par=par['coadd1d'], debug=args['debug'], show=args['debug'])
+    coAdd1d = coadd1d.CoAdd1D.get_instance(spec1dfiles, objids, par=par['coadd1d'], debug=debug, show=debug)
     # Run
     coAdd1d.run()
     # Save to file

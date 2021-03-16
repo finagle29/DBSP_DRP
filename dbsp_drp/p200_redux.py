@@ -5,7 +5,6 @@ Automatic Reduction Pipeline for P200 DBSP.
 import argparse
 import os
 import time
-import copy
 import multiprocessing
 from typing import Optional, List
 import pickle
@@ -28,7 +27,8 @@ def parser(options: Optional[List[str]] = None) -> argparse.Namespace:
     """Parses command line arguments
 
     Args:
-        options (Optional[List[str]], optional): List of command line arguments. Defaults to sys.argv[1:].
+        options (Optional[List[str]], optional): List of command line arguments.
+            Defaults to sys.argv[1:].
 
     Returns:
         argparse.Namespace: Parsed arguments
@@ -38,7 +38,7 @@ def parser(options: Optional[List[str]] = None) -> argparse.Namespace:
         formatter_class=argparse.RawTextHelpFormatter)
 
     # Argument for fully-automatic (i.e. nightly) or with user-checking file typing
-    argparser.add_argument('-i', '--no-interactive', default=True, action='store_false',
+    argparser.add_argument('-i', '--no-interactive', default=False, action='store_true',
                            help='Interactive file-checking?')
 
     # Argument for input file directory
@@ -51,7 +51,7 @@ def parser(options: Optional[List[str]] = None) -> argparse.Namespace:
 
     # Argument for specifying only red/blue
 
-    argparser.add_argument('-a', '--arm', default=None,
+    argparser.add_argument('-a', '--arm', default=None, choices=['red', 'blue'],
                            help='[red, blue] to only reduce one arm (null splicing)')
 
     argparser.add_argument('-m', '--manual-extraction', default=False, action='store_true',
@@ -59,7 +59,7 @@ def parser(options: Optional[List[str]] = None) -> argparse.Namespace:
 
     argparser.add_argument('--debug', default=False, action='store_true',
                            help='debug')
-    argparser.add_argument('-j', '--jobs', type=int, default=1,
+    argparser.add_argument('-j', '--jobs', type=int, default=1, metavar='N',
                             help='Number of processes to use')
 
     argparser.add_argument('-p', '--parameter-file', type=str, default="",
@@ -122,63 +122,32 @@ def main(args):
         do_red = True
         do_blue = True
 
-    # Build
-    options_blue = {
-        'root': os.path.join(args.root, 'blue'),
-        'spectrograph': 'p200_dbsp_blue',
-        'output_path': args.output_path,
-        'extension': '.fits',
-        'background': None,
-        'cfg_split': 'all',
-        'calib_only': False,
-        'show': args.debug,
-        'plot': args.debug,
-        'do_not_reuse_masters': False,
-        'debug': args.debug,
-        'qa_dict': {},
-        'manual_extraction': args.manual_extraction,
-        'output_spec1ds': set(),
-        'output_spec2ds': set(),
-        'parameter_file': args.parameter_file
-    }
+    red_root = os.path.join(args.root, 'red')
+    blue_root = os.path.join(args.root, 'blue')
+    qa_dict = {}
 
-    #options_blue['show'] = True
-    #options_blue['calib_only'] = True
-    #options_blue['do_not_reuse_masters'] = True
-
-    options_red = copy.deepcopy(options_blue)
-    options_red['spectrograph'] = 'p200_dbsp_red'
-    options_red['root'] = os.path.join(args.root, 'red')
-    options_red['qa_dict'] = options_blue['qa_dict']
-
-    reduction.parse_pypeit_parameter_file(options_blue)
-    reduction.parse_pypeit_parameter_file(options_red)
+    blue_user_config_lines = reduction.parse_pypeit_parameter_file(args.parameter_file, 'p200_dbsp_blue')
+    red_user_config_lines = reduction.parse_pypeit_parameter_file(args.parameter_file, 'p200_dbsp_red')
 
     if args.debug:
         pypeit.display.display.connect_to_ginga(raise_err=True, allow_new=True)
 
     if do_red:
-        fix_headers.main(options_red['root'])
-        context = reduction.setup(options_red)
+        fix_headers.main(red_root)
+        context = reduction.setup(red_root, '.fits', args.output_path, 'p200_dbsp_red')
         # optionally use interactive correction
-        if args.no_interactive:
+        if not args.no_interactive:
             interactive_correction(context[0])
-        pypeit_file_red = reduction.write_setup(options_red, context)[0]
-        # Grab pypeit file from write_setup
-        options_red['pypeit_file'] = pypeit_file_red
+        pypeit_file_red = reduction.write_setup(context, 'all', 'p200_dbsp_red', red_user_config_lines)[0]
 
     if do_blue:
-        fix_headers.main(options_blue['root'])
-        context = reduction.setup(options_blue)
-        if args.no_interactive:
+        fix_headers.main(blue_root)
+        context = reduction.setup(blue_root, '.fits', args.output_path, 'p200_dbsp_blue')
+        if not args.no_interactive:
             interactive_correction(context[0])
-        pypeit_file_blue = reduction.write_setup(options_blue, context)[0]
-        # Grab pypeit file from write_setup
-        options_blue['pypeit_file'] = pypeit_file_blue
+        pypeit_file_blue = reduction.write_setup(context, 'all', 'p200_dbsp_blue', blue_user_config_lines)[0]
 
 
-    #options_red['calib_only'] = True
-    #options_blue['calib_only'] = True
     plt.switch_backend("agg")
     # TODO: parallelize this
     # Would need to look like
@@ -186,29 +155,39 @@ def main(args):
     # Oooh what if I just do the calibration first
     # and then parallelize the reduction
     if do_red:
-        reduction.redux(options_red)
-        qa.save_2dspecs(options_red)
+        output_spec1ds_red, output_spec2ds_red = reduction.redux(pypeit_file_red, args.output_path)
+        qa_dict = qa.save_2dspecs(qa_dict, output_spec2ds_red, args.output_path, 'p200_dbsp_red')
     if do_blue:
-        reduction.redux(options_blue)
-        qa.save_2dspecs(options_blue)
+        output_spec1ds_blue, output_spec2ds_blue = reduction.redux(pypeit_file_blue, args.output_path)
+        qa_dict = qa.save_2dspecs(qa_dict, output_spec2ds_blue, args.output_path, 'p200_dbsp_blue')
 
     if do_red or do_blue:
-        qa.write_extraction_QA(options_red)
+        qa.write_extraction_QA(qa_dict, args.output_path)
 
     if do_red:
-        options_red['verification_counter'] = 0
-        red_pypeit_files = reduction.verify_spec1ds(options_red)
+        verification_counter = 0
+        red_pypeit_files = reduction.verify_spec1ds(output_spec1ds_red, verification_counter, args.output_path)
         while red_pypeit_files:
-            reduction.re_redux(options_red, red_pypeit_files)
-            red_pypeit_files = reduction.verify_spec1ds(options_red)
-            qa.save_2dspecs(options_red)
+            verification_counter += 1
+
+            out_1d, out_2d = reduction.re_redux(red_pypeit_files, args.output_path)
+            red_pypeit_files = reduction.verify_spec1ds(out_1d, verification_counter, args.output_path)
+            qa_dict = qa.save_2dspecs(qa_dict, out_2d, args.output_path, 'p200_dbsp_red')
+
+            output_spec1ds_red |= out_1d
+            output_spec2ds_red |= out_2d
     if do_blue:
-        options_blue['verification_counter'] = 0
-        blue_pypeit_files = reduction.verify_spec1ds(options_blue)
+        verification_counter = 0
+        blue_pypeit_files = reduction.verify_spec1ds(output_spec1ds_blue, verification_counter, args.output_path)
         while blue_pypeit_files:
-            reduction.re_redux(options_blue, blue_pypeit_files)
-            blue_pypeit_files = reduction.verify_spec1ds(options_blue)
-            qa.save_2dspecs(options_blue)
+            verification_counter += 1
+
+            out_1d, out_2d = reduction.re_redux(blue_pypeit_files, args.output_path)
+            blue_pypeit_files = reduction.verify_spec1ds(out_1d, verification_counter, args.output_path)
+            qa_dict = qa.save_2dspecs(qa_dict, out_2d, args.output_path, 'p200_dbsp_blue')
+
+            output_spec1ds_blue |= out_1d
+            output_spec2ds_blue |= out_2d
 
     # TODO: use a do/while loop to iterate on the manual extraction GUI until user is satisfied
     if args.manual_extraction:
@@ -217,16 +196,21 @@ def main(args):
         plt.switch_backend("Qt5Agg")
 
         if do_red:
-            red_manual_pypeit_files = reduction.manual_extraction(options_red)
+            red_manual_pypeit_files = reduction.manual_extraction(output_spec2ds_red, pypeit_file_red, args.output_path)
         if do_blue:
-            blue_manual_pypeit_files = reduction.manual_extraction(options_blue)
-        ## TODO: only re-save extraction QA plots for targets that were re-reduced
+            blue_manual_pypeit_files = reduction.manual_extraction(output_spec2ds_blue, pypeit_file_blue, args.output_path)
         if do_red and red_manual_pypeit_files:
-            reduction.re_redux(options_red, red_manual_pypeit_files)
-            qa.save_2dspecs(options_red)
+            out_1d, out_2d = reduction.re_redux(red_manual_pypeit_files, args.output_path)
+            qa.save_2dspecs(qa_dict, out_2d, args.output_path, 'p200_dbsp_red')
+
+            output_spec1ds_red |= out_1d
+            output_spec2ds_red |= out_2d
         if do_blue and blue_manual_pypeit_files:
-            reduction.re_redux(options_blue, blue_manual_pypeit_files)
-            qa.save_2dspecs(options_blue)
+            out_1d, out_2d = reduction.re_redux(blue_manual_pypeit_files, args.output_path)
+            qa.save_2dspecs(qa_dict, out_2d, args.output_path, 'p200_dbsp_blue')
+
+            output_spec1ds_blue |= out_1d
+            output_spec2ds_blue |= out_2d
 
     # spec1d_blueNNNN-OBJ_DBSPb_YYYYMMMDDTHHMMSS.SPAT.fits
     fname_len = 72
@@ -239,7 +223,7 @@ def main(args):
                             float, float, f'U{sensfunc_len}', float))
 
     # Ingest spec_1d tables
-    spec1ds = options_red['output_spec1ds'] | options_blue['output_spec1ds']
+    spec1ds = output_spec1ds_red | output_spec1ds_blue
     for spec1d in spec1ds:
         path = os.path.join(args.output_path, 'Science', spec1d)
         with fits.open(path) as hdul:
@@ -254,16 +238,14 @@ def main(args):
 
     if do_red:
         for row in spec1d_table[(spec1d_table['arm'] == 'red') & (spec1d_table['frametype'] == 'standard')]:
-            options_red['spec1dfile'] = row['filename']
-            sensfunc = fluxing.make_sensfunc(options_red)
+            sensfunc = fluxing.make_sensfunc(row['filename'], args.output_path, 'p200_dbsp_red', red_user_config_lines)
             if sensfunc == "":
                 spec1d_table['frametype'][spec1d_table['filename'] == row['filename']] = 'science'
             else:
                 spec1d_table['sensfunc'][spec1d_table['filename'] == row['filename']] = sensfunc
     if do_blue:
         for row in spec1d_table[(spec1d_table['arm'] == 'blue') & (spec1d_table['frametype'] == 'standard')]:
-            options_blue['spec1dfile'] = row['filename']
-            sensfunc = fluxing.make_sensfunc(options_blue)
+            sensfunc = fluxing.make_sensfunc(row['filename'], args.output_path, 'p200_dbsp_blue', blue_user_config_lines)
             if sensfunc == "":
                 spec1d_table['frametype'][spec1d_table['filename'] == row['filename']] = 'science'
             else:
@@ -289,22 +271,21 @@ def main(args):
 
     # build fluxfile
     if do_red:
-        options_red['spec1dfiles'] = {row['filename']: row['sensfunc'] for row in spec1d_table if row['arm'] == 'red'}
-        red_fluxfile = fluxing.build_fluxfile(options_red)
-        options_red['flux_file'] = red_fluxfile
+        spec1d_to_sensfunc = {row['filename']: row['sensfunc'] for row in spec1d_table if row['arm'] == 'red'}
+        red_fluxfile = fluxing.build_fluxfile(spec1d_to_sensfunc, args.output_path, 'p200_dbsp_red', red_user_config_lines)
     if do_blue:
-        options_blue['spec1dfiles'] = {row['filename']: row['sensfunc'] for row in spec1d_table if row['arm'] == 'blue'}
-        blue_fluxfile = fluxing.build_fluxfile(options_blue)
-        options_blue['flux_file'] = blue_fluxfile
+        spec1d_to_sensfunc = {row['filename']: row['sensfunc'] for row in spec1d_table if row['arm'] == 'blue'}
+        blue_fluxfile = fluxing.build_fluxfile(spec1d_to_sensfunc, args.output_path, 'p200_dbsp_blue', blue_user_config_lines)
 
     # flux data
     if do_red:
-        fluxing.flux(options_red)
+        fluxing.flux(red_fluxfile, args.output_path)
     if do_blue:
-        fluxing.flux(options_blue)
+        fluxing.flux(blue_fluxfile, args.output_path)
 
     # coadd - intelligent coadding of multiple files
     # first make a column "coaddID" that is the same for frames to be coadded
+    # TODO: when there are multiple exposures of an object, splice/output all of them
     coaddIDs = []
     if args.null_coadd:
         coaddIDs = range(len(spec1d_table))
@@ -328,8 +309,6 @@ def main(args):
 
     spec1d_table.add_column(coaddIDs, name="coadd_id")
 
-    #options_blue['debug'] = True
-    #options_red['debug'] = True
     # figure out where on detector likely target is
     spec1d_table.add_column(Column(name="spats", dtype=object, length=len(spec1d_table)))
     spec1d_table.add_column(Column(name="fracpos", dtype=object, length=len(spec1d_table)))
@@ -356,25 +335,7 @@ def main(args):
     spec1d_table.add_column(Column(name="coadds", dtype=object, length=len(spec1d_table)))
     spec1d_table.add_column([False]*len(all_spats), name="processed")
 
-    ## Deprecated I think
-    """
-    # for each arm
-        # find median/mean of spatial positions
-    if do_blue:
-        blue_spats = spec1d_table[spec1d_table['arm'] == 'blue']['spats']
-        blue_spats = [spat for spats in blue_spats for spat in spats]
-        avg_blue_spat = np.mean(blue_spats)
-        std_blue_spats = np.std(blue_spats)
-    if do_red:
-        red_spats = spec1d_table[spec1d_table['arm'] == 'red']['spats']
-        red_spats = [spat for spats in red_spats for spat in spats]
-        avg_red_spat = np.mean(red_spats)
-        std_red_spats = np.std(red_spats)
-    """
-
     # coadd
-    #options_red['debug'] = True
-    #options_red['plot'] = True
     # iterate over coadd_ids
     coadd_to_spec1d = {}
     for coadd_id in set(coaddIDs):
@@ -382,11 +343,9 @@ def main(args):
         fname_spats = {row['filename']: row['spats'].copy() for row in subtable}
         grouped_spats_list = coadding.group_coadds(fname_spats)
         if all(subtable['arm'] == 'red'):
-            options_red['grouped_spats_list'] = grouped_spats_list
-            coadds = coadding.coadd(options_red)
+            coadds = coadding.coadd(grouped_spats_list, args.output_path, 'p200_dbsp_red', red_user_config_lines)
         if all(subtable['arm'] == 'blue'):
-            options_blue['grouped_spats_list'] = grouped_spats_list
-            coadds = coadding.coadd(options_blue)
+            coadds = coadding.coadd(grouped_spats_list, args.output_path, 'p200_dbsp_blue', blue_user_config_lines)
         assert all(subtable['arm'] == 'red') or all(subtable['arm'] == 'blue'),\
             "Something went wrong with coadding..."
         for row in subtable:
@@ -403,21 +362,16 @@ def main(args):
                 if isinstance(row['coadds'], list):
                     for obj in row['coadds']:
                         if not obj in tell_coadd_fnames:
-                            tmp = options_red.copy()
-                            tmp['spec1dfile'] = obj
+                            tmp = (obj, args.output_path, 'p200_dbsp_red', red_user_config_lines)
                             tellcorr_inputs.append(tmp)
                             tell_coadd_fnames.add(obj)
-    #                    options_red['spec1dfile'] = obj
-    #                    tellluric.telluric_correct(options_red)
             if args.jobs == 1:
                 # do it in series
                 for tellcorr_input in tqdm.tqdm(tellcorr_inputs):
-                    telluric.telluric_correct(tellcorr_input)
+                    telluric.telluric_correct(*tellcorr_input)
             else:
                 pool = multiprocessing.Pool(args.jobs)
-                list(tqdm.tqdm(pool.imap(telluric.telluric_correct, tellcorr_inputs), total=len(tellcorr_inputs)))
-            #for opts in tellcorr_inputs:
-            #    pool.apply_async(telluric.telluric_correct, opts, error_callback=lambda e: print("error!"))
+                list(tqdm.tqdm(pool.imap(telluric.picklable_telluric_correct, tellcorr_inputs), total=len(tellcorr_inputs)))
                 pool.close()
                 pool.join()
 
@@ -513,43 +467,9 @@ def main(args):
                             'coadd': coadd
                         }}
         # And now, actually splice!
-        options_red['splicing_dict'] = splicing_dict
-        splicing.splice(options_red)
+        splicing.splice(splicing_dict, red_root, args.output_path)
 
     with open("fracpos_data.pickle", "wb") as f:
         pickle.dump((fracpos_diff_list, FRACPOS_SUM), f)
-
-    """
-    # if do_red or do_blue ????
-    if do_red or do_blue:
-        # make splicing dict
-        for row in spec1d_table:
-            target = row['object']
-            spacings = np.array(row['spats'])
-            if row['arm'] == 'blue':
-                target_spat = avg_blue_spat
-            else:
-                target_spat = avg_red_spat
-            best_ix = np.abs(spacings - target_spat).argmin()
-
-            if row['arm'] == 'blue':
-                best_spec = row['coadds'][best_ix]
-            else:
-                best_spec = row['coadds'][best_ix].replace(".fits", "_tellcorr.fits")
-                if not os.path.isfile(best_spec):
-                    # Telluric correction failed.
-                    print(f"ERROR!! Telluric correction of spectrum {row['coadds'][best_ix]} FAILED!")
-                    print(f"The final spectrum for {target} will NOT be telluric corrected.")
-                    best_spec = row['coadds'][best_ix]
-
-
-            if splicing_dict.get(target):
-                splicing_dict[target][row['arm']] = best_spec
-            else:
-                splicing_dict[target] = {row['arm']: best_spec}
-        # splice
-        options_red['splicing_dict'] = splicing_dict
-        p200_arm_redux.splice(options_red)
-        """
 
     print('Elapsed time: {0} seconds'.format(time.perf_counter() - t))
