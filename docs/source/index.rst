@@ -13,9 +13,10 @@ Welcome to DBSP_DRP's documentation!
    installing
    usage
    manual_extraction
-   modules
    qa
+   quicklook
    outputs
+   modules
 
 
 Indices and tables

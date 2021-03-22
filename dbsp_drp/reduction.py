@@ -114,7 +114,7 @@ def redux(pypeit_file: str, output_path: str, reuse_masters: bool = True,
 
 def delete_duplicate_hdus_by_name(path: str, base_name: str = ""):
     """
-    Removes `SpecObj`s with identical names, leaving one behind.
+    Removes ``SpecObj`` s with identical names, leaving one behind.
     """
     specobjs = SpecObjs.from_fitsfile(path)
     if len({sobj['NAME'] for sobj in specobjs}) < specobjs.nobj:

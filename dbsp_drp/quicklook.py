@@ -3,6 +3,7 @@ import os
 import time
 from typing import List, Optional
 import glob
+from multiprocessing import Process
 
 import numpy as np
 from astropy.io import fits
@@ -130,5 +131,21 @@ def main(args: argparse.Namespace):
     print(f"Time elapsed: {time.perf_counter() - t}s.")
 
     if not calib_only and not args.no_show:
-        show_2dspec.main(show_2dspec.parse_args([output_spec2ds[0]]))
-        show_1dspec.main(show_1dspec.parse_args(['--extract', 'BOX', '--flux', output_spec1ds[0]]))
+        p1 = Process(target = show_spec2d_helper, args=(output_spec2ds[0],))
+        p1.start()
+        with fits.open(output_spec1ds[0]) as hdul:
+            specs = len(hdul) - 2
+        parr = [ None ] * specs
+        for i in range(specs):
+            parr[i] = Process(target = show_spec1d_helper,
+                args=(str(i), output_spec1ds[0]))
+            parr[i].start()
+
+def show_spec2d_helper(file):
+    return show_2dspec.main(show_2dspec.parse_args([file]))
+
+def show_spec1d_helper(exten, file):
+    return show_1dspec.main(
+        show_1dspec.parse_args(['--extract', 'BOX', '--exten', exten,
+            '--flux', file])
+    )

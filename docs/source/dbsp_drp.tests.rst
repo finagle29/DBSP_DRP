@@ -4,10 +4,10 @@ dbsp\_drp.tests package
 Submodules
 ----------
 
-dbsp\_drp.tests.test\_p200\_arm\_redux module
----------------------------------------------
+dbsp\_drp.tests.test\_splicing module
+-------------------------------------
 
-.. automodule:: dbsp_drp.tests.test_p200_arm_redux
+.. automodule:: dbsp_drp.tests.test_splicing
    :members:
    :undoc-members:
    :show-inheritance:

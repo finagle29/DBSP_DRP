@@ -14,10 +14,18 @@ from pypeit.par import pypeitpar
 def coadd(grouped_spats_list: List[dict], output_path: str, spectrograph: str,
         user_config_lines: List[str], debug: bool = False) -> List[str]:
     """
-    takes in args['grouped_spats_list'], a list of dicts mapping 'fnames' to a
-        list of filenames and 'spats' to a list of integer spatial pixel
-        positions.
-    Returns a list of filenames of coadded spectra.
+    Coadds objects specified in grouped_spats_list.
+
+    Args:
+        grouped_spats_list (List[dict]): a list of dicts mapping ``fnames`` to a list of filenames
+            and ``spats`` to a list of integer spatial pixel positions.
+        output_path (str): [description]
+        spectrograph (str): [description]
+        user_config_lines (List[str]): [description]
+        debug (bool, optional): [description]. Defaults to False.
+
+    Returns:
+        List[str]: Returns a list of filenames of coadded spectra.
     """
     outfiles = []
     for d in grouped_spats_list:
