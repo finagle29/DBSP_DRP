@@ -125,8 +125,9 @@ def main(args: argparse.Namespace):
             if pypeIt.fitstbl.table[i]['frametype'] in ['science']
         ]))
 
-    sensfiles = [resource_filename("dbsp_drp", f"/data/sens_{arm}_archived.fits")]
-    FxCalib = fluxcalibrate.FluxCalibrate.get_instance(output_spec1ds, sensfiles, par=ps.par['fluxcalib'])
+    if not calib_only:
+        sensfiles = [resource_filename("dbsp_drp", f"/data/sens_{arm}_archived.fits")]
+        FxCalib = fluxcalibrate.FluxCalibrate.get_instance(output_spec1ds, sensfiles, par=ps.par['fluxcalib'])
 
     print(f"Time elapsed: {time.perf_counter() - t}s.")
 
