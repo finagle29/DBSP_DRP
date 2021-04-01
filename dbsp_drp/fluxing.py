@@ -5,6 +5,8 @@ Automated fluxing for P200 DBSP.
 import os
 from typing import List
 
+from pkg_resources import resource_filename
+
 import numpy as np
 from astropy.io import fits
 
@@ -74,7 +76,11 @@ def build_fluxfile(spec1d_to_sensfunc: dict, output_path: str, spectrograph: str
     cfg_lines.append('flux read')
     for spec1d, sensfun in spec1d_to_sensfunc.items():
         spec_path = os.path.join(output_path, 'Science', spec1d)
-        sens_path = os.path.join(output_path, sensfun)
+        if sensfun:
+            sens_path = os.path.join(output_path, sensfun)
+        else:
+            arm = spectrograph.split('_')[-1]
+            sens_path = resource_filename("dbsp_drp", f"/data/sens_{arm}_archived.fits")
         cfg_lines.append(f'  {spec_path} {sens_path}')
     cfg_lines.append('flux end')
 

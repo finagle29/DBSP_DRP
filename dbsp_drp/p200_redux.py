@@ -9,14 +9,15 @@ import multiprocessing
 from typing import Optional, List
 import pickle
 
+import numpy as np
+from matplotlib import pyplot as plt
 from astropy.io import fits
 from astropy.table import Table, Column, Row
-import numpy as np
+
 from pypeit.pypeitsetup import PypeItSetup
 import pypeit.display
-import tqdm
 
-from matplotlib import pyplot as plt
+import tqdm
 
 from dbsp_drp import reduction, qa, fluxing, coadding, telluric, splicing
 from dbsp_drp import table_edit
@@ -251,23 +252,38 @@ def main(args):
             else:
                 spec1d_table['sensfunc'][spec1d_table['filename'] == row['filename']] = sensfunc
 
-    stds = spec1d_table['frametype'] == 'standard'
-    standards_fluxing = []
-    # TODO: allow use of archival sensitivity functions, use them if no standard present
-    for row in spec1d_table:
-        arm = spec1d_table['arm'] == row['arm']
-        if row['frametype'] == 'science':
-            best_sens = spec1d_table[stds & arm]['sensfunc'][np.abs(spec1d_table[stds & arm]['airmass'] - row['airmass']).argmin()]
-            standards_fluxing.append(best_sens)
-        elif row['frametype'] == 'standard':
-            if (stds & arm).sum() == 1:
-                best_sens = spec1d_table[stds & arm]['sensfunc'][np.abs(spec1d_table[stds & arm]['airmass'] - row['airmass']).argmin()]
-                standards_fluxing.append(best_sens)
-            else:
-                best_sens = spec1d_table[stds & arm]['sensfunc'][np.abs(spec1d_table[stds & arm]['airmass'] - row['airmass']).argsort()[1]]
-                standards_fluxing.append(best_sens)
-
-    spec1d_table['sensfunc'] = standards_fluxing
+    if do_red:
+        arm = spec1d_table['arm'] == 'red'
+        stds = (spec1d_table['frametype'] == 'standard') & arm
+        if np.any(stds):
+            for row in spec1d_table[arm]:
+                if row['frametype'] == 'science':
+                    best_sens = spec1d_table[stds]['sensfunc'][np.abs(spec1d_table[stds]['airmass'] - row['airmass']).argmin()]
+                elif row['frametype'] == 'standard':
+                    if (stds).sum() == 1:
+                        best_sens = spec1d_table[stds]['sensfunc'][np.abs(spec1d_table[stds]['airmass'] - row['airmass']).argmin()]
+                    else:
+                        best_sens = spec1d_table[stds]['sensfunc'][np.abs(spec1d_table[stds]['airmass'] - row['airmass']).argsort()[1]]
+                spec1d_table.loc[row['filename']]['sensfunc'] = best_sens
+        else:
+            for filename in spec1d_table[arm]['filename']:
+                spec1d_table.loc[filename]['sensfunc'] = ''
+    if do_blue:
+        arm = spec1d_table['arm'] == 'blue'
+        stds = (spec1d_table['frametype'] == 'standard') & arm
+        if np.any(stds):
+            for row in spec1d_table[arm]:
+                if row['frametype'] == 'science':
+                    best_sens = spec1d_table[stds]['sensfunc'][np.abs(spec1d_table[stds]['airmass'] - row['airmass']).argmin()]
+                elif row['frametype'] == 'standard':
+                    if (stds).sum() == 1:
+                        best_sens = spec1d_table[stds]['sensfunc'][np.abs(spec1d_table[stds]['airmass'] - row['airmass']).argmin()]
+                    else:
+                        best_sens = spec1d_table[stds]['sensfunc'][np.abs(spec1d_table[stds]['airmass'] - row['airmass']).argsort()[1]]
+                spec1d_table.loc[row['filename']]['sensfunc'] = best_sens
+        else:
+            for filename in spec1d_table[arm]['filename']:
+                spec1d_table.loc[filename]['sensfunc'] = ''
 
     # build fluxfile
     if do_red:
@@ -299,7 +315,8 @@ def main(args):
             else:
                 # if this is the same object as the last one
                 # and they were taken consecutively
-                if ((row['object'] == previous_row['object']) and
+                if ((row['arm'] == previous_row['arm']) and
+                    (row['object'] == previous_row['object']) and
                     ((row['mjd']*S_PER_DAY - previous_row['mjd']*S_PER_DAY
                         - previous_row['exptime']) < previous_row['exptime'])):
                     coaddIDs.append(coaddIDs[-1])
@@ -403,25 +420,28 @@ def main(args):
     # hopefully standards only have one star each?
     # or should i actually try to do matching there
     fracpos_diff_list = []
+    stds = spec1d_table['frametype'] == 'standard'
     if do_red or do_blue:
-        FRACPOS_TOL = 0.025
+        FRACPOS_SUM = 1.0
+        FRACPOS_TOL = 0.05
         if do_red and do_blue:
             # real matching + splicing
             std_fracpos_sums = []
-            for row in spec1d_table[stds]:
-                # find closest mjd frame of other arm
-                ## TODO:
-                # sometimes standard frames have multiple fracpos
-                # I need to handle that, either by checking the S/N of the traces and choosing the highest
-                # or something else
-                if not row['processed']:
-                    other_arm = spec1d_table['arm'] != row['arm']
-                    corresponding_row = spec1d_table[other_arm & stds][np.abs(spec1d_table[other_arm & stds]['mjd'] - row['mjd']).argmin()]
-                    std_fracpos_sums.append(row['fracpos'][0] + corresponding_row['fracpos'][0])
-                    spec1d_table.loc[row['filename']]['processed'] = True
-                    spec1d_table.loc[corresponding_row['filename']]['processed'] = True
-            FRACPOS_SUM = np.mean(std_fracpos_sums)
-            FRACPOS_TOL = FRACPOS_SUM * .025
+            if (stds & blue_mask).any() and (stds & red_mask).any():
+                for row in spec1d_table[stds]:
+                    # find closest mjd frame of other arm
+                    ## TODO:
+                    # sometimes standard frames have multiple fracpos
+                    # I need to handle that, either by checking the S/N of the traces and choosing the highest
+                    # or something else
+                    if not row['processed']:
+                        other_arm = spec1d_table['arm'] != row['arm']
+                        corresponding_row = spec1d_table[other_arm & stds][np.abs(spec1d_table[other_arm & stds]['mjd'] - row['mjd']).argmin()]
+                        std_fracpos_sums.append(row['fracpos'][0] + corresponding_row['fracpos'][0])
+                        spec1d_table.loc[row['filename']]['processed'] = True
+                        spec1d_table.loc[corresponding_row['filename']]['processed'] = True
+                FRACPOS_SUM = np.mean(std_fracpos_sums)
+                FRACPOS_TOL = FRACPOS_SUM * .025
 
         # setup splicing dict
         splicing_dict = {}
