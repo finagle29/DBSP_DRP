@@ -43,7 +43,7 @@ Post-Install
 
 The telluric correction code provided by PypeIt relies on a large (5 GB) atmospheric model file
 (TellFit_Lick_3100_11100_R10000.fits), which can be downloaded
-`here <https://drive.google.com/drive/folders/1x5d2_L8pwLDmvvoFUCa-vIoluv3GpowA>`__
+`here <https://drive.google.com/drive/folders/1FFRWjUZ58HiDuDD33MYqBzMWDQanBRRy>`__
 and must be installed into the ``pypeit/data/telluric/`` directory of your PypeIt installation.
 
 To determine the location of your PypeIt installation, open the Python interpreter and run
