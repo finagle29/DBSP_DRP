@@ -77,13 +77,13 @@ def group_coadds(fname_to_spats: dict):
     while any(fname_to_spats.values()):
         potential_group = [(spats[0], fname) for fname, spats in fname_to_spats.items()]
         potential_group.sort(key=lambda x: x[0])
-        min_spat, its_fname = potential_group.pop()
+        min_spat, its_fname = potential_group.pop(0)
         fname_to_spats[its_fname].remove(min_spat)
         # new group!
         result.append({'spats': [min_spat], 'fnames': [its_fname]})
         # see if any of the others in the potential group are in:
         for spat, fname in potential_group:
-            if spat - min_spat < THRESHOLD: # might want to abs this and double check the sorting
+            if spat - min_spat <= THRESHOLD: # might want to abs this and double check the sorting
                 result[-1]['spats'].append(spat)
                 result[-1]['fnames'].append(fname)
                 fname_to_spats[fname].remove(spat)
