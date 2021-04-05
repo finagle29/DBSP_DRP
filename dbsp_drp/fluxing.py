@@ -3,7 +3,7 @@ Automated fluxing for P200 DBSP.
 """
 
 import os
-from typing import List
+from typing import List, Dict
 
 from pkg_resources import resource_filename
 
@@ -19,7 +19,8 @@ from pypeit import fluxcalibrate
 from pypeit.scripts.flux_calib import read_fluxfile
 from pypeit.spectrographs.util import load_spectrograph
 
-def make_sensfunc(standard_file: str, output_path: str, spectrograph: str, user_config_lines: List[str], debug: bool = False) -> str:
+def make_sensfunc(standard_file: str, output_path: str, spectrograph: str,
+        user_config_lines: List[str], debug: bool = False) -> str:
     """
     Makes a sensitivity function
     """
@@ -64,11 +65,22 @@ def make_sensfunc(standard_file: str, output_path: str, spectrograph: str, user_
         print(str(err))
         return ""
 
-def build_fluxfile(spec1d_to_sensfunc: dict, output_path: str, spectrograph: str, user_config_lines: List[str]) -> str:
+def build_fluxfile(spec1d_to_sensfunc: Dict[str,str], output_path: str,
+        spectrograph: str, user_config_lines: List[str]) -> str:
     """
     Writes the fluxfile for fluxing.
+
+    Args:
+        spec1d_to_sensfunc (Dict[str,str]): maps spec1d filenames to the
+            sensitivity function they should use
+        output_path (str): reduction output path
+        spectrograph (str): spectrograph name
+        user_config_lines (List[str]): list of user-supplied PypeIt
+            configuration lines
+
+    Returns:
+        str: path to created fluxfile
     """
-    # spec1d_to_sensfunc is a dict mapping spec1d files to the sensitivity function file they should use
     cfg_lines = user_config_lines[:]
     cfg_lines.append("\n")
 

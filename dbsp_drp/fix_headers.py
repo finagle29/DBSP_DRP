@@ -38,7 +38,7 @@ def main(basepath):
             header = hdul[0].header
             try:
                 ang = Angle(header['ANGLE'].lower(), unit='deg').to_string(unit='deg', sep=(' deg ', ' min'), fields=2)
-            except ValueError:
+            except ValueError as exc:
                 try:
                     ang = Angle(header['GRATING'].lower()).to_string(unit='deg', sep=(' deg ', ' min'), fields=2)
                     grat = header['ANGLE']
@@ -46,6 +46,6 @@ def main(basepath):
                     header['GRATING'] = grat
                 except:
                     raise ValueError(f"ANGLE in header ({header['ANGLE']}) is not parseable as an angle\
-                                    and neither is GRATING ({header['GRATING']}), the usual suspect")
+                                    and neither is GRATING ({header['GRATING']}), the usual suspect") from exc
             _get_ra_or_dec(path, True, header)
             _get_ra_or_dec(path, False, header)
