@@ -14,13 +14,11 @@ from dbsp_drp import table_edit
 DEFAULT_COLS = ('filename', 'frametype', 'ra', 'dec', 'target', 'dispname', 'binning', 'mjd',
                 'airmass', 'exptime', 'dispangle', 'dichroic', 'slitwid')
 
-def files_path() -> str:
-    return os.path.join(os.path.dirname(__file__), 'files')
 
 @pytest.fixture(scope="module")
-def pypeit_setup(tmp_path_factory) -> pypeit.pypeitsetup.PypeItSetup:
+def pypeit_setup(tmp_path_factory, files_path) -> pypeit.pypeitsetup.PypeItSetup:
     tmp_path = tmp_path_factory.mktemp("sample_data_copy")
-    orig_files = os.path.join(files_path(), 'sample_data')
+    orig_files = os.path.join(files_path, 'sample_data')
     tmp_root_dir = shutil.copytree(orig_files, tmp_path, dirs_exist_ok=True)
     ps = pypeit.pypeitsetup.PypeItSetup.from_file_root(tmp_root_dir, 'p200_dbsp_red',
                                         extension='.fits', output_path=tmp_root_dir)
