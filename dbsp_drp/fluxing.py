@@ -42,7 +42,7 @@ def make_sensfunc(standard_file: str, output_path: str, spectrograph: str,
             wave_star = sobjs[0].OPT_WAVE
             orig_mask = sensobj.counts_mask.copy()
 
-            mask_tell = np.ones_like(wave_star).astype(bool)
+            mask_tell = np.ones_like(orig_mask).astype(bool)
             tell_opt = np.any([((wave_star >= 6270.00) & (wave_star <= 6290.00)), # H2O
                             ((wave_star >= 6850.00) & (wave_star <= 6960.00)), # O2 telluric band
                             ((wave_star >= 7580.00) & (wave_star <= 7750.00)), # O2 telluric band
@@ -52,11 +52,10 @@ def make_sensfunc(standard_file: str, output_path: str, spectrograph: str,
 
             sensobj.counts_mask &= mask_tell
 
-
         sensobj.run()
         if 'red' in spectrograph:
-            sensobj.out_table['MASK_SENS'] = orig_mask
-
+            sensobj.out_table['SENS_ZEROPOINT_GPM'] = orig_mask.T
+            sensobj.out_table['SENS_ZEROPOINT_FIT_GPM'] = orig_mask.T
         sensobj.save()
         return os.path.basename(outfile)
     except pypmsgs.PypeItError as err:
