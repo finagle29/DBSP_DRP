@@ -34,8 +34,8 @@ def telluric_correct(coadd: str, output_path: str, spectrograph: str,
         merge_with=user_config_lines)
 
     # Parse the output filename
-    outfile = os.path.splitext(coadd)[0] + '_tellcorr.fits'
-    modelfile = os.path.splitext(coadd)[0] + '_tellmodel.fits'
+    outfile = os.path.join(output_path, os.path.splitext(coadd)[0] + '_tellcorr.fits')
+    modelfile = os.path.join(output_path, os.path.splitext(coadd)[0] + '_tellmodel.fits')
 
 
     try:
