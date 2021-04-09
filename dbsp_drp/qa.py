@@ -41,10 +41,8 @@ def save_one2dspec(ax: plt.Axes, spec: np.ndarray, edges: Tuple[np.ndarray, np.n
         for trace in traces:
             ax.plot(trace, xs, 'orange', lw=1)
 
-def save_2dspecs(qa_dict: dict, output_spec2ds: List[str], output_path: str, spectrograph: str) -> None:
+def save_2dspecs(qa_dict: dict, output_spec2ds: List[str], output_path: str) -> None:
     obj_png_dict = qa_dict
-
-    arm = 'blue' if 'blue' in spectrograph else 'red'
 
     out_path = os.path.join(output_path, 'QA', 'PNGs', 'Extraction')
     if not os.path.exists(out_path):
@@ -120,13 +118,8 @@ def save_2dspecs(qa_dict: dict, output_spec2ds: List[str], output_path: str, spe
 
     return obj_png_dict
 
-def write_extraction_QA(qa_dict: dict, output_path: str) -> None:
+def write_extraction_QA(qa_dict: dict, output_path: str, spectrograph: str) -> None:
     out_path = os.path.join(output_path, 'QA')
-
-    pngs = [os.path.basename(fullpath) for fullpath in glob.glob(os.path.join(out_path, 'PNGs', 'Extraction', '*.png'))]
-    pngs = sorted(pngs)
-
-    objnames = [png.split('-')[1].split('_')[0] for png in pngs]
 
     doc, tag, text = Doc().tagtext()
     doc.asis('<!DOCTYPE html>')
@@ -134,7 +127,7 @@ def write_extraction_QA(qa_dict: dict, output_path: str) -> None:
     with tag('html'):
         with tag('head'):
             with tag('title'):
-                text("DBSP Extraction QA")
+                text(f"{spectrograph} Extraction QA")
             doc.stag('link', rel='stylesheet', href='dbsp_qa.css')
             with tag('script', src='./dbsp_qa.js'):
                 pass

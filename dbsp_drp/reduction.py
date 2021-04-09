@@ -21,17 +21,16 @@ from pypeit.specobjs import SpecObjs
 
 from dbsp_drp.manual_tracing import ManualTracingGUI
 
-def parse_pypeit_parameter_file(parameter_file: str,
-        spectrograph: str) -> List[str]:
+def parse_pypeit_parameter_file(parameter_file: str, arm: str,
+        arms: List[str]) -> List[str]:
     user_config_lines = []
     read_lines = False
-    arm = 'red' if 'red' in spectrograph else 'blue'
-    other_arm = 'red' if 'blue' in arm else 'blue'
+    other_arms = arms.remove(arm)
 
     if os.path.isfile(parameter_file):
         with open(parameter_file) as f:
             for line in f.readlines():
-                if f'[{other_arm}]' in line:
+                if any([f'[{other_arm}]' in line for other_arm in other_arms]):
                     read_lines = False
                 if read_lines:
                     user_config_lines.append(line)

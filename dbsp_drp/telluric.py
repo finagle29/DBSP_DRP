@@ -16,6 +16,10 @@ def telluric_correct(coadd: str, output_path: str, spectrograph: str,
     """
     method to telluric correct one coadded file
     """
+    ## TODO:
+    # factor this to be instrument-independent
+    # perhaps give Instrument a method to mutate par?
+    # or give it lines
     coadd_path = os.path.join(output_path, 'Science', coadd)
     spectrograph = load_spectrograph(spectrograph)
     par = spectrograph.default_pypeit_par()
@@ -36,7 +40,6 @@ def telluric_correct(coadd: str, output_path: str, spectrograph: str,
     # Parse the output filename
     outfile = os.path.splitext(coadd)[0] + '_tellcorr.fits'
     modelfile = os.path.splitext(coadd)[0] + '_tellmodel.fits'
-
 
     try:
         TelPoly = telluric.poly_telluric(coadd_path, par['tellfit']['tell_grid'],

@@ -51,6 +51,8 @@ def splice(splicing_dict: dict, root: str, output_path: str) -> None:
     for target, targets_dict in splicing_dict.items():
         label = 'a'
         for _, arm_dict in targets_dict.items():
+            ## TODO: refactor this to be instrument-agnostic
+            # splice probably needs instrument passed in?
             red_dict = arm_dict.get('red', {})
             blue_dict = arm_dict.get('blue', {})
 
@@ -112,6 +114,9 @@ def adjust_and_combine_overlap(bluefile: str, redfile: str, target: str) -> Tupl
             Tuple[np.ndarray, np.ndarray, np.ndarray],
             Tuple[np.ndarray, np.ndarray, np.ndarray],
             Tuple[np.ndarray, np.ndarray, np.ndarray]]:
+    ## TODO:
+    # refactor this to be instrument-agnostic:
+    # take in array of arms
     # TODO: propagate input masks
 
     if bluefile is not None:
