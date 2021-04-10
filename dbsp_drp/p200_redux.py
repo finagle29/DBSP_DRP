@@ -155,6 +155,8 @@ def main(args):
     # Splitting up the .pypeit files into bits and pieces
     # Oooh what if I just do the calibration first
     # and then parallelize the reduction
+    output_spec1ds_blue = set()
+    output_spec1ds_red = set()
     if do_red:
         output_spec1ds_red, output_spec2ds_red = reduction.redux(pypeit_file_red, args.output_path)
         qa_dict = qa.save_2dspecs(qa_dict, output_spec2ds_red, args.output_path, 'p200_dbsp_red')
