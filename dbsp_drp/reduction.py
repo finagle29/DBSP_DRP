@@ -128,6 +128,21 @@ def delete_duplicate_hdus_by_name(path: str, base_name: str = ""):
         specobjs.write_to_fits(specobjs.header, path, overwrite=True)
         specobjs.write_info(os.path.splitext(path)[0] + '.txt', "MultiSlit")
 
+def delete_completely_masked_hdus(path: str, base_name: str = ""):
+    """
+    Removes ``SpecObj`` s with identical names, leaving one behind.
+    """
+    specobjs = SpecObjs.from_fitsfile(path)
+    changed = False
+    for i, specobj in enumerate(specobjs):
+        if not specobj.OPT_MASK.any():
+            print(f'{base_name} has a completely masked trace, deleting that trace')
+            specobjs.remove_sobj(i)
+            changed = True
+
+    if changed:
+        specobjs.write_to_fits(specobjs.header, path, overwrite=True)
+        specobjs.write_info(os.path.splitext(path)[0] + '.txt', "MultiSlit")
 
 def verify_spec1ds(output_spec1ds: List[str], verification_counter: int, output_path: str) -> List[str]:
     """
@@ -145,6 +160,7 @@ def verify_spec1ds(output_spec1ds: List[str], verification_counter: int, output_
         base_name = spec1d.split('_')[1]
 
         delete_duplicate_hdus_by_name(path, base_name)
+        delete_completely_masked_hdus(path, base_name)
 
         with fits.open(path) as hdul:
             for hdu in hdul:
