@@ -31,6 +31,7 @@ The filename will repeat the raw data file and spatial pixel information for eac
 
 Telluric-corrected 1D Coadd files have ``_tellcorr`` appended to the base filename of the coadd file.
 
+In the directory ``$OUTPUT_PATH/spliced`` are the spliced final data products.
 The final data product of DBSP_DRP is a FITS file named ``target_char.fits`` with structure described below,
 where ``char`` is a one letter designation of which object along the slit it is.
 

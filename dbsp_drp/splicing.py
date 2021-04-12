@@ -105,7 +105,7 @@ def splice(splicing_dict: dict, root: str, output_path: str) -> None:
             else:
                 log_msg += f"{os.path.basename(redfile)} and {os.path.basename(bluefile)}"
             print(log_msg)
-            hdul.writeto(os.path.join(output_path, "Science", f'{target}_{label}.fits'), overwrite=True)
+            hdul.writeto(os.path.join(output_path, "spliced", f'{target}_{label}.fits'), overwrite=True)
             label = chr(ord(label) + 1)
 
 def adjust_and_combine_overlap(bluefile: str, redfile: str, target: str) -> Tuple[

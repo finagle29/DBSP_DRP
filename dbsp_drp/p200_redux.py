@@ -418,6 +418,8 @@ def main(args):
     blue_mask = spec1d_table['arm'] == 'blue'
     red_mask = spec1d_table['arm'] == 'red'
 
+    os.makedirs(os.path.join(args.output_path, 'spliced'))
+
     ## Need to find red + blue fracpos for standards
     # hopefully standards only have one star each?
     # or should i actually try to do matching there
