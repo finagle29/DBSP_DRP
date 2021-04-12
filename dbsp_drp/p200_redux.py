@@ -61,6 +61,11 @@ def parser(options: Optional[List[str]] = None) -> argparse.Namespace:
                                 'For DBSP use `red` and `blue`. '
                                 'For NGPS use `u` `g` `r` `i`')
 
+    argparser.add_argument('--instrument', default=None,
+                           help='Use this to manually set the instrument. '
+                                'dbsp for dbsp, ngps for ngps. Usually not '
+                                'needed.')
+
     argparser.add_argument('-m', '--manual-extraction', default=False, action='store_true',
                            help='manual extraction')
 
@@ -122,17 +127,26 @@ def main(args):
     else:
         os.makedirs(args.output_path, exist_ok=True)
 
-    instrument: instruments.Instrument
-    # infer spectrograph from raw data path
-    raw_data = glob.glob(os.path.join(args.root, "*.fits"))
-    with fits.open(raw_data[0]) as hdul:
-        if 'dbsp' in hdul[0].header['FPA'].lower():
-            print("Automatically detected instrument: DBSP")
-            instrument = instruments.DBSP()
-        else:
-            print("ERROR: Unknown spectrograph!")
-            print(f"The spectrogrpah for reduction could not be determined from {raw_data[0]}")
-            sys.exit(1)
+    instrument: instruments.Instrument = None
+    if args.instrument is None:
+        # infer spectrograph from raw data path
+        raw_data = glob.glob(os.path.join(args.root, "*.fits"))
+        with fits.open(raw_data[0]) as hdul:
+            for ins in instruments.instruments:
+                if ins.detect_instrument(hdul):
+                    print(f"Automatically detected instrument: {ins.__name__}.")
+                    instrument = ins()
+            if instrument is None:
+                print("ERROR: Unknown spectrograph!")
+                print(f"The instrument for reduction could not be determined from {raw_data[0]}.")
+                print("Please use the --instrument flag to specify the instrument for reduction.")
+                sys.exit(1)
+    else:
+        for ins in instruments.instruments:
+            if ins.__name__.lower() in args.instrument.lower():
+                instrument = ins()
+        if instrument is None:
+            raise NotImplementedError(f"Instrument {args.instrument} has not yet been implemented")
 
 
     do_arms: List[bool]

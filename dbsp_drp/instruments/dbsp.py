@@ -2,6 +2,7 @@ from typing import List, Dict
 
 import numpy as np
 from astropy.table import Table
+from astropy.io.fits import HDUList
 
 from dbsp_drp.instruments import Instrument
 
@@ -150,3 +151,16 @@ class DBSP(Instrument):
         if arm == 'blue':
             return self.FRACPOS_SUM - fracpos
         return fracpos
+
+    @classmethod
+    def detect_instrument(cls, hdulist: HDUList) -> bool:
+        """
+        Returns True if the input HDUList was taken by this instrument.
+
+        Args:
+            hdulist (HDUList)
+
+        Returns:
+            bool: True if hdulist was taken by this instrument
+        """
+        return 'dbsp' in hdulist[0].header['FPA'].lower()

@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import List, Dict
 
 from astropy.table import Table
+from astropy.io.fits import HDUList
 
 
 class Instrument(ABC):
@@ -125,5 +126,19 @@ class Instrument(ABC):
 
         Returns:
             float: object identifier
+        """
+        ...
+
+    @abstractmethod
+    @classmethod
+    def detect_instrument(cls, hdulist: HDUList) -> bool:
+        """
+        Returns True if the input HDUList was taken by this instrument.
+
+        Args:
+            hdulist (HDUList)
+
+        Returns:
+            bool: True if hdulist was taken by this instrument
         """
         ...
