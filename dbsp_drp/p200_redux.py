@@ -466,7 +466,7 @@ def main(args):
                         'coadd': coadd
                     }}
     # And now, actually splice!
-    splicing.splice(splicing_dict, roots[0], args.output_path)
+    splicing.splice(splicing_dict, roots[0], args.output_path, instrument)
 
     with open("fracpos_data.pickle", "wb") as f:
         pickle.dump((fracpos_diff_list, instrument.FRACPOS_SUM), f)

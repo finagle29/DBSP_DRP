@@ -149,6 +149,16 @@ def adjust_and_combine_overlap(bluer_spec: Optional[Tuple[np.ndarray, np.ndarray
     # maybe need to fix the overlaps?
     # need more finely spaced grid to be completely contained within coarser grid
 
+    if overlap_lo > overlap_hi:
+        # there is no overlap!
+        # we can't adjust the flux level
+        # so we just concatenate!
+        final_wvs = np.concatenate([spec_b_wave, spec_r_wave])
+        final_flam = np.concatenate([spec_b_flux, spec_r_flux])
+        final_flam_sig = np.concatenate([spec_b_sig, spec_r_sig])
+        return (final_wvs, final_flam, final_flam_sig)
+
+
     olap_r = (spec_r_wave < overlap_hi)
     olap_b = (spec_b_wave > overlap_lo)
 
