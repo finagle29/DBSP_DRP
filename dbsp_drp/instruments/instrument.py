@@ -129,8 +129,8 @@ class Instrument(ABC):
         """
         ...
 
-    @abstractmethod
     @classmethod
+    @abstractmethod
     def detect_instrument(cls, hdulist: HDUList) -> bool:
         """
         Returns True if the input HDUList was taken by this instrument.
