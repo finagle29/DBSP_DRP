@@ -42,11 +42,16 @@ def plot(spec: fits.FITS_rec) -> None:
     Args:
         spec (fits.FITS_rec): Spectrum to plot
     """
-    plt.plot(spec['wave'], spec['flux'], c='k', label='spectrum')
-    plt.plot(spec['wave'], spec['sigma'], c='gray', label='error')
+    plt.step(spec['wave'], spec['flux'], c='k', label='spectrum')
+    plt.step(spec['wave'], spec['sigma'], c='gray', label='error')
 
-    top = np.abs(np.percentile(spec['flux'], 95)) * 1.5
-    bottom = -0.1 * top
+    plt.xlabel(r"Wavelength ($\AA$)")
+    plt.ylabel(r"Flux ($10^{-17}\mathrm{erg}/\mathrm{s}/\mathrm{cm}^2/\AA$)")
+
+    top1 = np.abs(np.percentile(spec['flux'], 95)) * 1.5
+    top2 = np.max(spec['flux'][spec['wave'] > 4000]) * 1.1
+    top = max(top1, top2)
+    bottom = -0.05 * top
 
     plt.ylim(bottom, top)
     plt.legend()
