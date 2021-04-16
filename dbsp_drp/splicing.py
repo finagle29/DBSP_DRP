@@ -72,7 +72,7 @@ def splice(splicing_dict: dict, root: str, output_path: str, instrument: Instrum
             primary_header['PYPEIT_V'] = pypeit.__version__
             primary_header['NUMPY_V'] = np.__version__
             primary_header['ASTROPY_V'] = astropy.__version__
-            for i, arm in instrument.arm_prefixes:
+            for i, arm in enumerate(instrument.arm_prefixes):
                 primary_header[f'{arm[0].upper()}_COADD'] = arm_files[i]
             primary_hdu = fits.PrimaryHDU(header=primary_header)
 
