@@ -92,7 +92,7 @@ def build_fluxfile(spec1d_to_sensfunc: Dict[str,str], output_path: str,
             sens_path = os.path.join(output_path, sensfun)
         else:
             arm = spectrograph.split('_')[-1]
-            sens_path = resource_filename("dbsp_drp", f"/data/sens_{arm}_archived.fits")
+            sens_path = resource_filename("dbsp_drp", f"data/sens_{arm}_archived.fits")
         cfg_lines.append(f'  {spec_path} {sens_path}')
     cfg_lines.append('flux end')
 
