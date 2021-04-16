@@ -1,0 +1,11 @@
+#!/usr/bin/env python
+
+"""
+Show a DBSP spectrum
+"""
+
+from dbsp_drp import show_spectrum
+
+if __name__ == "__main__":
+    args = show_spectrum.parser()
+    show_spectrum.main(args)
