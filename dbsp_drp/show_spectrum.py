@@ -1,4 +1,5 @@
 import argparse
+import os
 from typing import List, Optional
 
 import numpy as np
@@ -25,17 +26,21 @@ def main(args: argparse.Namespace) -> None:
         else:
             try:
                 ext = int(args.extension)
-                if ext == 0 or ext >= len(hdul):
+                if ext == 0 or ext >= len(hdul) or ext <= -len(hdul):
+                    # check for negative oob
                     raise IndexError(f"Extension index {ext} out of range: "
-                        f"must be between 1 and {len(hdul) - 1} inclusive.")
+                        f"must be between 1 and {len(hdul) - 1} inclusive "
+                        f"(or between -1 and {-len(hdul)+1} inclusive to "
+                        "index from the end).")
             except ValueError:
                 raise LookupError(f"Extension '{args.extension}' not found in "
                     f"{args.fname}, and cannot be cast to an integer.\n"
                     f"\tValid extensions present in {args.fname} are {exts}.")
         spectrum = hdul[ext].data
-        plot(spectrum)
+        basename = os.path.splitext(os.path.basename(args.fname))[0]
+        plot(spectrum, f"{basename}[{hdul[ext].name}]")
 
-def plot(spec: fits.FITS_rec) -> None:
+def plot(spec: fits.FITS_rec, title: str) -> None:
     """
     Plots spectrum and error with sensible y-scale limits.
 
@@ -55,4 +60,5 @@ def plot(spec: fits.FITS_rec) -> None:
 
     plt.ylim(bottom, top)
     plt.legend()
+    plt.title(title)
     plt.show()
