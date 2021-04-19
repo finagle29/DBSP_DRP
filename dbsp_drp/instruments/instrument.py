@@ -100,7 +100,7 @@ class Instrument(ABC):
         ...
 
     @abstractmethod
-    def calibrate_trace_matching(self, spec1d_table: Table) -> float:
+    def calibrate_trace_matching(self, spec1d_table: Table, output_path: str) -> float:
         """
         Calibrates trace-matching across arms. Call this once before calling
         convert_fracpos.

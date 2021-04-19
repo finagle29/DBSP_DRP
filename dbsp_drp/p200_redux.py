@@ -143,7 +143,7 @@ def main(args):
                 sys.exit(1)
     else:
         for ins in instruments.instruments:
-            if ins.__name__.lower() in args.instrument.lower():
+            if ins.__name__.lower() == args.instrument.lower():
                 instrument = ins()
         if instrument is None:
             raise NotImplementedError(f"Instrument {args.instrument} has not yet been implemented")
@@ -410,7 +410,7 @@ def main(args):
     stds = spec1d_table['frametype'] == 'standard'
 
     if sum(do_arms) > 1:
-        tol = instrument.calibrate_trace_matching(spec1d_table)
+        tol = instrument.calibrate_trace_matching(spec1d_table, args.output_path)
 
     # when we splice, we are splicing coadds
     # so we maybe need a coadd_table
@@ -433,7 +433,7 @@ def main(args):
             coadd = row['coadds'][i]
             targ_dict = splicing_dict.get(target)
             # normalize fracpos to red
-            if sum(do_arms):
+            if sum(do_arms) > 1:
                 fracpos = instrument.convert_fracpos(arm, fracpos)
             # if it's not in the dict
             if targ_dict is None:
