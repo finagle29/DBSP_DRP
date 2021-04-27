@@ -172,7 +172,7 @@ def verify_spec1ds(output_spec1ds: List[str], verification_counter: int, output_
                         print(f'WARNING: trace {hdu.name} in {base_name} was not extracted!')
                         print('It is recommended to re-reduce this object with the -m flag'
                             'and manually place the desired traces.')
-    return []
+    return targets_list
 
 def manual_extraction_GUI(output_spec2ds: List[str], output_path: str) -> dict:
     spec2ds = output_spec2ds
@@ -243,7 +243,7 @@ def write_manual_pypeit_files(old_pypeit_file: str, targets_list: List[List[str]
 
         cfg_lines = []
         setup_lines = []
-        setup = False
+        setup_flag = False
         with open(old_pypeit_file, 'r') as old_pypeit_fd:
             for line in old_pypeit_fd.readlines():
                 if 'science' in line and '|' in line and all([targ_fname not in line for targ_fname in target_fnames]):
@@ -252,8 +252,8 @@ def write_manual_pypeit_files(old_pypeit_file: str, targets_list: List[List[str]
                     setup_lines.append(line)
                 else:
                     if '# Setup' in line:
-                        setup = True
-                    if setup:
+                        setup_flag = True
+                    if setup_flag:
                         setup_lines.append(line)
                     else:
                         cfg_lines.append(line)

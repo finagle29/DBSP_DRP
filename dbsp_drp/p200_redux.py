@@ -342,7 +342,8 @@ def main(args):
         grouped_spats_list = coadding.group_coadds(fname_spats)
         for i, arm in enumerate(instrument.arm_prefixes):
             if all(subtable['arm'] == arm):
-                coadds = coadding.coadd(grouped_spats_list, args.output_path, instrument.arm_names_pypeit[i], user_config_lines[i])
+                coadds = coadding.coadd(grouped_spats_list, args.output_path,
+                    instrument.arm_names_pypeit[i], user_config_lines[i])
         assert any([all(subtable['arm'] == arm) for arm in instrument.arm_prefixes]),\
             "Something went wrong with coadding: spec1ds from multiple arms have the same coadd ID!"
         for row in subtable:
