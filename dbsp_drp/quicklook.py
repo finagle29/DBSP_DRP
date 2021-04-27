@@ -8,13 +8,13 @@ from multiprocessing import Process
 import numpy as np
 from astropy.io import fits
 
-from pkg_resources import resource_filename
-
 from pypeit.pypeitsetup import PypeItSetup
 from pypeit.core import framematch
 from pypeit import pypeit
 from pypeit import fluxcalibrate
 from pypeit.scripts import show_2dspec, show_1dspec
+
+from dbsp_drp import instruments
 
 def get_cfg_lines(spectrograph: str) -> List[str]:
     cfg_lines = [
@@ -54,8 +54,19 @@ def main(args: argparse.Namespace):
     root = args.fname.rstrip('0123456789.fits')
     paths = glob.glob(f'{root}*.fits')
 
-    spectrograph = 'p200_dbsp_red' if 'red' in os.path.basename(args.fname) else 'p200_dbsp_blue'
-    arm = spectrograph.split('_')[-1]
+    ins_guessing_path: str
+    if os.path.isfile(args.fname):
+        ins_guessing_path = args.fname
+    else:
+        ins_guessing_path = glob.glob(f"{args.fname}*.fits")[0]
+
+    instrument = instruments.guess_instrument_from_file(ins_guessing_path)
+
+    for i, arm_name in instrument.arm_prefixes:
+        if arm_name in os.path.basename(args.fname):
+            arm_index = i
+            spectrograph = instrument.arm_names_pypeit[i]
+            break
 
     CFG_LINES = get_cfg_lines(spectrograph)
 
@@ -126,7 +137,7 @@ def main(args: argparse.Namespace):
         ]))
 
     if not calib_only:
-        sensfiles = [resource_filename("dbsp_drp", f"data/sens_{arm}_archived.fits")]
+        sensfiles = [instrument.archived_sensfuncs[arm_index]]
         FxCalib = fluxcalibrate.FluxCalibrate.get_instance(output_spec1ds, sensfiles, par=ps.par['fluxcalib'])
 
     print(f"Time elapsed: {time.perf_counter() - t}s.")

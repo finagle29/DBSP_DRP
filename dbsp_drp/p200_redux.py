@@ -4,7 +4,6 @@ Automatic Reduction Pipeline for P200 DBSP.
 
 import argparse
 import os
-import sys
 import time
 import multiprocessing
 from typing import Optional, List
@@ -131,16 +130,7 @@ def main(args):
     if args.instrument is None:
         # infer spectrograph from raw data path
         raw_data = glob.glob(os.path.join(args.root, "*.fits"))
-        with fits.open(raw_data[0]) as hdul:
-            for ins in instruments.instruments:
-                if ins.detect_instrument(hdul):
-                    print(f"Automatically detected instrument: {ins.__name__}.")
-                    instrument = ins()
-            if instrument is None:
-                print("ERROR: Unknown spectrograph!")
-                print(f"The instrument for reduction could not be determined from {raw_data[0]}.")
-                print("Please use the --instrument flag to specify the instrument for reduction.")
-                sys.exit(1)
+        instrument = instruments.guess_instrument_from_file(raw_data[0])
     else:
         for ins in instruments.instruments:
             if ins.__name__.lower() == args.instrument.lower():
