@@ -281,7 +281,9 @@ def main(args):
     for i, arm in enumerate(instrument.arm_prefixes):
         if do_arms[i]:
             spec1d_to_sensfunc = {row['filename']: row['sensfunc'] for row in spec1d_table if row['arm'] == arm}
-            fluxfiles[i] = fluxing.build_fluxfile(spec1d_to_sensfunc, args.output_path, instrument.arm_names_pypeit[i], user_config_lines[i])
+            fluxfiles[i] = fluxing.build_fluxfile(spec1d_to_sensfunc,
+                instrument.archived_sensfuncs[i], args.output_path,
+                instrument.arm_names_pypeit[i], user_config_lines[i])
 
     # flux data
     for i in range(instrument.arms):

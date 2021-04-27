@@ -99,6 +99,14 @@ class Instrument(ABC):
         """
         ...
 
+    @property
+    @abstractmethod
+    def archived_sensfuncs(self) -> List[str]:
+        """
+        List of paths to archived sensfuncs.
+        """
+        ...
+
     @abstractmethod
     def calibrate_trace_matching(self, spec1d_table: Table, output_path: str) -> float:
         """

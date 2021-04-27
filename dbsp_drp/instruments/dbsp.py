@@ -1,6 +1,8 @@
 import os
 from typing import List, Dict
 
+from pkg_resources import resource_filename
+
 import numpy as np
 from astropy.table import Table
 from astropy.io import fits
@@ -96,6 +98,13 @@ class DBSP(Instrument):
             'blue': 0.01,
             'red': 0.01
         }
+
+    @property
+    def archived_sensfuncs(self) -> List[str]:
+        """
+        List of paths to archived sensfuncs.
+        """
+        return [resource_filename("dbsp_drp", f"data/sens_{arm}_archived.fits") for arm in self.arm_prefixes]
 
     def _get_std_trace(self, std_path: str) -> float:
         max_sn = -1

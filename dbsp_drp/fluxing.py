@@ -5,8 +5,6 @@ Automated fluxing for P200 DBSP.
 import os
 from typing import List, Dict
 
-from pkg_resources import resource_filename
-
 import numpy as np
 from astropy.io import fits
 
@@ -42,19 +40,17 @@ def make_sensfunc(standard_file: str, output_path: str, spectrograph: str,
         orig_mask = sensobj.counts_mask.copy()
         mask = np.ones_like(orig_mask).astype(bool)
 
-        if 'red' in spectrograph:
+        # Mask out telluric lines for sensfunc generation
+        if par['sensfunc']['algorithm'] == 'UVIS':
             tell_opt = np.any([((wave_star >= 6270.00) & (wave_star <= 6290.00)), # H2O
                             ((wave_star >= 6850.00) & (wave_star <= 6960.00)), # O2 telluric band
                             ((wave_star >= 7580.00) & (wave_star <= 7750.00)), # O2 telluric band
                             ((wave_star >= 7160.00) & (wave_star <= 7340.00)), # H2O
                             ((wave_star >= 8150.00) & (wave_star <= 8250.00))], axis=0) # H2O
             mask[tell_opt] = False
-            par['sensfunc']['UVIS']['nresln'] = 7.5
-            par['sensfunc']['UVIS']['balm_mask_wid'] = 0
-        elif 'blue' in spectrograph:
-            mask[wave_star < 3000] = False
-            par['sensfunc']['UVIS']['nresln'] = 4.5
-            par['sensfunc']['UVIS']['balm_mask_wid'] = 0
+
+        # Mask blueward of approx. atmospheric cutoff
+        mask[wave_star < 3000] = False
 
         sensobj.counts_mask &= mask
 
@@ -70,8 +66,8 @@ def make_sensfunc(standard_file: str, output_path: str, spectrograph: str,
         print(str(err))
         return ""
 
-def build_fluxfile(spec1d_to_sensfunc: Dict[str,str], output_path: str,
-        spectrograph: str, user_config_lines: List[str]) -> str:
+def build_fluxfile(spec1d_to_sensfunc: Dict[str,str], archived_sensfunc: str,
+        output_path: str, spectrograph: str, user_config_lines: List[str]) -> str:
     """
     Writes the fluxfile for fluxing.
 
@@ -96,8 +92,7 @@ def build_fluxfile(spec1d_to_sensfunc: Dict[str,str], output_path: str,
         if sensfun:
             sens_path = os.path.join(output_path, sensfun)
         else:
-            arm = spectrograph.split('_')[-1]
-            sens_path = resource_filename("dbsp_drp", f"data/sens_{arm}_archived.fits")
+            sens_path = archived_sensfunc
         cfg_lines.append(f'  {spec_path} {sens_path}')
     cfg_lines.append('flux end')
 
