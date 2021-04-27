@@ -95,8 +95,7 @@ def splice(splicing_dict: dict, root: str, output_path: str, instrument: Instrum
             log_msg = f"{target}_{label}.fits contains "
             log_msg += ' and '.join([os.path.basename(arm_file) for arm_file in arm_files if arm_file is not None])
             print(log_msg)
-
-            hdul.writeto(os.path.join(output_path, "Science", f'{target}_{label}.fits'), overwrite=True)
+            hdul.writeto(os.path.join(output_path, "spliced", f'{target}_{label}.fits'), overwrite=True)
             label = chr(ord(label) + 1)
 
 def adjust_and_combine_overlap_all(arm_files: List[str], target: str) -> Tuple[

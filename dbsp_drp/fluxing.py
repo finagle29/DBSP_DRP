@@ -36,27 +36,32 @@ def make_sensfunc(standard_file: str, output_path: str, spectrograph: str,
 
         sensobj = sensfunc.SensFunc.get_instance(spec1dfile, outfile, par=par['sensfunc'], debug=debug)
 
-        if 'red' in spectrograph:
-            # read in spec1dfile to get wavelengths
-            sobjs = SpecObjs.from_fitsfile(spec1dfile)
-            wave_star = sobjs[0].OPT_WAVE
-            orig_mask = sensobj.counts_mask.copy()
+        # read in spec1dfile to get wavelengths
+        sobjs = SpecObjs.from_fitsfile(spec1dfile)
+        wave_star = sobjs[0].OPT_WAVE
+        orig_mask = sensobj.counts_mask.copy()
+        mask = np.ones_like(orig_mask).astype(bool)
 
-            mask_tell = np.ones_like(wave_star).astype(bool)
+        if 'red' in spectrograph:
             tell_opt = np.any([((wave_star >= 6270.00) & (wave_star <= 6290.00)), # H2O
                             ((wave_star >= 6850.00) & (wave_star <= 6960.00)), # O2 telluric band
                             ((wave_star >= 7580.00) & (wave_star <= 7750.00)), # O2 telluric band
                             ((wave_star >= 7160.00) & (wave_star <= 7340.00)), # H2O
                             ((wave_star >= 8150.00) & (wave_star <= 8250.00))], axis=0) # H2O
-            mask_tell[tell_opt] = False
+            mask[tell_opt] = False
+            par['sensfunc']['UVIS']['nresln'] = 7.5
+            par['sensfunc']['UVIS']['balm_mask_wid'] = 0
+        elif 'blue' in spectrograph:
+            mask[wave_star < 3000] = False
+            par['sensfunc']['UVIS']['nresln'] = 4.5
+            par['sensfunc']['UVIS']['balm_mask_wid'] = 0
 
-            sensobj.counts_mask &= mask_tell
-
+        sensobj.counts_mask &= mask
 
         sensobj.run()
-        if 'red' in spectrograph:
-            sensobj.out_table['MASK_SENS'] = orig_mask
 
+        sensobj.out_table['SENS_ZEROPOINT_GPM'] = orig_mask.T
+        sensobj.out_table['SENS_ZEROPOINT_FIT_GPM'] = orig_mask.T
         sensobj.save()
         return os.path.basename(outfile)
     except pypmsgs.PypeItError as err:
@@ -92,7 +97,7 @@ def build_fluxfile(spec1d_to_sensfunc: Dict[str,str], output_path: str,
             sens_path = os.path.join(output_path, sensfun)
         else:
             arm = spectrograph.split('_')[-1]
-            sens_path = resource_filename("dbsp_drp", f"/data/sens_{arm}_archived.fits")
+            sens_path = resource_filename("dbsp_drp", f"data/sens_{arm}_archived.fits")
         cfg_lines.append(f'  {spec_path} {sens_path}')
     cfg_lines.append('flux end')
 

@@ -24,35 +24,35 @@ def telluric_correct(coadd: str, output_path: str, spectrograph: str,
     spectrograph = load_spectrograph(spectrograph)
     par = spectrograph.default_pypeit_par()
 
-    par['tellfit']['objmodel'] = 'poly'
-    par['tellfit']['fit_wv_min_max'] = [5500, 11000]
+    par['telluric']['objmodel'] = 'poly'
+    par['telluric']['fit_wv_min_max'] = [5500, 11000]
     # maybe somehow choose between poly and exp??????? look at median
-    par['tellfit']['model'] = 'exp'
-    par['tellfit']['polyorder'] = 8
+    par['telluric']['model'] = 'exp'
+    par['telluric']['polyorder'] = 8
 
-    if par['tellfit']['tell_grid'] is None:
+    if par['telluric']['telgridfile'] is None:
         if par['sensfunc']['IR']['telgridfile'] is not None:
-            par['tellfit']['tell_grid'] = par['sensfunc']['IR']['telgridfile']
+            par['telluric']['telgridfile'] = par['sensfunc']['IR']['telgridfile']
 
     par = pypeitpar.PypeItPar.from_cfg_lines(cfg_lines=par.to_config(),
         merge_with=user_config_lines)
 
     # Parse the output filename
-    outfile = os.path.splitext(coadd)[0] + '_tellcorr.fits'
-    modelfile = os.path.splitext(coadd)[0] + '_tellmodel.fits'
+    outfile = os.path.join(output_path, 'Science', os.path.splitext(coadd)[0] + '_tellcorr.fits')
+    modelfile = os.path.join(output_path, 'Science', os.path.splitext(coadd)[0] + '_tellmodel.fits')
 
     try:
-        TelPoly = telluric.poly_telluric(coadd_path, par['tellfit']['tell_grid'],
+        TelPoly = telluric.poly_telluric(coadd_path, par['telluric']['telgridfile'],
             modelfile, outfile,
-            z_obj=par['tellfit']['redshift'],
-            func=par['tellfit']['func'],
-            model=par['tellfit']['model'],
-            polyorder=par['tellfit']['polyorder'],
-            fit_wv_min_max=par['tellfit']['fit_wv_min_max'],
-            mask_lyman_a=par['tellfit']['mask_lyman_a'],
-            delta_coeff_bounds=par['tellfit']['delta_coeff_bounds'],
-            minmax_coeff_bounds=par['tellfit']['minmax_coeff_bounds'],
-            only_orders=par['tellfit']['only_orders'],
+            z_obj=par['telluric']['redshift'],
+            func=par['telluric']['func'],
+            model=par['telluric']['model'],
+            polyorder=par['telluric']['polyorder'],
+            fit_wv_min_max=par['telluric']['fit_wv_min_max'],
+            mask_lyman_a=par['telluric']['mask_lyman_a'],
+            delta_coeff_bounds=par['telluric']['delta_coeff_bounds'],
+            minmax_coeff_bounds=par['telluric']['minmax_coeff_bounds'],
+            only_orders=par['telluric']['only_orders'],
             debug_init=debug, disp=debug, debug=debug, show=plot)
     except ValueError:
         print(f"ERROR!! Telluric correction of {coadd} FAILED!")
