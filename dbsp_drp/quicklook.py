@@ -62,7 +62,7 @@ def main(args: argparse.Namespace):
 
     instrument = instruments.guess_instrument_from_file(ins_guessing_path)
 
-    for i, arm_name in instrument.arm_prefixes:
+    for i, arm_name in enumerate(instrument.arm_prefixes):
         if arm_name in os.path.basename(args.fname):
             arm_index = i
             spectrograph = instrument.arm_names_pypeit[i]

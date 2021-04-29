@@ -25,7 +25,8 @@ def parse_pypeit_parameter_file(parameter_file: str, arm: str,
         arms: List[str]) -> List[str]:
     user_config_lines = []
     read_lines = False
-    other_arms = arms.remove(arm)
+    other_arms = arms.copy()
+    other_arms.remove(arm)
 
     if os.path.isfile(parameter_file):
         with open(parameter_file) as f:
