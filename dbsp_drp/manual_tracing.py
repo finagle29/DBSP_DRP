@@ -149,6 +149,18 @@ class ManualTracingGUI:
         qa.save_one2dspec(self.axes, self.sky_resid, self.edges, self.traces)
         plt.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
 
+        numrows, numcols = self.sky_resid.shape
+
+        def format_coord(x, y):
+            col = int(x + 0.5)
+            row = int(y + 0.5)
+            if 0 <= col < numcols and 0 <= row < numrows:
+                lam = self.spec.waveimg[row, col]
+                return f'λ={lam:1.1f} Å, x={x:1.1f}'
+            return ''
+
+        self.axes.format_coord = format_coord
+
         if self.manual_dict[self.target]['collapse_region']:
             self.collapse_region_artist = self.axes.axhspan(self.manual_dict[self.target]['collapse_region'][0],
                 self.manual_dict[self.target]['collapse_region'][1], color='purple', alpha=0.2)
