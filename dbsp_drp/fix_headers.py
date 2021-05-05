@@ -12,8 +12,8 @@ def _get_ra_or_dec(path, is_ra, header):
     try:
         coord = header[kw]
     except KeyError:
-        coord_str = input(f"File {path} is missing {kw} keyword in header. Header may be severely malformed.\
-             Enter the {kw} of {header['OBJECT']} or an empty string if not known: ")
+        coord_str = input(f"File {path} is missing {kw} keyword in header. Header may be severely malformed.\n"
+             f"Enter the {kw} of `{header['OBJECT']}` or an empty string if not known: ")
         if coord_str != '':
             try:
                 coord = Angle(coord_str, unit=unit)
