@@ -10,9 +10,7 @@ from PySide2.QtCore import Qt
 from PySide2 import QtGui
 
 from dbsp_drp import table_edit
-
-DEFAULT_COLS = ('filename', 'frametype', 'ra', 'dec', 'target', 'dispname', 'binning', 'mjd',
-                'airmass', 'exptime', 'dispangle', 'dichroic', 'slitwid')
+from dbsp_drp import instruments
 
 
 @pytest.fixture(scope="module")
@@ -33,13 +31,13 @@ def astropy_table(pypeit_setup: pypeit.pypeitsetup.PypeItSetup) -> astropy.table
 
 @pytest.fixture
 def table_model(astropy_table: astropy.table.Table) -> Callable[[tuple, list], table_edit.TableModel]:
-    def _table_maker(cols: tuple, del_files: list) -> table_edit.TableModel:
-        return table_edit.TableModel(astropy_table, cols, del_files)
+    def _table_maker(del_files: list, instrument: instruments.Instrument) -> table_edit.TableModel:
+        return table_edit.TableModel(astropy_table, del_files, instrument)
 
     return _table_maker
 
-def test_table_model_data(table_model: table_edit.TableModel) -> None:
-    model = table_model(DEFAULT_COLS, [])
+def test_table_model_data_dbsp(table_model: table_edit.TableModel) -> None:
+    model = table_model([], instruments.DBSP())
     ix = model.createIndex(0, 4)
     assert model.data(ix, Qt.DisplayRole) == "bias"
     assert model.data(ix, Qt.EditRole) == "bias"
@@ -50,8 +48,8 @@ def test_table_model_data(table_model: table_edit.TableModel) -> None:
     assert model.data(ix, Qt.DisplayRole) == "24d38m00s"
     assert model.data(ix, Qt.EditRole) == "24d38m00s"
 
-def test_table_model_setdata(table_model: table_edit.TableModel) -> None:
-    model = table_model(DEFAULT_COLS, [])
+def test_table_model_setdata_dbsp(table_model: table_edit.TableModel) -> None:
+    model = table_model([], instruments.DBSP())
     ix = model.createIndex(0, 2)
     assert not model.setData(ix, "abc")
     assert model.setData(ix, "4h20m")
@@ -69,8 +67,8 @@ def test_table_model_setdata(table_model: table_edit.TableModel) -> None:
     assert model.setData(ix_am, "1.234")
     assert float(model.data(ix_am, Qt.DisplayRole)) == float("1.234")
 
-def test_updating_fits_header(table_model: table_edit.TableModel) -> None:
-    model = table_model(DEFAULT_COLS, [])
+def test_updating_fits_header_dbsp(table_model: table_edit.TableModel) -> None:
+    model = table_model([], instruments.DBSP())
 
     ix = model.createIndex(0, 4)
     model.setData(ix, "foo")

@@ -91,7 +91,7 @@ def parser(options: Optional[List[str]] = None) -> argparse.Namespace:
 
     return argparser.parse_args() if options is None else argparser.parse_args(options)
 
-def interactive_correction(ps: PypeItSetup) -> None:
+def interactive_correction(ps: PypeItSetup, instrument: instruments.Instrument) -> None:
     """Allows for human correction of FITS headers and frame typing.
 
     Launches a GUI via dbsp_drp.table_edit, which handles saving updated FITS headers.
@@ -107,7 +107,7 @@ def interactive_correction(ps: PypeItSetup) -> None:
     fitstbl = ps.fitstbl
     fitstbl.table.sort('filename')
     deleted_files = []
-    table_edit.main(fitstbl.table, deleted_files)
+    table_edit.main(fitstbl.table, deleted_files, instrument)
     files_to_remove = []
     for rm_file in deleted_files:
         for data_file in ps.file_list:
@@ -164,7 +164,7 @@ def main(args):
             context = reduction.setup(roots[i], '.fits', args.output_path, instrument.arm_names_pypeit[i])
             # optionally use interactive correction
             if not args.no_interactive:
-                interactive_correction(context[0])
+                interactive_correction(context[0], instrument)
             pypeit_files[i] = reduction.write_setup(context, 'all', instrument.arm_names_pypeit[i], user_config_lines[i])[0]
 
     plt.switch_backend("agg")

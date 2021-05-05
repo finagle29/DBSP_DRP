@@ -1,18 +1,80 @@
 import os
-from typing import List, Dict
+from typing import List, Dict, Tuple, Union
 
 from pkg_resources import resource_filename
 
 import numpy as np
 from astropy.table import Table
 from astropy.io import fits
+from astropy import units as u
+from astropy.coordinates import Angle
 
 from dbsp_drp.instruments import Instrument
 
 class DBSP(Instrument):
     """
-    Class implementing instrument-specific properties for DBSP.
+    Class implementing instrument-specific properties and code for DBSP.
     """
+
+    @property
+    def table_edit_columns(self) -> Tuple[str, ...]:
+        """
+        Tuple of columns names in PypeItMetaData that should be displayed in table_edit.
+        """
+        return ('filename', 'frametype', 'ra', 'dec', 'target', 'dispname',
+            'binning', 'mjd', 'airmass', 'exptime', 'dispangle', 'dichroic',
+            'slitwid')
+
+    @property
+    def table_edit_editable_columns(self) -> List[str]:
+        """
+        List of column names in PypeItMetaData that table_edit should be allowed to edit.
+        """
+        return ['ra', 'dec', 'airmass', 'target', 'dispangle', 'dispname']
+
+    def column_to_header_kw(self, column: str) -> str:
+        """
+        Given a column name in PypeItMetaData, returns the corresponding keyword
+        in the FITS header.
+        """
+        try:
+            return {
+                'ra': 'RA',
+                'dec': 'DEC',
+                'airmass': 'AIRMASS',
+                'target': 'OBJECT',
+                'dispangle': 'ANGLE',
+                'dispname': 'GRATING'
+            }[column]
+        except KeyError as err:
+            raise KeyError(f"Column {column} does not correspond to a FITS header keyword!") from err
+
+    def table_edit_hdu_formatter(self, column: str, value: Union[float, str]) -> str:
+        """
+        Given a PypeItMetaData column name and a corresponding value, formats
+        that value for updating a FITS header.
+
+        Args:
+            column (str): Column name in PypeItMetaData
+            value (Union[float, str]): Value in PypeItMetaData
+
+        Returns:
+            str: Formatted value for putting into FITS header.
+        """
+        if column in ('target', 'dispname'):
+            return str(value)
+        if column == 'airmass':
+            return f'{value:.3f}'
+        if column in ('ra', 'dec', 'dispangle'):
+            angle = Angle(value, unit=u.deg)
+        if column == 'ra':
+            return angle.to_string(unit=u.hour, sep=':')
+        if column == 'dec':
+            return angle.to_string(unit=u.deg, sep=':', alwayssign=True)
+        if column == 'dispangle':
+            return angle.to_string(unit=u.deg, sep=(' deg ', ' min'), fields=2)
+        return ""
+        raise NotImplementedError(f"Column {column} is not yet supported for editing in table_edit for DBSP.")
 
     @property
     def arms(self) -> int:
