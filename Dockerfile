@@ -25,14 +25,15 @@ RUN conda info
 RUN conda env create --file environment.yml
 
 # make pip install run in dbsp_drp
-SHELL [ "conda", "run", "--name", "dbsp_drp", "/bin/bash", "-c" ]
+ENV PATH /user/miniforge3/envs/dbsp_drp/bin:$PATH
+#SHELL [ "conda", "run", "--name", "dbsp_drp", "/bin/bash", "-c" ]
 
 # copy repo over and install it
 COPY . $WORKDIR
 RUN pip install -e .
 
 # make dbsp_drp the default conda environment
-RUN echo 'conda activate dbsp_drp' >> /root/.bashrc
+RUN echo 'conda activate dbsp_drp' >> /user/.bashrc
 
 CMD [ "/bin/bash" ]
 
