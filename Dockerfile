@@ -20,8 +20,9 @@ WORKDIR $WORKDIR
 
 # set up conda environment
 COPY environment.yml $WORKDIR
-RUN conda update --name base conda &&\
-    conda env create --file environment.yml
+RUN conda update --name base conda
+RUN conda info
+RUN conda env create --file environment.yml
 
 # make pip install run in dbsp_drp
 SHELL [ "conda", "run", "--name", "dbsp_drp", "/bin/bash", "-c" ]
