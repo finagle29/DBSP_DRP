@@ -25,7 +25,7 @@ if [[ $OSTYPE == "darwin"* ]]; then
 elif [[ $OSTYPE == "linux"* ]]; then
 # elif [[ `cat /etc/issue` == "Ubuntu*"]]; then
 # not sure if this /needs/ to be ubuntu
-    docker run --rm -t -i --net=host -e DISPLAY --volume="$HOME/.Xauthority:/root/.Xauthority:rw" "$@"
+    docker run --rm -t -i --net=host -e DISPLAY --volume="$HOME/.Xauthority:/home/user/.Xauthority:rw" "$@"
 elif [[ $OSTYPE == "win"* ]]; then
     echo "You'll have to try to launch Docker on your own, sorry."
 fi
