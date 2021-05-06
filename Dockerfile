@@ -40,5 +40,5 @@ USER root
 RUN apt-get update && \
     apt-get install -y curl
 USER user
-RUN bin/download_tellfile
+RUN DBSP_DRP/bin/download_tellfile
 CMD [ "/bin/bash" ]
