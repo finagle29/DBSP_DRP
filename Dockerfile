@@ -13,7 +13,6 @@ RUN apt-get update && apt-get install -y \
     libxrender1 \
     xauth
 
-USER user
 
 ENV WORKDIR /workdir
 WORKDIR $WORKDIR
@@ -21,6 +20,7 @@ WORKDIR $WORKDIR
 # set up conda environment
 COPY environment.yml $WORKDIR
 RUN conda update --name base conda
+USER user
 RUN conda info
 RUN conda env create --file environment.yml
 
