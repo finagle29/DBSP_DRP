@@ -6,13 +6,14 @@ ARG GROUP_ID
 
 RUN groupadd --non-unique --gid $GROUP_ID user
 RUN adduser --disabled-password --gecos '' --uid $USER_ID --gid $GROUP_ID user
-USER user
 
 # needed for Qt/PySide2
 RUN apt-get update && apt-get install -y \
     libgl1-mesa-dev \
     libxrender1 \
     xauth
+
+USER user
 
 ENV WORKDIR /workdir
 WORKDIR $WORKDIR
@@ -35,7 +36,9 @@ RUN echo 'conda activate dbsp_drp' >> /root/.bashrc
 CMD [ "/bin/bash" ]
 
 FROM dbsp_ql as dbsp_drp
+USER root
 RUN apt-get update && \
-    apt-get install -y curl && \
-    bin/download_tellfile
+    apt-get install -y curl
+USER user
+RUN bin/download_tellfile
 CMD [ "/bin/bash" ]
