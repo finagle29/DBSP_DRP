@@ -31,7 +31,7 @@ RUN /bin/bash -c ". activate dbsp_drp && \
     pip install DBSP_DRP/"
 
 # make dbsp_drp the default conda environment
-RUN echo 'conda activate dbsp_drp' >> /user/.bashrc
+RUN echo 'conda activate dbsp_drp' >> /home/user/.bashrc
 
 CMD [ "/bin/bash" ]
 
