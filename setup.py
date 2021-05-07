@@ -1,31 +1,16 @@
+import os
 from setuptools import setup
 
-setup(
-    name="DBSP_DRP",
-    version="0.0.1dev",
-    description="Data Reduction Pipeline for Palomar's Double Spectrograph",
-    author="Milan S Roberson",
-    author_email="mroberso@caltech.edu",
-    license="GPL3",
-    packages=['dbsp_drp'],
-    scripts=['bin/dbsp_reduce'],
-    package_data={'dbsp_drp': ['data/*']},
-    install_requires=[
-        "numpy",
-        "astropy",
-        "scipy",
-        "matplotlib",
-        "numba",
-        "pyyaml",
-        "configobj",
-        "scikit-learn",
-        "ipython",
-        "ginga",
-        "packaging",
-        "linetools",
-        "extension-helpers",
-        "pytest",
-        "yattag",
-        "pypeit"
-    ]
-)
+VERSION_TEMPLATE = """
+# Note that we need to fall back to the hard-coded version if either
+# setuptools_scm can't be imported or setuptools_scm can't determine the
+# version, so we catch the generic 'Exception'.
+try:
+    from setuptools_scm import get_version
+    version = get_version(root='..', relative_to=__file__)
+except Exception:
+    version = '{version}'
+""".lstrip()
+
+setup(use_scm_version={'write_to': os.path.join('dbsp_drp', 'version.py'),
+                       'write_to_template': VERSION_TEMPLATE})
