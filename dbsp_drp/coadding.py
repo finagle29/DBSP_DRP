@@ -41,10 +41,12 @@ def coadd(grouped_spats_list: List[dict], output_path: str, spectrograph: str,
             hdul = fits.open(path)
             for hdu in hdul:
                 if f'SPAT{spat:04d}' in hdu.name:
-                    objnames.append(hdu.name.split("-")[0])
+                    objnames.append(hdu.name)
                     break
 
-        outfile = os.path.join(output_path, "Science", f"{basename}_{'_'.join(objnames)}.fits")
+        outfile = os.path.join(output_path,
+            "Science",
+            f"{basename}_{'_'.join([obj.split('-')[0] for obj in objnames])}.fits")
         coadd_one_object([os.path.join(output_path, 'Science', fname) for fname in fnames],
             objnames, outfile, spectrograph, user_config_lines, debug)
         outfiles.append(os.path.basename(outfile))
