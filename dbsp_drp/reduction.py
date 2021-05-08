@@ -206,9 +206,7 @@ def manual_extraction_GUI(output_spec2ds: List[str], output_path: str) -> dict:
         }
 
     # call GUI
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    gui = ManualTracingGUI(fig, ax, gui_dict)
+    gui = ManualTracingGUI(gui_dict)
 
     manual_traces = gui.manual_dict
 

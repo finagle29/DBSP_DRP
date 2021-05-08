@@ -396,7 +396,7 @@ def main(args):
     # TODO: handle multiple observations of same target throughout night with null coadding
     # splice data
 
-    os.makedirs(os.path.join(args.output_path, 'spliced'))
+    os.makedirs(os.path.join(args.output_path, 'spliced'), exist_ok=True)
 
     ## Need to find red + blue fracpos for standards
     # hopefully standards only have one star each?

@@ -37,13 +37,17 @@ class ManualTracingGUI:
         - press c, then left-click and drag to set the region to view the (c)ollapsed flux
     """
 
-    def __init__(self, figure, axes, specs_dict):
-        self.axes = axes
-        self.figure = figure
-        self.canvas = figure.canvas
+    def __init__(self, specs_dict):
+        if 'left' in mpl.rcParams['keymap.back']:
+            mpl.rcParams['keymap.back'].remove('left')
+        if 'c' in mpl.rcParams['keymap.back']:
+            mpl.rcParams['keymap.back'].remove('c')
+        if 'right' in mpl.rcParams['keymap.forward']:
+            mpl.rcParams['keymap.forward'].remove('right')
 
-        plt.rcParams['keymap.back'] = ''              # forward / backward keys to enable (Default: left, c, backspace)
-        plt.rcParams['keymap.forward'] = ''           # left handed quick navigation (Default: right, v)
+        self.figure = plt.figure()
+        self.axes = self.figure.add_subplot(111)
+        self.canvas = self.figure.canvas
 
         self.canvas.mpl_connect('key_press_event', self.key_press_callback)
         self.canvas.mpl_connect('button_press_event', self.mouse_press_callback)
@@ -132,22 +136,50 @@ class ManualTracingGUI:
     def plot(self):
         from dbsp_drp import qa
 
+        if len(self.axes.lines) > 0:
+            ylim = self.axes.get_ylim()
+            xlim = self.axes.get_xlim()
+        else:
+            xlim = None
+            ylim = None
+
         self.axes.clear()
         self.canvas.set_window_title(self.target)
 
         qa.save_one2dspec(self.axes, self.sky_resid, self.edges, self.traces)
         plt.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
 
+        numrows, numcols = self.sky_resid.shape
+
+        def format_coord(x, y):
+            col = int(x + 0.5)
+            row = int(y + 0.5)
+            if 0 <= col < numcols and 0 <= row < numrows:
+                lam = self.spec.waveimg[row, col]
+                return f'λ={lam:1.1f} Å, x={x:1.1f}'
+            return ''
+
+        self.axes.format_coord = format_coord
+
         if self.manual_dict[self.target]['collapse_region']:
             self.collapse_region_artist = self.axes.axhspan(self.manual_dict[self.target]['collapse_region'][0],
                 self.manual_dict[self.target]['collapse_region'][1], color='purple', alpha=0.2)
 
+        if xlim is not None:
+            self.axes.set_ylim(ylim)
+            self.axes.set_xlim(xlim)
         self.canvas.draw()
 
     def plot_manual_traces(self):
+        if len(self.axes.lines) > 0:
+            ylim = self.axes.get_ylim()
+            xlim = self.axes.get_xlim()
+        else:
+            xlim = None
+            ylim = None
+
         # remove self._plotted_manual_traces
         for plotted_trace in self._plotted_manual_traces:
-#            self.axes.lines.remove(plotted_trace)
             plotted_trace.remove()
         self._plotted_manual_traces = []
 
@@ -159,8 +191,10 @@ class ManualTracingGUI:
             self._plotted_manual_traces.append(line)
             point = self.axes.scatter(spat, spec, c='blue', marker='x')
             self._plotted_manual_traces.append(point)
-            #line = self.axes.axvline(spat/440, c='blue')
-            #self._plotted_manual_traces.append(line)
+
+        if xlim is not None:
+            self.axes.set_ylim(ylim)
+            self.axes.set_xlim(xlim)
         self.canvas.draw()
 
     def key_press_callback(self, event):
