@@ -125,7 +125,7 @@ def main(args: argparse.Namespace):
             if pypeIt.fitstbl.table[i]['frametype'] in ['science']
         ]))
 
-    if not calib_only:
+    if output_spec1ds and not calib_only:
         sensfiles = [resource_filename("dbsp_drp", f"data/sens_{arm}_archived.fits")]
         FxCalib = fluxcalibrate.FluxCalibrate.get_instance(output_spec1ds, sensfiles, par=ps.par['fluxcalib'])
 
@@ -134,13 +134,14 @@ def main(args: argparse.Namespace):
     if not calib_only and not args.no_show:
         p1 = Process(target = show_spec2d_helper, args=(output_spec2ds[0],))
         p1.start()
-        with fits.open(output_spec1ds[0]) as hdul:
-            specs = len(hdul) - 2
-        parr = [ None ] * specs
-        for i in range(specs):
-            parr[i] = Process(target = show_spec1d_helper,
-                args=(str(i), output_spec1ds[0]))
-            parr[i].start()
+        if output_spec1ds:
+            with fits.open(output_spec1ds[0]) as hdul:
+                specs = len(hdul) - 2
+            parr = [ None ] * specs
+            for i in range(specs):
+                parr[i] = Process(target = show_spec1d_helper,
+                    args=(str(i), output_spec1ds[0]))
+                parr[i].start()
 
 def show_spec2d_helper(file):
     return show_2dspec.main(show_2dspec.parse_args([file]))
