@@ -44,7 +44,7 @@ Post-Install
 The telluric correction code provided by PypeIt relies on a large (5 GB) atmospheric model file
 (TellFit_Lick_3100_11100_R10000.fits), which can be downloaded
 `here <https://drive.google.com/drive/folders/1FFRWjUZ58HiDuDD33MYqBzMWDQanBRRy>`__
-and must be installed into the ``pypeit/data/telluric/`` directory of your PypeIt installation.
+and must be installed into the ``pypeit/data/telluric/atm_grids`` directory of your PypeIt installation.
 
 To determine the location of your PypeIt installation, open the Python interpreter and run
 
@@ -68,7 +68,7 @@ If you have multiple PypeIt installations on the same machine, you can create a 
 
 .. code-block :: console
 
-    $ ln /path/to/stable/pypeit/data/telluric/TellFit_Lick_3100_11100_R10000.fits /path/to/other/pypeit/data/telluric/TellFit_Lick_3100_11100_R10000.fits
+    $ ln /path/to/stable/pypeit/data/telluric/atm_grids/TellFit_Lick_3100_11100_R10000.fits /path/to/other/pypeit/data/telluric/atm_grids/TellFit_Lick_3100_11100_R10000.fits
 
 Make sure to use the same filename in both PypeIt installations.
 If you're not sure where your PypeIt installations are, run the previous Python snippet in each ``conda`` or ``venv`` environment you want to use ``DBSP_DRP`` in.
@@ -81,3 +81,10 @@ Make sure your PypeIt installation was successful
 .. code-block:: console
 
     $ run_pypeit -h
+
+Run some built-in tests for DBSP_DRP, including verification that the quicklook script works
+
+.. code-block:: console
+
+    $ cd /path/to/DBSP_DRP
+    $ pytest .
