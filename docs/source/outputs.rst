@@ -22,12 +22,14 @@ for the same arm).
 These files can be visually inspected using the command ``pypeit_show_1dspec --exten N SPEC1D_FILE``
 to view extension N of the file.
 
-PypeIt 1D Coadd files ``redNNNN_redNNNN_target_SPATNNNN-SLITMMMM-DET01_SPATNNNN-SLITMMMM-DET01.fits`` described in more detail
+PypeIt 1D Coadd files ``redNNNN-redNNNN_target_SPATNNNN.fits`` described in more detail
 `here <https://pypeit.readthedocs.io/en/latest/coadd1d.html#current-coadd1d-data-model>`_.
 These files exist to separate out multiple objects on the same frame into their own file, and to
 coadd consecutive exposures of the same frame.
 These files can be visually inspected using the command ``lt_xspec COADD_FILE``.
-The filename will repeat the raw data file and spatial pixel information for each coadded file.
+The filename contains the first and last raw data file and the medial spatial pixel coordinate of the object.
+This was done to make the coadd filename of constant length, instead of scaling with the number of coadded frames,
+since all operating systems/file systems have maximum allowed filename lengths.
 
 Telluric-corrected 1D Coadd files have ``_tellcorr`` appended to the base filename of the coadd file.
 

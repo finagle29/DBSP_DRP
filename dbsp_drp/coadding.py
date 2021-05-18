@@ -11,6 +11,29 @@ from pypeit import coadd1d
 from pypeit.spectrographs.util import load_spectrograph
 from pypeit.par import pypeitpar
 
+def make_coadd_filename(spec1d_filenames: List[str], objids: List[str]) -> str:
+    raw_filenames = [
+        fname.split("_")[1].split("-")[0]
+        for fname in spec1d_filenames
+    ]
+    raw_filenames.sort()
+
+    if len(raw_filenames) > 1:
+        raw_part = f'{raw_filenames[0]}-{raw_filenames[-1]}'
+    else:
+        raw_part = raw_filenames[0]
+
+    spats = [
+        int(objid.split("-")[0].strip("SPAT"))
+        for objid in objids
+    ]
+
+    spats.sort()
+
+    target = spec1d_filenames[0].split("_")[1].split("-")[1]
+
+    return f'{raw_part}_{target}_SPAT{spats[len(spats)//2]:04d}.fits'
+
 def coadd(grouped_spats_list: List[dict], output_path: str, spectrograph: str,
         user_config_lines: List[str], debug: bool = False) -> List[str]:
     """
@@ -46,7 +69,7 @@ def coadd(grouped_spats_list: List[dict], output_path: str, spectrograph: str,
 
         outfile = os.path.join(output_path,
             "Science",
-            f"{basename}_{'_'.join([obj.split('-')[0] for obj in objnames])}.fits")
+            make_coadd_filename(fnames, objnames))
         coadd_one_object([os.path.join(output_path, 'Science', fname) for fname in fnames],
             objnames, outfile, spectrograph, user_config_lines, debug)
         outfiles.append(os.path.basename(outfile))
