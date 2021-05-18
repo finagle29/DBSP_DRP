@@ -134,7 +134,7 @@ def main(args):
         pypeit.display.display.connect_to_ginga(raise_err=True, allow_new=True)
 
     if do_red:
-        fix_headers.main(red_root)
+        fix_headers.main(red_root, args.no_interactive, args.no_interactive)
         context = reduction.setup(red_root, '.fits', args.output_path, 'p200_dbsp_red')
         # optionally use interactive correction
         if not args.no_interactive:
@@ -142,7 +142,7 @@ def main(args):
         pypeit_file_red = reduction.write_setup(context, 'all', 'p200_dbsp_red', red_user_config_lines)[0]
 
     if do_blue:
-        fix_headers.main(blue_root)
+        fix_headers.main(blue_root, args.no_interactive, args.no_interactive)
         context = reduction.setup(blue_root, '.fits', args.output_path, 'p200_dbsp_blue')
         if not args.no_interactive:
             interactive_correction(context[0])
