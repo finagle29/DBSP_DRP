@@ -420,6 +420,31 @@ def main(args):
 
     os.makedirs(os.path.join(args.output_path, 'spliced'), exist_ok=True)
 
+    def get_std_trace(std_path: str) -> float:
+        max_sn = -1
+        max_fracpos = -1
+        with fits.open(std_path) as hdul:
+            # loop through trace hdus
+            for hdu in hdul:
+                if not 'SPAT' in hdu.name:
+                    continue
+
+                # look at s/n
+                if 'OPT_COUNTS' in hdu.data.dtype.names:
+                    this_sn = np.nanmedian(hdu.data['OPT_COUNTS']/hdu.data['OPT_COUNTS_SIG'])
+                elif 'BOX_COUNTS' in hdu.data.dtype.names:
+                    this_sn = np.nanmedian(hdu.data['BOX_COUNTS']/hdu.data['BOX_COUNTS_SIG'])
+                else:
+                    this_sn = -1
+
+                if this_sn > max_sn:
+                    max_sn = this_sn
+                    max_fracpos = hdu.header['SPAT_FRACPOS']
+
+        if max_fracpos == -1:
+            raise Exception(f"Error! No HDUs in {os.path.basename(std_path)} have median S/N > 0.")
+        return max_fracpos
+
     ## Need to find red + blue fracpos for standards
     # hopefully standards only have one star each?
     # or should i actually try to do matching there
@@ -434,14 +459,12 @@ def main(args):
             if (stds & blue_mask).any() and (stds & red_mask).any():
                 for row in spec1d_table[stds]:
                     # find closest mjd frame of other arm
-                    ## TODO:
-                    # sometimes standard frames have multiple fracpos
-                    # I need to handle that, either by checking the S/N of the traces and choosing the highest
-                    # or something else
                     if not row['processed']:
                         other_arm = spec1d_table['arm'] != row['arm']
                         corresponding_row = spec1d_table[other_arm & stds][np.abs(spec1d_table[other_arm & stds]['mjd'] - row['mjd']).argmin()]
-                        std_fracpos_sums.append(row['fracpos'][0] + corresponding_row['fracpos'][0])
+                        this_path = os.path.join(args.output_path, 'Science', row['filename'])
+                        corresponding_path = os.path.join(args.output_path, 'Science', corresponding_row['filename'])
+                        std_fracpos_sums.append(get_std_trace(this_path) + get_std_trace(corresponding_path))
                         spec1d_table.loc[row['filename']]['processed'] = True
                         spec1d_table.loc[corresponding_row['filename']]['processed'] = True
                 FRACPOS_SUM = np.mean(std_fracpos_sums)
