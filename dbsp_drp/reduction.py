@@ -64,6 +64,12 @@ def write_setup(context: Tuple[PypeItSetup, str], cfg_split: str,
     Writes the .pypeit file
     """
     ps, output_path = context
+
+    if 'None' in ps.fitstbl['frametype']:
+        untyped_files = list(ps.fitstbl['filename'][ps.fitstbl['frametype'] == 'None'])
+        err_msg = "File " if len(untyped_files) == 1 else "Files "
+        err_msg += f"{str(untyped_files).strip('[]')} were not automatically assigned a frame type, please re-run without -i argument and ensure that all files have frametypes."
+        raise RuntimeError(err_msg)
     # Use PypeItMetaData to write the complete PypeIt file
     config_list = [item.strip() for item in cfg_split.split(',')]
 
