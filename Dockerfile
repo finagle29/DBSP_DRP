@@ -19,12 +19,12 @@ ENV WORKDIR /workdir
 WORKDIR $WORKDIR
 
 # set up conda environment
-COPY --chown=:dbsp environment.yml $WORKDIR
+COPY --chown=root:dbsp environment.yml $WORKDIR
 RUN conda update --name base conda && \
     conda env create --file environment.yml
 
 # copy repo over and install it
-COPY --chown=:dbsp . $WORKDIR/DBSP_DRP
+COPY --chown=root:dbsp . $WORKDIR/DBSP_DRP
 
 RUN /bin/bash -c ". activate dbsp_drp && \
     pip install DBSP_DRP/" && \
