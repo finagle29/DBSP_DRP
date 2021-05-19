@@ -1,0 +1,17 @@
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.vscode
+.DS_Store
+.pylintrc
+*.egg-info
+
+# docs output
+docs/html/
+docs/doctrees/
+docs/source/_build
+
+# build output
+build
+dist
