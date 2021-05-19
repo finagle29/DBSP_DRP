@@ -1,45 +1,47 @@
 FROM condaforge/miniforge3 as dbsp_ql
 LABEL Author, Milan Roberson
 
-ARG USER_ID
-ARG GROUP_ID
-
-RUN groupadd --non-unique --gid $GROUP_ID user
-RUN adduser --disabled-password --gecos '' --uid $USER_ID --gid $GROUP_ID user
-
+# create dbsp group
+RUN groupadd --gid 10001 dbsp && \
 # needed for Qt/PySide2
-RUN apt-get update && apt-get install -y \
+    apt-get update && apt-get install -y \
     libgl1-mesa-dev \
     libxrender1 \
     xauth
-
+# Uncomment and add to above RUN command, and also uncomment parts of entrypoint.sh
+# to give user sudo powers. This should not be necessary, as normal things like
+# vim are available via conda.
+#    sudo && \
+#    echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> \
+#        /etc/sudoers
 
 ENV WORKDIR /workdir
 WORKDIR $WORKDIR
 
 # set up conda environment
-COPY environment.yml $WORKDIR
-RUN conda update --name base conda
-USER user
-RUN conda info
-RUN conda env create --file environment.yml
+COPY --chown=:dbsp environment.yml $WORKDIR
+RUN conda update --name base conda && \
+    conda env create --file environment.yml
 
 # copy repo over and install it
-COPY . $WORKDIR/DBSP_DRP
+COPY --chown=:dbsp . $WORKDIR/DBSP_DRP
 
 RUN /bin/bash -c ". activate dbsp_drp && \
-    pip install DBSP_DRP/"
-
-# make dbsp_drp the default conda environment
-RUN echo 'conda activate dbsp_drp' >> /home/user/.bashrc
+    pip install DBSP_DRP/" && \
+# give dbsp group rwx access to conda installation
+    chgrp -R dbsp /opt/conda && \
+    chmod 770 -R /opt/conda
 
 CMD [ "/bin/bash" ]
+
+ENTRYPOINT [ "DBSP_DRP/bin/entrypoint.sh" ]
 
 FROM dbsp_ql as dbsp_drp
-USER root
+
 RUN apt-get update && \
-    apt-get install -y curl
-USER user
-RUN /bin/bash -c ". activate dbsp_drp && \
+    apt-get install -y curl && \
+     /bin/bash -c ". activate dbsp_drp && \
     DBSP_DRP/bin/download_tellfile"
 CMD [ "/bin/bash" ]
+
+ENTRYPOINT [ "DBSP_DRP/bin/entrypoint.sh" ]
