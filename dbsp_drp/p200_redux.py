@@ -127,8 +127,12 @@ def main(args):
     blue_root = os.path.join(args.root, 'blue')
     qa_dict = {}
 
-    blue_user_config_lines = reduction.parse_pypeit_parameter_file(args.parameter_file, 'p200_dbsp_blue')
-    red_user_config_lines = reduction.parse_pypeit_parameter_file(args.parameter_file, 'p200_dbsp_red')
+    if args.parameter_file:
+        blue_user_config_lines = reduction.parse_pypeit_parameter_file(args.parameter_file, 'p200_dbsp_blue')
+        red_user_config_lines = reduction.parse_pypeit_parameter_file(args.parameter_file, 'p200_dbsp_red')
+    else:
+        blue_user_config_lines = []
+        red_user_config_lines = []
 
     if args.debug:
         pypeit.display.display.connect_to_ginga(raise_err=True, allow_new=True)
