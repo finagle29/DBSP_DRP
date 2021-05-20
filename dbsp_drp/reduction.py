@@ -242,7 +242,7 @@ def write_manual_pypeit_files(old_pypeit_file: str, targets_list: List[List[str]
             continue
         target_fnames = [target.split('-')[0] for target in targets]
         new_pypeit_file = f'{os.path.splitext(old_pypeit_file)[0]}_{"_".join(targets)}.pypeit'
-        shutil.copy(old_pypeit_file, new_pypeit_file)
+        shutil.copyfile(old_pypeit_file, new_pypeit_file)
 
         manual_lines = manual_lines_fn(targets)
 

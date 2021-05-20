@@ -165,6 +165,6 @@ def write_extraction_QA(qa_dict: dict, output_path: str) -> None:
     with open(extraction_page, mode='wt') as f:
         f.write(result)
 
-    shutil.copy(resource_filename("dbsp_drp", "data/dbsp_qa.js"), os.path.join(out_path, "dbsp_qa.js"))
-    shutil.copy(resource_filename("dbsp_drp", "data/dbsp_qa.css"), os.path.join(out_path, "dbsp_qa.css"))
+    shutil.copyfile(resource_filename("dbsp_drp", "data/dbsp_qa.js"), os.path.join(out_path, "dbsp_qa.js"))
+    shutil.copyfile(resource_filename("dbsp_drp", "data/dbsp_qa.css"), os.path.join(out_path, "dbsp_qa.css"))
     msgs.info(f"Extraction QA page available at {extraction_page}")
