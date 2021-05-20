@@ -141,7 +141,8 @@ def delete_completely_masked_hdus(path: str, base_name: str = ""):
     specobjs = SpecObjs.from_fitsfile(path)
     changed = False
     for i, specobj in enumerate(specobjs):
-        if not specobj.OPT_MASK.any():
+        if ((specobj.OPT_MASK is not None and not specobj.OPT_MASK.any()) or
+            (specobj.BOX_MASK is not None and specobj.BOX_MASK.any())):
             print(f'{base_name} has a completely masked trace, deleting that trace')
             specobjs.remove_sobj(i)
             changed = True
