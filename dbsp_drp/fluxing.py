@@ -64,8 +64,11 @@ def make_sensfunc(standard_file: str, output_path: str, spectrograph: str,
         sensobj.out_table['SENS_ZEROPOINT_FIT_GPM'] = orig_mask.T
         sensobj.save()
         return os.path.basename(outfile)
-    except pypmsgs.PypeItError as err:
+    except (pypmsgs.PypeItError, ValueError) as err:
         print(f"ERROR creating sensitivity function using {standard_file}")
+        if isinstance(err, ValueError):
+            print("This standard likely has insufficient wavelength coverage in the reference spectrum.")
+            print("Next time, please don't use it, or suggest a better reference spectrum with better wavelength coverage.")
         print("Changing its frametype to science")
         print(str(err))
         return ""
