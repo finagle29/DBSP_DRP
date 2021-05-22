@@ -21,8 +21,8 @@ jobs:
         id: meta_ql
         uses: docker/metadata-action@v3
         with:
-          - images: finagle29/dbsp_ql
-          - tags: |
+          images: finagle29/dbsp_ql
+          tags: |
             type=semver,pattern={{version}}
             type=edge,branch=develop
       -
@@ -67,8 +67,8 @@ jobs:
         id: meta_drp
         uses: docker/metadata-action@v3
         with:
-          - images: finagle29/dbsp_drp
-          - tags: |
+          images: finagle29/dbsp_drp
+          tags: |
             type=semver,pattern={{version}}
             type=edge,branch=develop
       -
