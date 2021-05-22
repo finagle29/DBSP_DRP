@@ -26,7 +26,8 @@ RUN conda update --name base conda && \
 # copy repo over and install it
 COPY --chown=root:dbsp . $WORKDIR/DBSP_DRP
 
-RUN /bin/bash -c ". activate dbsp_drp && \
+RUN --mount=source=.git,target=$WORKDIR/DBSP_DRP/.git,type=bind \
+    /bin/bash -c ". activate dbsp_drp && \
     pip install --use-feature=in-tree-build DBSP_DRP/" && \
 # give dbsp group rwx access to conda installation
     chgrp -R dbsp /opt/conda && \
