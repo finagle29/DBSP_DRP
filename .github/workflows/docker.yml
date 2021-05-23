@@ -76,12 +76,21 @@ jobs:
             type=edge,branch=develop
             type=ref,event=pr
       -
+        name: Download from Google Drive
+        uses: satackey/action-google-drive@v1
+        with:
+          download-from: https://drive.google.com/file/d/1FOYCIf4Nt102ZSiGwEqp-cEIGIvrWS8Y
+          download-to: /tmp/
+          google-client-id: ${{ secrets.GOOGLE_CLIENT_ID }}
+          google-client-secret: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+      -
         name: Build and push full drp
         id: docker_build_drp
         uses: docker/build-push-action@v2
         with:
           context: .
           target: dbsp_drp
+          build_args: '--TELLFILE=/tmp/TelFit_Lick_3100_11100_R10000.fits'
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta_drp.outputs.tags }}
           labels: ${{ steps.meta_drp.outputs.labels }}

@@ -39,10 +39,20 @@ ENTRYPOINT [ "DBSP_DRP/bin/entrypoint.sh" ]
 
 FROM dbsp_ql as dbsp_drp
 
-RUN apt-get update && \
+ARG TELLFILE=""
+
+ENV FETCH_TELLFILE=${TELLFILE:+"1"}
+ENV TELLFILE=${TELLFILE:+"foobar"}
+
+RUN if [ "${FETCH_TELLFILE}" = "1" ]; \
+    then apt-get update && \
     apt-get install -y curl && \
      /bin/bash -c ". activate dbsp_drp && \
-    DBSP_DRP/bin/download_tellfile"
+    DBSP_DRP/bin/download_tellfile"; \
+    fi;
+
+COPY Dockerfile ${TELLFILE}* /opt/conda/envs/dbsp/lib/python*/site-packages/pypeit/data/telluric/atm_grids/
+
 CMD [ "/bin/bash" ]
 
 ENTRYPOINT [ "DBSP_DRP/bin/entrypoint.sh" ]
