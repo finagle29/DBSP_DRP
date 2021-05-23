@@ -81,8 +81,8 @@ jobs:
         with:
           download-from: https://drive.google.com/file/d/1FOYCIf4Nt102ZSiGwEqp-cEIGIvrWS8Y
           download-to: /tmp/
-          google-client-id: ${{ secrets.GOOGLE_CLIENT_ID }}
-          google-client-secret: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          skicka-tokencache-json: ${{ secrets.SKICKA_TOKENCACHE_JSON }}
+
       -
         name: Build and push full drp
         id: docker_build_drp
