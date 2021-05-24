@@ -30,7 +30,7 @@ RUN /bin/bash -c ". activate dbsp_drp && \
     pip install --use-feature=in-tree-build DBSP_DRP/" && \
 # give dbsp group rwx access to conda installation
     chgrp -R dbsp /opt/conda && \
-    chmod 770 -R /opt/conda
+    chmod g+w -R /opt/conda
 
 CMD [ "/bin/bash" ]
 
@@ -38,19 +38,11 @@ ENTRYPOINT [ "DBSP_DRP/bin/entrypoint.sh" ]
 
 FROM dbsp_ql as dbsp_drp
 
-ARG TELLFILE=""
-
-ENV FETCH_TELLFILE=${TELLFILE:+"1"}
-ENV TELLFILE=${TELLFILE:+"foobar"}
-
-RUN if [ "${FETCH_TELLFILE}" = "1" ]; \
-    then apt-get update && \
+RUN apt-get update && \
     apt-get install -y curl && \
-     /bin/bash -c ". activate dbsp_drp && \
-    DBSP_DRP/bin/download_tellfile"; \
-    fi;
-
-COPY Dockerfile ${TELLFILE}* /opt/conda/envs/dbsp/lib/python*/site-packages/pypeit/data/telluric/atm_grids/
+    /bin/bash -c "su dbsp && \
+        . activate dbsp_drp && \
+        DBSP_DRP/bin/download_tellfile"
 
 CMD [ "/bin/bash" ]
 
