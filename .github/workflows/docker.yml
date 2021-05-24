@@ -83,13 +83,17 @@ jobs:
           curl --compressed -Lb /tmp/cookie "https://drive.google.com/uc?export=download&confirm=${code}&id=1FOYCIf4Nt102ZSiGwEqp-cEIGIvrWS8Y" -o /tmp/TelFit_Lick_3100_11100_R10000.fits
 
       -
+        name: Check disk space
+        run: df -h
+
+      -
         name: Build and push full drp
         id: docker_build_drp
         uses: docker/build-push-action@v2
         with:
           context: .
           target: dbsp_drp
-          build_args: '--TELLFILE=/tmp/TelFit_Lick_3100_11100_R10000.fits'
+          build-args: '--TELLFILE=/tmp/TelFit_Lick_3100_11100_R10000.fits'
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta_drp.outputs.tags }}
           labels: ${{ steps.meta_drp.outputs.labels }}
