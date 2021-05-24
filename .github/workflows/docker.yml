@@ -1,0 +1,147 @@
+name: docker_build_and_push
+
+on:
+  push:
+    paths-ignore:
+      - 'docs/**'
+    branches:
+      - 'main'
+      - 'develop'
+    tags:
+      - '*'
+  pull_request:
+
+
+jobs:
+  build_quicklook:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      -
+        name: Docker meta quicklook
+        id: meta_ql
+        uses: docker/metadata-action@v3
+        with:
+          images: finagle29/dbsp_ql
+          tags: |
+            type=semver,pattern={{version}}
+            type=edge,branch=develop
+            type=ref,event=pr
+
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      -
+        name: Login to DockerHub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      -
+        name: Cache Docker layers
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-single-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-single-buildx
+
+      -
+        name: Build and push quicklooks
+        id: docker_build_ql
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          target: dbsp_ql
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta_ql.outputs.tags }}
+          labels: ${{ steps.meta_ql.outputs.labels }}
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new
+
+      -
+        name: Quicklook image digest
+        run: echo ${{ steps.docker_build_ql.outputs.digest }}
+
+      -
+        name: Move cache
+        run:
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+  build_full_drp:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      -
+        name: Login to DockerHub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      -
+        name: Cache Docker layers
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-single-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-single-buildx
+
+      -
+        name: Docker meta full drp
+        id: meta_drp
+        uses: docker/metadata-action@v3
+        with:
+          images: finagle29/dbsp_drp
+          tags: |
+            type=semver,pattern={{version}}
+            type=edge,branch=develop
+            type=ref,event=pr
+
+      -
+        name: Download from Google Drive
+        run: |
+          curl -sc /tmp/cookie "https://drive.google.com/uc?export=download&id=1FOYCIf4Nt102ZSiGwEqp-cEIGIvrWS8Y" > /dev/null
+          code="$(awk '/_warning_/ {print $NF}' /tmp/cookie)"
+          curl --compressed -Lb /tmp/cookie "https://drive.google.com/uc?export=download&confirm=${code}&id=1FOYCIf4Nt102ZSiGwEqp-cEIGIvrWS8Y" -o /tmp/TelFit_Lick_3100_11100_R10000.fits
+
+      -
+        name: Check disk space
+        run: df -h
+
+      -
+        name: Build and push full drp
+        id: docker_build_drp
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          target: dbsp_drp
+          build-args: '--TELLFILE=/tmp/TelFit_Lick_3100_11100_R10000.fits'
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta_drp.outputs.tags }}
+          labels: ${{ steps.meta_drp.outputs.labels }}
+          cache-from: type=local,src=/tmp/.buildx-cache
+
+      -
+        name: Full DRP image digest
+        run: echo ${{ steps.docker_build_drp.outputs.digest }}
