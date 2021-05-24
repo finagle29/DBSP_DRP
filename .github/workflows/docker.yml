@@ -77,11 +77,10 @@ jobs:
             type=ref,event=pr
       -
         name: Download from Google Drive
-        uses: satackey/action-google-drive@v1
-        with:
-          download-from: https://drive.google.com/file/d/1FOYCIf4Nt102ZSiGwEqp-cEIGIvrWS8Y
-          download-to: /tmp/
-          skicka-tokencache-json: ${{ secrets.SKICKA_TOKENCACHE_JSON }}
+        run: |
+          curl -sc /tmp/cookie "https://drive.google.com/uc?export=download&id=1FOYCIf4Nt102ZSiGwEqp-cEIGIvrWS8Y" > /dev/null
+          code="$(awk '/_warning_/ {print $NF}' /tmp/cookie)"
+          curl --compressed -Lb /tmp/cookie "https://drive.google.com/uc?export=download&confirm=${code}&id=1FOYCIf4Nt102ZSiGwEqp-cEIGIvrWS8Y" -o /tmp/TelFit_Lick_3100_11100_R10000.fits
 
       -
         name: Build and push full drp
