@@ -69,8 +69,8 @@ jobs:
           cache-to: type=local,dest=/tmp/.buildx-cache-new
 
       -
-        name: Quicklook image digest
-        run: echo ${{ steps.docker_build_ql.outputs.digest }}
+        name: List docker images
+        run: docker image ls
 
       -
         name: Move cache
@@ -132,5 +132,5 @@ jobs:
           cache-from: type=local,src=/tmp/.buildx-cache
 
       -
-        name: Full DRP image digest
-        run: echo ${{ steps.docker_build_drp.outputs.digest }}
+        name: List docker images
+        run: docker image ls
