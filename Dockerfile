@@ -40,8 +40,7 @@ FROM dbsp_ql as dbsp_drp
 
 RUN apt-get update && \
     apt-get install -y curl && \
-    /bin/bash -c "su dbsp && \
-        . activate dbsp_drp && \
+    /bin/bash -c ". activate dbsp_drp && \
         DBSP_DRP/bin/download_tellfile"
 
 CMD [ "/bin/bash" ]
