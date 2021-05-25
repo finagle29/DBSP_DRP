@@ -56,11 +56,12 @@ jobs:
             ${{ runner.os }}-single-buildx
 
       -
-        name: Build and push quicklooks
+        name: Build and push quicklook
         id: docker_build_ql
         uses: docker/build-push-action@v2
         with:
           context: .
+          load: true
           target: dbsp_ql
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta_ql.outputs.tags }}
@@ -125,6 +126,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: .
+          load: true
           target: dbsp_drp
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta_drp.outputs.tags }}
