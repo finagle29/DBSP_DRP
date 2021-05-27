@@ -1,9 +1,10 @@
 #! /bin/bash
 
-last_arg_msg="The last argument to run_docker.sh must be either dbsp_ql or dbsp_drp"
+last_arg_msg="The last argument to run_docker.sh must contain dbsp_ql or dbsp_drp.\
+Use finagle29/dbsp_ql:edge for the latest docker image."
 
 if [[ $# == 0 ]]; then
-    echo "Usage: /path/to/run_docker.sh [docker arguments] [dbsp_ql OR dbsp_drp]"
+    echo "Usage: /path/to/run_docker.sh [docker arguments] [docker image name]"
     echo "usually you want [docker arguments] to be something like -v /path/to/your/raw/data:/workdir/data"
     echo "to make /path/to/your/raw/data available in the Docker container in /workdir/data"
     echo $last_arg_msg
@@ -12,7 +13,7 @@ fi
 
 for last in $@; do :; done
 
-if [[ $last != "dbsp_drp" && $last != "dbsp_ql" ]]; then
+if [[ $last != *"dbsp_drp"* && $last != *"dbsp_ql"* ]]; then
     echo $last_arg_msg
     exit 1
 fi
