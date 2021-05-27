@@ -47,13 +47,8 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       -
-        name: Cache Docker layers
-        uses: actions/cache@v2
-        with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-single-buildx-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-single-buildx
+        name: chmod -R g+w .
+        run: chmod -R g+w .
 
       -
         name: Build and push quicklook
@@ -61,23 +56,13 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: .
-          load: true
           target: dbsp_ql
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta_ql.outputs.tags }}
           labels: ${{ steps.meta_ql.outputs.labels }}
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache-new
 
       -
-        name: List docker images
-        run: docker image ls
-
-      -
-        name: Move cache
-        run:
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+        run: docker system df
 
   build_full_drp:
     runs-on: ubuntu-latest
@@ -101,15 +86,6 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       -
-        name: Cache Docker layers
-        uses: actions/cache@v2
-        with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-single-buildx-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-single-buildx
-
-      -
         name: Docker meta full drp
         id: meta_drp
         uses: docker/metadata-action@v3
@@ -121,18 +97,19 @@ jobs:
             type=ref,event=pr
 
       -
+        name: chmod -R g+w .
+        run: chmod -R g+w .
+
+      -
         name: Build and push full drp
         id: docker_build_drp
         uses: docker/build-push-action@v2
         with:
           context: .
-          load: true
           target: dbsp_drp
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta_drp.outputs.tags }}
           labels: ${{ steps.meta_drp.outputs.labels }}
-          cache-from: type=local,src=/tmp/.buildx-cache
 
       -
-        name: List docker images
-        run: docker image ls
+        run: docker system df
