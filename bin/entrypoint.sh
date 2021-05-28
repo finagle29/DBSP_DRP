@@ -14,5 +14,6 @@ usermod -a -G dbsp ${USER_NAME}
 echo 'conda activate dbsp_drp' >> /home/${USER_NAME}/.bashrc
 
 ln -s /.Xauthority /home/${USER_NAME}/.Xauthority
+chown ${USER_NAME}:dbsp /.Xauthority
 
 su ${USER_NAME}
