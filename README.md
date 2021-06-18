@@ -14,6 +14,9 @@ It adds several GUIs to allow for easier control of your reduction:
 - manually place traces for a sort of manually "forced" spectroscopy with the `-m` option
 - after manually placing traces, manually select sky regions and tweak the FWHM of your manual traces
 
+## Citation
+If you use DBSP_DRP in your research, please also reference [PypeIt](https://github.com/pypeit/PypeIt#citation).
+
 ## Prerequisites
 DBSP_DRP's dependencies are detailed in [environment.yml](environment.yml).
 You can install all prerequisites by downloading the environment.yml file, navigating to the directory containing it in your terminal window and running
