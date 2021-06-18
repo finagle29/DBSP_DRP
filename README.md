@@ -8,6 +8,9 @@
 DBSP_DRP is a Data Reduction Pipeline for Palomar's workhorse spectrograph DBSP.
 It is built on top of [PypeIt](https://github.com/pypeit/PypeIt) and adds an interactive header validation GUI as well as automating the reduction and fluxing of one night's data.
 
+## Citation
+If you use DBSP_DRP in your research, please also reference [PypeIt](https://github.com/pypeit/PypeIt#citation).
+
 ## Prerequisites
 DBSP_DRP's dependencies are detailed in [environment.yml](environment.yml).
 You can install all prerequisites by downloading the environment.yml file, navigating to the directory containing it in your terminal window and running
