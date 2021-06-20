@@ -15,7 +15,22 @@ It adds several GUIs to allow for easier control of your reduction:
 - after manually placing traces, manually select sky regions and tweak the FWHM of your manual traces
 
 ## Citation
-If you use DBSP_DRP in your research, please also reference [PypeIt](https://github.com/pypeit/PypeIt#citation).
+If you use DBSP_DRP in your research, please cite this repository
+
+`DBSP_DRP (2021). https://github.com/finagle29/DBSP_DRP`
+
+or use this BibTeX reference
+
+```
+@misc{dbsp_drp2021,
+    title     = "DBSP_DRP",
+    year      = "2021",
+    publisher = "GitHub",
+    url       = "https://github.com/finagle29/dbsp_drp"}
+  }
+```
+
+and please also cite [PypeIt](https://github.com/pypeit/PypeIt#citation).
 
 ## Prerequisites
 DBSP_DRP's dependencies are detailed in [environment.yml](environment.yml).
