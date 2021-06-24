@@ -22,7 +22,7 @@ from pypeit import msgs
 from pypeit.spec2dobj import Spec2DObj
 from pypeit.specobjs import SpecObjs
 
-def save_one2dspec(ax: plt.Axes, spec: np.ndarray, edges: Tuple[np.ndarray, np.ndarray], traces: List[np.ndarray]) -> None:
+def save_one2dspec(ax: plt.Axes, spec: np.ndarray, edges: Tuple[np.ndarray, np.ndarray], traces: List[np.ndarray], fwhms: List[np.ndarray]) -> None:
     all_left, all_right = edges
 
     norm = ImageNormalize(spec, interval=ZScaleInterval())
@@ -38,8 +38,9 @@ def save_one2dspec(ax: plt.Axes, spec: np.ndarray, edges: Tuple[np.ndarray, np.n
         ax.plot(all_right[:, i], xs, 'red', lw=1)
 
     if traces is not None:
-        for trace in traces:
+        for trace, fwhm in zip(traces, fwhms):
             ax.plot(trace, xs, 'orange', lw=1)
+            ax.fill_betweenx(xs, trace - fwhm, trace + fwhm, color='orange', alpha=0.2)
 
 def save_2dspecs(qa_dict: dict, output_spec2ds: List[str], output_path: str, spectrograph: str) -> None:
     obj_png_dict = qa_dict
@@ -67,6 +68,7 @@ def save_2dspecs(qa_dict: dict, output_spec2ds: List[str], output_path: str, spe
         all_left, all_right, _ = spec.slits.select_edges()
         edges = [all_left, all_right]
         traces = [spec1ds[i]['TRACE_SPAT'] for i in range(len(spec1ds))] if spec1ds is not None else None
+        fwhms = [spec1ds[i]['FWHMFIT'] for i in range(len(spec1ds))] if spec1ds is not None else None
         mask = spec.bpmmask == 0
 
         out_shape = spec.sciimg.shape
@@ -77,23 +79,23 @@ def save_2dspecs(qa_dict: dict, output_spec2ds: List[str], output_path: str, spe
 
         # science image
         ax = fig.add_axes([0, 0, subfig_width, 1])
-        save_one2dspec(ax, spec.sciimg, edges, traces)
+        save_one2dspec(ax, spec.sciimg, edges, traces, fwhms)
 
         # sky model
         ax = fig.add_axes([subfig_width + padding_width, 0, subfig_width, 1])
-        save_one2dspec(ax, spec.skymodel * mask, edges, traces)
+        save_one2dspec(ax, spec.skymodel * mask, edges, traces, fwhms)
 
         # sky subtracted science image
         ax = fig.add_axes([2*(subfig_width + padding_width), 0, subfig_width, 1])
-        save_one2dspec(ax, (spec.sciimg - spec.skymodel) * mask, edges, traces)
+        save_one2dspec(ax, (spec.sciimg - spec.skymodel) * mask, edges, traces, fwhms)
 
         # sky subtracted images divided by noise
         ax = fig.add_axes([3*(subfig_width + padding_width), 0, subfig_width, 1])
-        save_one2dspec(ax, (spec.sciimg - spec.skymodel) * np.sqrt(spec.ivarmodel) * mask, edges, traces)
+        save_one2dspec(ax, (spec.sciimg - spec.skymodel) * np.sqrt(spec.ivarmodel) * mask, edges, traces, fwhms)
 
         # total residauls
         ax = fig.add_axes([4*(subfig_width + padding_width), 0, subfig_width, 1])
-        save_one2dspec(ax, (spec.sciimg - spec.skymodel - spec.objmodel) * np.sqrt(spec.ivarmodel) * mask, edges, traces)
+        save_one2dspec(ax, (spec.sciimg - spec.skymodel - spec.objmodel) * np.sqrt(spec.ivarmodel) * mask, edges, traces, fwhms)
 
         # save figure
         outname = f'{base_name}_extraction.png'

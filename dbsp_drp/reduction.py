@@ -204,12 +204,14 @@ def manual_extraction_GUI(output_spec2ds: List[str], output_path: str) -> dict:
         edges = [all_left, all_right]
         traces = [spec1ds[i]['TRACE_SPAT'] for i in range(len(spec1ds))] if spec1ds is not None else None
         fwhms = [spec1ds[i]['FWHM'] for i in range(len(spec1ds))] if spec1ds is not None else None
+        fwhmfit = [spec1ds[i]['FWHMFIT'] for i in range(len(spec1ds))] if spec1ds is not None else None
 
         gui_dict[base_name] = {
             'spec': spec,
             'edges': edges,
             'traces': traces,
-            'fwhms': fwhms
+            'fwhms': fwhms,
+            'fwhmfit': fwhmfit
         }
 
     # call GUI
