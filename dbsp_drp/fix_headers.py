@@ -12,18 +12,24 @@ import astropy.units as u
 def _get_ra_or_dec(fname, is_ra, header, modified_str, prompt_user) -> bool:
     kw = 'RA' if is_ra else 'DEC'
     unit = 'hour' if is_ra else 'deg'
+    coord_str = None
     try:
         coord_str = header[kw]
         try:
             coord = Angle(coord_str, unit=unit)
             return True
-        except ValueError:
+        except ValueError as ve:
             print(f"File {fname} has {kw} that could not be parsed: {coord_str}.")
-            return False
+            raise KeyError from ve
     except KeyError:
         if prompt_user:
-            coord_str = input(f"File {fname} is missing {kw} keyword in header. Header may be severely malformed.\n"
+            if coord_str is not None:
+                prompt_str = f"File {fname} has bad {kw} keyword in header. Bad value is {coord_str}.\n"
+            else:
+                prompt_str = f"File {fname} is missing {kw} keyword in header. "
+            prompt_str += ("Header may be severely malformed.\n"
                     f"Enter the {kw} of `{header['OBJECT']}` or an empty string if not known: ")
+            coord_str = input(prompt_str)
             if coord_str != '':
                 try:
                     coord = Angle(coord_str, unit=unit)
@@ -36,12 +42,15 @@ def _get_ra_or_dec(fname, is_ra, header, modified_str, prompt_user) -> bool:
                     header.comments[kw] += modified_str + ", manually entered, but could not be parsed into an angle."
                     return False
         else:
-            print(f"File {fname} is missing {kw} keyword in header. Be sure to correct this!")
+            if coord_str is None:
+                print(f"File {fname} is missing {kw} keyword in header. Be sure to correct this!")
             return False
 
 def main(path_prefix, throw_errors, prompt_user):
     dt = datetime.now()
     modified_str = f" Modified {dt.isoformat(timespec='seconds')}"
+
+    good_files = []
 
     paths = glob.glob(os.path.join(path_prefix, '*.fits'))
     if not paths:
@@ -56,6 +65,9 @@ def main(path_prefix, throw_errors, prompt_user):
             with open(path, 'r+b') as f:
                 f.seek(-(size % 2880), io.SEEK_END)
                 f.truncate()
+        if os.path.getsize(path) == 0:
+            print(f"WARNING: {fname} is empty, it is 0 bytes.")
+            continue
         with fits.open(path, mode='update') as hdul:
             header = hdul[0].header
             try:
@@ -79,8 +91,22 @@ def main(path_prefix, throw_errors, prompt_user):
                         raise ValueError(msg) from exc
                     else:
                         print(msg)
-            ra_good = _get_ra_or_dec(fname, True, header, modified_str, prompt_user)
-            dec_good = _get_ra_or_dec(fname, False, header, modified_str, prompt_user)
+            if header.get('IMGTYPE', '') == 'object':
+                # we NEED to have parseable RA/DECs
+                ra_good = _get_ra_or_dec(fname, True, header, modified_str, True)
+                while not ra_good:
+                    print(f"File {fname} has IMGTYPE object and therefore must have valid RA.")
+                    print("Though RA can be corrected later if you ran dbsp_reduce without -i")
+                    ra_good = _get_ra_or_dec(fname, True, header, modified_str, True)
+
+                dec_good = _get_ra_or_dec(fname, False, header, modified_str, True)
+                while not dec_good:
+                    print(f"File {fname} has IMGTYPE object and therefore must have valid DEC.")
+                    print("Though DEC can be corrected later if you ran dbsp_reduce without -i")
+                    dec_good = _get_ra_or_dec(fname, False, header, modified_str, True)
+            else:
+                ra_good = _get_ra_or_dec(fname, True, header, modified_str, prompt_user)
+                dec_good = _get_ra_or_dec(fname, False, header, modified_str, prompt_user)
 
             if (ra_good and dec_good and {'RA', 'DEC', 'UTSHUT'}.issubset(header)
                 and (header.get('AIRMASS', None) is None)):
@@ -91,3 +117,6 @@ def main(path_prefix, throw_errors, prompt_user):
 
                 header['AIRMASS'] = f'{skycoord.transform_to(altaz).secz:.3f}'
                 header.comments['AIRMASS'] += modified_str + ", calculated from present RA/DEC."
+        good_files.append(path)
+
+    return good_files

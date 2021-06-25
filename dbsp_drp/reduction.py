@@ -2,6 +2,7 @@
 Automated reduction steps for P200 DBSP.
 """
 
+import datetime
 import os
 import shutil
 from typing import Tuple, List, Callable
@@ -41,9 +42,9 @@ def parse_pypeit_parameter_file(parameter_file: str,
         print(f"ERROR: Parameter file {parameter_file} does not exist!!!")
     return user_config_lines
 
-def setup(root: str, extension: str, output_path: str,
-        spectrograph: str) -> Tuple[PypeItSetup, str]:
-    """Does PypeIt setup, without writing the .pypeit file
+def setup(file_list: List[str], output_path: str, spectrograph: str) -> Tuple[PypeItSetup, str]:
+    """
+    Does PypeIt setup, without writing the .pypeit file
     """
 
     # Get the output directory
@@ -51,7 +52,9 @@ def setup(root: str, extension: str, output_path: str,
     sort_dir = os.path.join(output_path, 'setup_files')
 
     # Initialize PypeItSetup based on the arguments
-    ps = PypeItSetup.from_file_root(root, spectrograph, extension=extension, output_path=sort_dir)
+    cfg_lines = ['[rdx]', f'spectrograph = {spectrograph}']
+    fname = os.path.join(sort_dir, f'{spectrograph}_{datetime.date.today().strftime("%Y-%m-%d")}.pypeit')
+    ps = PypeItSetup(file_list, setups=[], cfg_lines=cfg_lines, pypeit_file=fname)
 
     # Run the setup
     ps.run(setup_only=True, sort_dir=sort_dir)
