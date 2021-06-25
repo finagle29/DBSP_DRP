@@ -56,16 +56,20 @@ def splice(splicing_dict: dict, interpolate_gaps: bool, root: str, output_path: 
 
             bluefile = blue_dict.get('coadd')
             redfile = red_dict.get('coadd')
+            spec_b = None
+            spec_r = None
             if bluefile is not None:
                 bluefile = os.path.join(output_path, 'Science', bluefile)
+                spec_b = fits.open(bluefile)[1].data
             if redfile is not None:
                 redfile = os.path.join(output_path, 'Science', redfile)
+                spec_r = fits.open(redfile)[1].data
             if bluefile is None and redfile is None:
                 continue
 
             ((final_wvs, final_flam, final_flam_sig),
                 (red_wvs, red_flam, red_sig),
-                (blue_wvs, blue_flam, blue_sig)) = adjust_and_combine_overlap(bluefile, redfile, target, interpolate_gaps)
+                (blue_wvs, blue_flam, blue_sig)) = adjust_and_combine_overlap(spec_b, spec_r, interpolate_gaps)
 
             primary_header = fits.Header()
             primary_header['DBSP_DRP_V'] = dbsp_drp.__version__
@@ -95,6 +99,8 @@ def splice(splicing_dict: dict, interpolate_gaps: bool, root: str, output_path: 
             col_error = fits.Column(name='sigma', array=final_flam_sig, unit='E-17 ERG/S/CM^2/ANG', format='D')
             table_hdu = fits.BinTableHDU.from_columns([col_wvs, col_flux, col_error], name="SPLICED")
 
+            table_hdu.header['INTERP_GAPS'] = interpolate_gaps
+
             hdul = fits.HDUList(hdus=[primary_hdu, *raw_red_hdus, *raw_blue_hdus, red_hdu, blue_hdu, table_hdu])
 
             log_msg = f"{target}_{label}.fits contains "
@@ -108,22 +114,23 @@ def splice(splicing_dict: dict, interpolate_gaps: bool, root: str, output_path: 
             hdul.writeto(os.path.join(output_path, "spliced", f'{target}_{label}.fits'), overwrite=True)
             label = chr(ord(label) + 1)
 
-def adjust_and_combine_overlap(bluefile: str, redfile: str, target: str, interpolate_gaps: bool) -> Tuple[
-            Tuple[np.ndarray, np.ndarray, np.ndarray],
-            Tuple[np.ndarray, np.ndarray, np.ndarray],
-            Tuple[np.ndarray, np.ndarray, np.ndarray]]:
+def adjust_and_combine_overlap(
+    spec_b: fits.FITS_rec,
+    spec_r: fits.FITS_rec,
+    interpolate_gaps: bool,
+    red_mult: float = 1.0
+) -> Tuple[
+        Tuple[np.ndarray, np.ndarray, np.ndarray],
+        Tuple[np.ndarray, np.ndarray, np.ndarray],
+        Tuple[np.ndarray, np.ndarray, np.ndarray]
+]:
     # TODO: propagate input masks
-
-    if bluefile is not None:
-        spec_b = fits.open(bluefile)[1].data
-        if redfile is None:
-            return ((spec_b['wave'], spec_b['flux'], spec_b['ivar'] ** -0.5),
+    if spec_b is not None and spec_r is None:
+        return ((spec_b['wave'], spec_b['flux'], spec_b['ivar'] ** -0.5),
                 (None, None, None),
                 (spec_b['wave'], spec_b['flux'], spec_b['ivar'] ** -0.5))
-    if redfile is not None:
-        spec_r = fits.open(redfile)[1].data
-        if bluefile is None:
-            return ((spec_r['wave'], spec_r['flux'], spec_r['ivar'] ** -0.5),
+    if spec_r is not None and spec_b is None:
+        return ((spec_r['wave'], spec_r['flux'], spec_r['ivar'] ** -0.5),
                 (spec_r['wave'], spec_r['flux'], spec_r['ivar'] ** -0.5),
                 (None, None, None))
 
@@ -136,14 +143,10 @@ def adjust_and_combine_overlap(bluefile: str, redfile: str, target: str, interpo
     olap_r = (spec_r['wave'] < overlap_hi)
     olap_b = (spec_b['wave'] > overlap_lo)
 
-    red_mult = 1
-    red_mult = (astropy.stats.sigma_clipped_stats(spec_b['flux'][olap_b])[1] /
-        astropy.stats.sigma_clipped_stats(spec_r['flux'][olap_r])[1])
-    #red_mult = np.average(spec_aag[1].data['OPT_FLAM'][olap_b], weights=spec_aag[1].data['OPT_FLAM_SIG'][olap_b] ** -2.0)\
-    #   /np.average(spec_aag_red[1].data['OPT_FLAM'][olap_r], weights=spec_aag_red[1].data['OPT_FLAM_SIG'][olap_r] ** -2.0)
-    if red_mult > 3 or 1/red_mult > 3:
-        msgs.warn(f"For {target}, red spectrum is {red_mult} times less flux than blue spectrum in overlap region." +
-            "The red and blue traces may not correspond to the same object.")
+    ## 05/25/2021 red_mult is not really necessary, spectra look better without it.
+    ## 06/25/2021 keeping red_mult as an argument for manual_splicing
+    #red_mult = (astropy.stats.sigma_clipped_stats(spec_b['flux'][olap_b])[1] /
+    #    astropy.stats.sigma_clipped_stats(spec_r['flux'][olap_r])[1])
 
 
     # different dispersion.
@@ -216,7 +219,7 @@ def interp_w_error(x: np.ndarray, xp: np.ndarray, yp: np.ndarray, err_yp: np.nda
             if (xp[j] - xp[j-1]) > mean_dxp * 5:
                 if interpolate_gaps:
                     # err is max of edge points
-                    yerr[i] = max(yerr[j], yerr[j-1])
+                    yerr[i] = max(err_yp[j], err_yp[j-1])
                 else:
                     # err is infinite, so this point is completely discounted
                     yerr[i] = np.inf
