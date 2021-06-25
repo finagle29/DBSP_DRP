@@ -79,6 +79,12 @@ def parser(options: Optional[List[str]] = None) -> argparse.Namespace:
                            help="Don't coadd consecutive exposures of the same target.\n"
                                 "By default consective exposures will be coadded.")
 
+    argparser.add_argument('--splicing-interpolate-gaps', default=False, action='store_true',
+                           help="Use this option to linearly interpolate across large gaps\n"
+                                "in the spectrum during splicing. The default behavior is to\n"
+                                "only use data from one detector in these gaps, which results\n"
+                                "in a slightly noisier spliced spectrum.")
+
     return argparser.parse_args() if options is None else argparser.parse_args(options)
 
 def interactive_correction(ps: PypeItSetup) -> None:
@@ -518,7 +524,7 @@ def main(args):
                             'coadd': coadd
                         }}
         # And now, actually splice!
-        splicing.splice(splicing_dict, red_root, args.output_path)
+        splicing.splice(splicing_dict, args.splicing_interpolate_gaps, red_root, args.output_path)
 
     with open("fracpos_data.pickle", "wb") as f:
         pickle.dump((fracpos_diff_list, FRACPOS_SUM), f)

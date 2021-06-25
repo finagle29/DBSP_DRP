@@ -44,7 +44,7 @@ def get_raw_hdus_from_spec1d(spec1d_list: List[str], root: str, output_path: str
     return ret
 
 
-def splice(splicing_dict: dict, root: str, output_path: str) -> None:
+def splice(splicing_dict: dict, interpolate_gaps: bool, root: str, output_path: str) -> None:
     """
     Splices red and blue spectra together.
     """
@@ -65,7 +65,7 @@ def splice(splicing_dict: dict, root: str, output_path: str) -> None:
 
             ((final_wvs, final_flam, final_flam_sig),
                 (red_wvs, red_flam, red_sig),
-                (blue_wvs, blue_flam, blue_sig)) = adjust_and_combine_overlap(bluefile, redfile, target)
+                (blue_wvs, blue_flam, blue_sig)) = adjust_and_combine_overlap(bluefile, redfile, target, interpolate_gaps)
 
             primary_header = fits.Header()
             primary_header['DBSP_DRP_V'] = dbsp_drp.__version__
@@ -108,7 +108,7 @@ def splice(splicing_dict: dict, root: str, output_path: str) -> None:
             hdul.writeto(os.path.join(output_path, "spliced", f'{target}_{label}.fits'), overwrite=True)
             label = chr(ord(label) + 1)
 
-def adjust_and_combine_overlap(bluefile: str, redfile: str, target: str) -> Tuple[
+def adjust_and_combine_overlap(bluefile: str, redfile: str, target: str, interpolate_gaps: bool) -> Tuple[
             Tuple[np.ndarray, np.ndarray, np.ndarray],
             Tuple[np.ndarray, np.ndarray, np.ndarray],
             Tuple[np.ndarray, np.ndarray, np.ndarray]]:
@@ -163,7 +163,7 @@ def adjust_and_combine_overlap(bluefile: str, redfile: str, target: str) -> Tupl
     olap_flam_sig_b = spec_b['ivar'][olap_b][:-1] ** -0.5
 
     olap_flam_r_interp = np.interp(olap_wvs_b, olap_wvs_r, olap_flam_r)
-    olap_flam_r_interp, olap_flam_sig_r_interp = interp_w_error(olap_wvs_b, olap_wvs_r, olap_flam_r, olap_flam_sig_r)
+    olap_flam_r_interp, olap_flam_sig_r_interp = interp_w_error(olap_wvs_b, olap_wvs_r, olap_flam_r, olap_flam_sig_r, interpolate_gaps)
 
     olap_flams = np.array([olap_flam_r_interp, olap_flam_b])
     sigs = np.array([olap_flam_sig_r_interp, olap_flam_sig_b])
@@ -180,15 +180,20 @@ def adjust_and_combine_overlap(bluefile: str, redfile: str, target: str) -> Tupl
         (spec_r['wave'], spec_r['flux'], spec_r['ivar'] ** -0.5),
         (spec_b['wave'], spec_b['flux'], spec_b['ivar'] ** -0.5))
 
-def interp_w_error(x: np.ndarray, xp: np.ndarray, yp: np.ndarray, err_yp: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+def interp_w_error(x: np.ndarray, xp: np.ndarray, yp: np.ndarray, err_yp: np.ndarray,
+                    interpolate_gaps: bool) -> Tuple[np.ndarray, np.ndarray]:
     if len(xp) == 1:
         return np.ones_like(x) * yp[0], np.ones_like(x) * err_yp[0]
+
     y = np.zeros_like(x)
     yerr = np.zeros_like(x)
     slopes = np.zeros(xp.shape[0] - 1)
-    #slopes = np.zeros(xp.shape[0])
+
+    dxp = np.diff(xp)
+    mean_dxp, _, _ = astropy.stats.sigma_clipped_stats(dxp)
+
     for i in range(len(slopes)):
-        slopes[i] = (yp[i+1] - yp[i])/(xp[i+1] - xp[i])
+        slopes[i] = (yp[i+1] - yp[i])/dxp[i]
     #slopes[-1] = slopes[-2]
 
     for i in range(len(x)):
@@ -207,5 +212,14 @@ def interp_w_error(x: np.ndarray, xp: np.ndarray, yp: np.ndarray, err_yp: np.nda
             yerr[i] = np.sqrt((((x[i] - xp[0])*err_yp[1]) ** 2 + ((x[i] - xp[1])*err_yp[0]) ** 2) / ((xp[1] - xp[0]) ** 2))
         else:
             y[i] = yp[j-1] + slopes[j-1]*(x[i] - xp[j-1])
-            yerr[i] = np.sqrt((((x[i] - xp[j])*err_yp[j-1]) ** 2 + ((x[i] - xp[j-1])*err_yp[j]) ** 2) / ((xp[j-1] - xp[j]) ** 2))
+            # If we are interpolating a gap larger than 5 times the avg d lambda
+            if (xp[j] - xp[j-1]) > mean_dxp * 5:
+                if interpolate_gaps:
+                    # err is max of edge points
+                    yerr[i] = max(yerr[j], yerr[j-1])
+                else:
+                    # err is infinite, so this point is completely discounted
+                    yerr[i] = np.inf
+            else:
+                yerr[i] = np.sqrt((((x[i] - xp[j])*err_yp[j-1]) ** 2 + ((x[i] - xp[j-1])*err_yp[j]) ** 2) / ((xp[j-1] - xp[j]) ** 2))
     return y, yerr
