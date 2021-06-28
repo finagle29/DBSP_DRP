@@ -139,7 +139,7 @@ def delete_duplicate_hdus_by_name(path: str, base_name: str = ""):
 
 def delete_completely_masked_hdus(path: str, base_name: str = ""):
     """
-    Removes ``SpecObj`` s with identical names, leaving one behind.
+    Removes ``SpecObj`` s that are completely masked, i.e. no good pixels/data.
     """
     specobjs = SpecObjs.from_fitsfile(path)
     changed = False
@@ -163,7 +163,6 @@ def verify_spec1ds(output_spec1ds: List[str], verification_counter: int, output_
     #   a corresponding set of parameters to change
     # TODO: have redux produce and this function consume a set
     #   args['unverified_spec1ds'] so only changed files are re-checked
-    # TODO: figure out params to tweak to fix skipped traces
     targets_list = []
     for spec1d in output_spec1ds:
         path = os.path.join(output_path, 'Science', spec1d)
@@ -177,9 +176,11 @@ def verify_spec1ds(output_spec1ds: List[str], verification_counter: int, output_
                 if 'SPAT' in hdu.name:
                     names = hdu.data.dtype.names
                     if ('TRACE_SPAT' in names) and not ('OPT_WAVE' in names) and not ('BOX_WAVE' in names):
-                        # only TRACE_SPAT exists, we need to re-run this!
-                        # need to investigate how this should be fixed
-                        # for now, warn the user and recommend manually tracing
+                        # only TRACE_SPAT exists, object was traced but not extracted
+                        # we need to re-run this!
+                        # The underlying bug in PypeIt has been fixed as of v1.4.1
+                        # but this may still occur so
+                        # warn the user and recommend manually tracing
                         print(f'WARNING: trace {hdu.name} in {base_name} was not extracted!')
                         print('It is recommended to re-reduce this object with the -m flag'
                             'and manually place the desired traces.')
