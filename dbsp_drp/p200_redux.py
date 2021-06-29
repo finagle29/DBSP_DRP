@@ -101,7 +101,6 @@ def interactive_correction(ps: PypeItSetup) -> None:
     """
     # function for interactively correcting the fits table
     fitstbl = ps.fitstbl
-    fitstbl.table.sort('filename')
     deleted_files = []
     table_edit.main(fitstbl.table, deleted_files)
     files_to_remove = []

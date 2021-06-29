@@ -283,7 +283,7 @@ class Delegate(QtWidgets.QStyledItemDelegate):
         editor.setGeometry(option.rect)
 
 def main(table, del_files: List[str]):
-    cols = ('filename', 'frametype', 'ra', 'dec', 'target', 'dispname', 'binning', 'mjd', 'airmass', 'exptime', 'dispangle', 'dichroic', 'slitwid')
+    cols = ('filename', 'frametype', 'ra', 'dec', 'target', 'dispname', 'binning', 'mjd', 'airmass', 'exptime', 'dispangle', 'dichroic', 'slitwid', 'calib')
     if not QtWidgets.QApplication.instance():
         app = QtWidgets.QApplication([])
     else:

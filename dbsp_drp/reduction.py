@@ -10,6 +10,9 @@ from typing import Tuple, List, Callable
 import matplotlib.pyplot as plt
 
 from astropy.io import fits
+from astropy.table import Table, Row
+from astropy.coordinates import Angle, SkyCoord
+import astropy.units as u
 
 from configobj import ConfigObj
 
@@ -42,6 +45,100 @@ def parse_pypeit_parameter_file(parameter_file: str,
         print(f"ERROR: Parameter file {parameter_file} does not exist!!!")
     return user_config_lines
 
+def search_table_for_arc(row: Row, i: int, table: Table, step: int, max_sep: Angle) -> Tuple[int, int]:
+    """
+    Searches table starting at row i in steps of j_init / abs(j) for frames
+    within max_separation. If an arc frame is found, the arc's calib is
+    assigned to row.
+
+    Args:
+        row (Row): starting row
+        i (int): index of starting row
+        table (Table): table to search in and modify
+        step (int): direction to look in. 1 for forwards, -1 for backwards
+        max_sep (Angle): maximum separation allowed between frames pointing
+            at the same object
+
+    Returns:
+        Tuple[int, int]: (distance to arc frame, calib ID) or (-1, -1) if
+            no arc found.
+    """
+    i_coord = SkyCoord(row['ra'], row['dec'], unit=u.deg)
+    j = step
+    keepLooking = True
+    while keepLooking:
+        if (i + j < 0) or (i + j >= len(table)):
+            keepLooking = False
+            continue
+        j_coord = SkyCoord(table[i+j]['ra'], table[i+j]['dec'], unit=u.deg)
+        sep = i_coord.separation(j_coord)
+        if sep < max_sep:
+            if 'arc' in table[i+j]['frametype']:
+                table[i]['calib'] = table[i+j]['calib']
+                return (abs(j), table[i]['calib'])
+            j += step
+        else:
+            keepLooking = False
+    return (-1, -1)
+
+def set_calibs(table: Table):
+    """
+    Automagically set 'calib' column for .pypeit file.
+
+    Bias and flat frames get calib 'all'
+    Arcs at airmass 1.0 get calib 0 (default for science/standards)
+    A consecutive set of arcs at airmass > 1.0 get the same calib, starting at 1.
+    Science and standards get the calib of the nearest arc frame, iff the
+    telescope hasn't changed pointing between the arc and the science/standard.
+    If there is no arc frame with the same pointing, science and standards are
+    assigned calib 0.
+
+    Args:
+        table (Table): PypeItSetup.fitstbl.table
+    """
+    # bias and flats get calib 'all'
+    for row in table:
+        if 'bias' in row['frametype'] or 'trace' in row['frametype']:
+            table.loc[row['filename']]['calib'] = 'all'
+        if 'arc' in row['frametype'] and row['airmass'] == 1.0:
+            table.loc[row['filename']]['calib'] = '0'
+
+    calib_ID = 1
+    max_separation = Angle(20 * u.arcsec)
+    prev_row = None
+    prev_coord = None
+    for row in table:
+        if ('arc' in row['frametype']) and (row['airmass'] != 1.0):
+            coord = SkyCoord(row['ra'], row['dec'], unit=u.deg)
+            if calib_ID == 1:
+                table.loc[row['filename']]['calib'] = calib_ID
+                calib_ID += 1
+            else:
+                sep = coord.separation(prev_coord)
+                if ((sep < max_separation) and
+                    ('arc' in prev_row['frametype'])):
+                    table.loc[row['filename']]['calib'] = calib_ID - 1
+                else:
+                    table.loc[row['filename']]['calib'] = calib_ID
+                    calib_ID += 1
+            prev_coord = coord
+        prev_row = row
+
+    # assign calib_IDs to science / standard objects
+    # matching to nearest arc by number / filename such that the telescope pointing didn't move
+    # between the arc and the science / standard
+
+    for i, row in enumerate(table):
+        # or instead of matching, just check neighbors and see if neighbors match
+        if ('science' in row['frametype']) or ('standard' in row['frametype']):
+            dist_forward, calib_forward = search_table_for_arc(row, i, table, 1, max_separation)
+            dist_back, _ = search_table_for_arc(row, i, table, -1, max_separation)
+            if (dist_forward == -1) and (dist_back == -1):
+                table[i]['calib'] = 0
+            elif ((dist_forward != -1) and (dist_back != -1) and
+                (dist_forward < dist_back)):
+                    table[i]['calib'] = calib_forward
+
 def setup(file_list: List[str], output_path: str, spectrograph: str) -> Tuple[PypeItSetup, str]:
     """
     Does PypeIt setup, without writing the .pypeit file
@@ -50,6 +147,7 @@ def setup(file_list: List[str], output_path: str, spectrograph: str) -> Tuple[Py
     # Get the output directory
     output_path = os.getcwd() if output_path is None else output_path
     sort_dir = os.path.join(output_path, 'setup_files')
+    os.makedirs(sort_dir, exist_ok=True)
 
     # Initialize PypeItSetup based on the arguments
     cfg_lines = ['[rdx]', f'spectrograph = {spectrograph}']
@@ -58,6 +156,14 @@ def setup(file_list: List[str], output_path: str, spectrograph: str) -> Tuple[Py
 
     # Run the setup
     ps.run(setup_only=True, sort_dir=sort_dir)
+
+
+    table = ps.fitstbl.table
+    table.sort('filename')
+    table.add_index('filename')
+
+    # now we guess the calib ids
+    set_calibs(table)
 
     return (ps, output_path)
 
@@ -73,6 +179,11 @@ def write_setup(context: Tuple[PypeItSetup, str], cfg_split: str,
         err_msg = "File " if len(untyped_files) == 1 else "Files "
         err_msg += f"{str(untyped_files).strip('[]')} were not automatically assigned a frame type, please re-run without -i argument and ensure that all files have frametypes."
         raise RuntimeError(err_msg)
+
+    # remove comb_id and bkg_id columns because they are not exposed to
+    # DBSP_DRP user, so PypeIt's defaults are good enough AFTER frametypes are
+    # corrected.
+    ps.fitstbl.table.remove_columns(['comb_id', 'bkg_id'])
     # Use PypeItMetaData to write the complete PypeIt file
     config_list = [item.strip() for item in cfg_split.split(',')]
 
@@ -83,7 +194,7 @@ def write_setup(context: Tuple[PypeItSetup, str], cfg_split: str,
     user_configobj.merge(ConfigObj(user_config_lines))
     ps.user_cfg = [line + "\n" for line in user_configobj.write()]
 
-    return ps.fitstbl.write_pypeit(output_path, cfg_lines=ps.user_cfg, configs=config_list)
+    return ps.fitstbl.write_pypeit(output_path, cfg_lines=ps.user_cfg, configs=config_list, write_bkg_pairs=True)
 
 def redux(pypeit_file: str, output_path: str, reuse_masters: bool = True,
         show: bool = False, calib_only: bool = False) -> Tuple[set, set]:
