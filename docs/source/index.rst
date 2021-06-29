@@ -15,6 +15,7 @@ Welcome to DBSP_DRP's documentation!
    manual_extraction
    qa
    quicklook
+   adjust_splicing
    outputs
    modules
 

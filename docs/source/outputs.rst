@@ -56,6 +56,10 @@ where ``char`` is a one letter designation of which object along the slit it is.
 The header on the 0th extension also contains cards named ``B_COADD`` and ``R_COADD`` which contain the filename
 of the blue and red coadd files, respectively, that were spliced together. This is useful for determining which
 traces a particular final output file corresponds to.
+The 0th header also contains an ``INTERP_GAPS`` cards, noting whether or not detector gaps were interpolated over
+during splicing.
+If the splicing has been manually adjusted (see :doc:`adjust_splicing` for more details) then a ``RED_MULT`` card
+will also be present, recording the factor multiplied into the red coadd spectrum before splicing with the blue coadd.
 
 If *n* red side files were coadded and *m* blue side files were coadded, then extensions 1 through *n* would contain the
 red side raw headers and fluxed spectrum from each individual file, extensions 1+*n* through 1+*n*+*m* would contain the

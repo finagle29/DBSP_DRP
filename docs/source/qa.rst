@@ -14,4 +14,7 @@ steps of the reduction for the red and blue sides. From left to right, the
 images are flat-fielded frame, sky model, sky-subtracted frame, sky-subtracted
 residuals, and sky- and object-subtracted residuals. Above each set of images,
 the raw filename, time of observation and the airmass is displayed. Slit edges
-are marked in red and green, and object traces are marked in orange.
+are marked in red and green, object traces are marked in orange, and extraction
+FWHMs are highlighted in orange. If the extraction FWHM is very different from
+what you would expect, it is probably a good idea to use manual tracing on that
+target.
