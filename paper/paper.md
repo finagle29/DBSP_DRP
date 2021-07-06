@@ -24,6 +24,8 @@ affiliations:
     index: 3
 date: 22 June 2021
 bibliography: paper.bib
+nocite: |
+  @Lunnan2020
 ---
 
 # Summary
@@ -128,8 +130,9 @@ instrumental signatures and subtract light from the sky, revealing the spectra
 of the objects observed, can answer questions of exposure time and whether the
 object observed is the right one.
 
-DBSP_DRP is currently being used by the ZTF Bright Transient Survey [@Fremling2020;@Perley2020]
-as well as the Superluminous Supernova program at Caltech.
+DBSP_DRP is currently being used by the ZTF Bright Transient Survey [@Fremling2020;@Perley2020],
+the ZTF Census of the Local Universe [@De2020], and a program investigating
+ZTF Superluminous Supernovae (Lunnan et al., 2020; Chen et al., in preparation).
 @Ravi2021arXiv is the first (known) publication that used DBSP_DRP for data
 reduction.
 The development of DBSP_DRP also lays the groundwork towards a fully automated
