@@ -203,6 +203,9 @@ class TableModel(QtCore.QAbstractTableModel):
                 if not maskrow['target']:
                     update_header(hdul[0].header, 'OBJECT', row['target'][0],
                         f'object title. Modified {now_str}')
+                if not maskrow['frametype'] and row['frametype'][0] in ['science', 'standard']:
+                    update_header(hdul[0].header, 'IMGTYPE', 'object',
+                        f'frame type. Modified {now_str}')
                 if not maskrow['dispangle']:
                     update_header(hdul[0].header, 'ANGLE',
                         Angle(row['dispangle'][0], unit=u.deg).to_string(unit=u.deg, sep=(' deg ', ' min'), fields=2),
