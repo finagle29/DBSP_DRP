@@ -162,6 +162,9 @@ def setup(file_list: List[str], output_path: str, spectrograph: str) -> Tuple[Py
     table.sort('filename')
     table.add_index('filename')
 
+    # Make the target field accept long names
+    table['target'] = table['target'].astype('U255')
+
     # now we guess the calib ids
     set_calibs(table)
 
