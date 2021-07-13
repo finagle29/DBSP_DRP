@@ -14,6 +14,8 @@ It adds several GUIs to allow for easier control of your reduction:
 - manually place traces for a sort of manually "forced" spectroscopy with the `-m` option
 - after manually placing traces, manually select sky regions and tweak the FWHM of your manual traces
 
+The latest documentation can be found on [Read the Docs](https://dbsp-drp.readthedocs.io/en/latest/index.html).
+
 ## Citation
 If you use DBSP_DRP in your research, please cite this repository
 
@@ -62,6 +64,6 @@ $ pip install -e .
 ## Usage
 ```shell_session
 $ dbsp_reduce -r /path/to/data/DBSP_YYYYMMDD -d /path/to/data/DBSP_YYYYMMDD_redux
-    [-a --arm RED or BLUE -j --jobs N -p --parameter-file PARAMS.txt]
-    [-i --no-interactive -m --manual-extraction -t --skip-telluric]
+    [-a {red,blue}] [-i] [-m] [--debug] [-j N] [-p PARAMETER_FILE] [-t] [-c]
+    [--splicing-interpolate-gaps]
 ```
