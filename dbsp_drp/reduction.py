@@ -375,7 +375,8 @@ def write_manual_pypeit_files(old_pypeit_file: str, targets_list: List[List[str]
                 if 'science' in line and '|' in line and all([targ_fname not in line for targ_fname in target_fnames]):
                     pass
                 elif 'standard' in line and '|' in line and any(needs_std_fn(target) for target in targets):
-                    setup_lines.append(line)
+                    pass
+                    #setup_lines.append(line)
                 else:
                     if '# Setup' in line:
                         setup = True
