@@ -1,0 +1,11 @@
+#!/usr/bin/env python
+
+"""
+DBSP Quicklook script
+"""
+
+from dbsp_drp import quicklook
+
+if __name__ == "__main__":
+    args = quicklook.parse()
+    quicklook.main(args)

@@ -1,12 +1,38 @@
 [![Documentation Status](https://readthedocs.org/projects/dbsp-drp/badge/?version=latest)](https://dbsp-drp.readthedocs.io/en/latest/?badge=latest)
-[![Build Status](https://travis-ci.org/finagle29/DBSP_DRP.svg?branch=master)](https://travis-ci.org/finagle29/DBSP_DRP)
+![Test](https://github.com/finagle29/DBSP_DRP/workflows/Test/badge.svg)
 
 # DBSP_DRP
 
 
 ## Description
 DBSP_DRP is a Data Reduction Pipeline for Palomar's workhorse spectrograph DBSP.
-It is built on top of [PypeIt](https://github.com/pypeit/PypeIt) and adds an interactive header validation GUI as well as automating the reduction and fluxing of one night's data.
+It is built on top of [PypeIt](https://github.com/pypeit/PypeIt).
+DBSP_DRP automates the reduction, fluxing, telluric correction, and combining of the red and blue sides of one night's
+data.
+It adds several GUIs to allow for easier control of your reduction:
+- select which data to reduce, and verify the correctness of your FITS headers in an editable table GUI
+- manually place traces for a sort of manually "forced" spectroscopy with the `-m` option
+- after manually placing traces, manually select sky regions and tweak the FWHM of your manual traces
+
+The latest documentation can be found on [Read the Docs](https://dbsp-drp.readthedocs.io/en/latest/index.html).
+
+## Citation
+If you use DBSP_DRP in your research, please cite this repository
+
+`DBSP_DRP (2021). https://github.com/finagle29/DBSP_DRP`
+
+or use this BibTeX reference
+
+```
+@misc{dbsp_drp2021,
+    title     = "DBSP_DRP",
+    year      = "2021",
+    publisher = "GitHub",
+    url       = "https://github.com/finagle29/dbsp_drp"}
+  }
+```
+
+and please also cite [PypeIt](https://github.com/pypeit/PypeIt#citation).
 
 ## Citation
 If you use DBSP_DRP in your research, please also reference [PypeIt](https://github.com/pypeit/PypeIt#citation).
@@ -18,7 +44,9 @@ You can install all prerequisites by downloading the environment.yml file, navig
 $ conda env create -f environment.yml
 ```
 
-The telluric correction code provided by PypeIt relies on a large (5 GB) atmospheric model file, which can be downloaded [here](https://drive.google.com/drive/folders/1x5d2_L8pwLDmvvoFUCa-vIoluv3GpowA)
+The telluric correction code provided by PypeIt relies on a large (5 GB) atmospheric model file,
+TellFits_Lick_3100_11100_R10000.fits, which can be downloaded
+[here](https://drive.google.com/drive/folders/1FFRWjUZ58HiDuDD33MYqBzMWDQanBRRy)
 and must be installed into the ``pypeit/data/telluric/`` directory of your PypeIt installation.
 
 An easier alternative is to use the [download_tellfile](bin/download_tellfile) script to download and install the atmospheric model file for you.
@@ -26,16 +54,19 @@ An easier alternative is to use the [download_tellfile](bin/download_tellfile) s
 ## Installation
 You can install using `pip`
 ```shell_session
-$ pip install https://github.com/finagle29/DBSP_DRP/archive/master.tar.gz
+$ pip install git+https://github.com/finagle29/DBSP_DRP.git
 ```
 
 Or you can install from source
 ```shell_session
-$ cd /path/to/DBSP_DRP
-$ python setup.py install
+$ git clone https://github.com/finagle29/DBSP_DRP.git
+$ cd DBSP_DRP
+$ pip install -e .
 ```
 
 ## Usage
 ```shell_session
-$ dbsp_reduce -r /path/to/data/DBSP_YYYYMMDD -o /path/to/data/DBSP_YYYYMMDD_redux
+$ dbsp_reduce -r /path/to/data/DBSP_YYYYMMDD -d /path/to/data/DBSP_YYYYMMDD_redux
+    [-a {red,blue}] [-i] [-m] [--debug] [-j N] [-p PARAMETER_FILE] [-t] [-c]
+    [--splicing-interpolate-gaps]
 ```

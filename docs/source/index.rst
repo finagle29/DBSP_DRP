@@ -12,6 +12,11 @@ Welcome to DBSP_DRP's documentation!
 
    installing
    usage
+   manual_extraction
+   qa
+   quicklook
+   adjust_splicing
+   outputs
    modules
 
 

@@ -7,8 +7,8 @@ from astropy.table import Table
 import matplotlib.pyplot as plt
 from numpy import ma
 
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import Qt
+from PySide2 import QtCore, QtGui, QtWidgets
+from PySide2.QtCore import Qt
 
 from astropy.coordinates import Angle, SkyCoord, EarthLocation, AltAz, ICRS
 from astropy.time import Time
@@ -46,7 +46,10 @@ def get_zenith_ra_dec(time: str) -> astropy.coordinates.SkyCoord:
 class TableModel(QtCore.QAbstractTableModel):
     def __init__(self, data: Table, cols: tuple = None, del_files: list = None):
         super(TableModel, self).__init__()
-        self._data = data #Table(data, masked = True, copy = False) # this actually copies for some reason?
+        # would use
+        # self._data = Table(data, masked = True, copy = False)
+        # but it actually copies for some reason? MSR
+        self._data = data
         self._cols = cols if cols is not None else data.colnames
 
         if data.masked:
@@ -58,19 +61,19 @@ class TableModel(QtCore.QAbstractTableModel):
         for col in self._cols:
             self._mask.add_column(self._data[col] == None, name=col)
 
-        self._colCount = len(self._cols)
-        
+        self._col_count = len(self._cols)
+
         self._modified_files = set()
         self._deleled_files = del_files
 
     def data(self, index: QtCore.QModelIndex, role) -> Union[str, QtGui.QColor, None]:
-        if role == Qt.DisplayRole or role == Qt.EditRole:
+        if role in (Qt.DisplayRole, Qt.EditRole):
             col = self._cols[index.column()]
             row = index.row()
             value = self._data[col][row]
             mask = self._mask[col][row]
             if mask:
-                value = ma.masked
+                return str(ma.masked)
             if col == 'ra':
                 ra = Angle(value, unit=u.deg)
                 value = ra.to_string(unit=u.hour)
@@ -85,29 +88,43 @@ class TableModel(QtCore.QAbstractTableModel):
             return str(value)
         if role == Qt.BackgroundRole:
             col = self._cols[index.column()]
-            masked = self._mask[col][index.row()]
+            masked = self._mask[col][index.row()] or (self._data[col][index.row()] == 'None')
             if masked:
                 return QtGui.QColor(Qt.red)
 
-    def setData(self, index: QtCore.QModelIndex, value: object, role: Qt.ItemDataRole=Qt.EditRole) -> bool:
+    def setData(self, index: QtCore.QModelIndex, value: object,
+                role: Qt.ItemDataRole=Qt.EditRole)-> bool:
+        if role != Qt.EditRole:
+            return False
         try:
             col = self._cols[index.column()]
             row = index.row()
+            am = False
             if col == 'ra':
                 ra = Angle(value, unit=u.hour)
                 value = ra.degree
                 if self._data['dec'][row]:
-                    update_airmass(self._data[row])
+                    am = True
             elif col == 'dec':
                 dec = Angle(value, unit=u.deg)
                 value = dec.degree
                 if self._data['ra'][row]:
-                    update_airmass(self._data[row])
+                    am = True
+            elif col =='dispangle':
+                value = Angle(value, unit=u.deg).degree
+            elif col == 'mjd' or col == 'airmass':
+                value = float(value)
             self._data[col][row] = value
             self._mask[col][row] = False
+            if am:
+                update_airmass(self._data[row])
+                self._mask['airmass'][row] = False
+                # TODO: emit a dataChanged event for this row
             self.dataChanged.emit(index, index)
+            self._modified_row(index)
             return True
-        except:
+        except ValueError:
+            print(f"Error: could not parse {value} as the required type for column {col}.")
             return False
 
     def flags(self, index: QtCore.QModelIndex) -> Qt.ItemFlag:
@@ -119,7 +136,7 @@ class TableModel(QtCore.QAbstractTableModel):
         return len(self._data)
 
     def columnCount(self, index: QtCore.QModelIndex) -> int:
-        return self._colCount
+        return self._col_count
 
     def headerData(self, section, orientation: Qt.Alignment, role: Qt.ItemDataRole) -> str:
         if role == Qt.DisplayRole:
@@ -127,6 +144,17 @@ class TableModel(QtCore.QAbstractTableModel):
                 return self._cols[section]
             if orientation == Qt.Vertical:
                 return ''
+
+    def removeRows(self, position: int, rows: int, index: QtCore.QModelIndex = QtCore.QModelIndex()) -> bool:
+        self.beginRemoveRows(index.parent(), position, position + rows - 1)
+
+        for row in range(rows):
+            self._deleled_files.append(self._data['filename'][position])
+            self._data.remove_row(position)
+            self._mask.remove_row(position)
+
+        self.endRemoveRows()
+        return True
 
     def frametype(self, index: QtCore.QModelIndex) -> str:
         return self._data['frametype'][index.row()]
@@ -141,16 +169,10 @@ class TableModel(QtCore.QAbstractTableModel):
 
         self._modified_files.add(self._data['filename'][row])
 
-    def _delete_row(self, index: QtCore.QModelIndex) -> None:
-        row = index.row()
-        self._deleled_files.append(self._data['filename'][row])
-        self._data.remove_row(row)
-        self._mask.remove_row(row)
-    
     def _modified_row(self, index: QtCore.QModelIndex) -> None:
         row = index.row()
         self._modified_files.add(self._data['filename'][row])
-    
+
     def _update_fits(self) -> None:
         def update_header(header: fits.Header, keyword, new, comment):
             old = header.get(keyword)
@@ -158,7 +180,7 @@ class TableModel(QtCore.QAbstractTableModel):
             if old != new:
                 header[keyword] = new
                 header.comments[keyword] = comment
-        
+
         dt = datetime.now()
         now_str = dt.isoformat(timespec='seconds')
         for fname in self._modified_files:
@@ -167,18 +189,27 @@ class TableModel(QtCore.QAbstractTableModel):
             path = os.path.join(row['directory'][0], fname)
             with fits.open(path, mode='update') as hdul:
                 if not maskrow['ra']:
-                    update_header(hdul[0].header, 'RA', Angle(row['ra'][0], unit=u.deg).to_string(unit=u.hour, sep=':'),
-                                  f'Right Ascension. Modified {now_str}')
+                    update_header(hdul[0].header, 'RA',
+                        Angle(row['ra'][0], unit=u.deg).to_string(unit=u.hour, sep=':'),
+                        f'Right Ascension. Modified {now_str}')
                 if not maskrow['dec']:
-                    update_header(hdul[0].header, 'DEC', Angle(row['dec'][0], unit=u.deg).to_string(unit=u.deg, sep=':', alwayssign=True),
-                                  f'Declination. Modified {now_str}')
+                    update_header(hdul[0].header, 'DEC',
+                        Angle(row['dec'][0], unit=u.deg).to_string(unit=u.deg, sep=':',
+                            alwayssign=True),
+                        f'Declination. Modified {now_str}')
                 if not maskrow['airmass']:
-                    update_header(hdul[0].header, 'AIRMASS', f"{row['airmass'][0]:.3f}", f'Airmass. Modified {now_str}')
+                    update_header(hdul[0].header, 'AIRMASS', f"{row['airmass'][0]:.3f}",
+                        f'Airmass. Modified {now_str}')
                 if not maskrow['target']:
-                    update_header(hdul[0].header, 'OBJECT', row['target'][0], f'object title. Modified {now_str}')
+                    update_header(hdul[0].header, 'OBJECT', row['target'][0],
+                        f'object title. Modified {now_str}')
+                if not maskrow['frametype'] and row['frametype'][0] in ['science', 'standard']:
+                    update_header(hdul[0].header, 'IMGTYPE', 'object',
+                        f'frame type. Modified {now_str}')
                 if not maskrow['dispangle']:
-                    update_header(hdul[0].header, 'ANGLE', Angle(row['dispangle'][0], unit=u.deg).to_string(unit=u.deg, sep=(' deg ', ' min'), fields=2),
-                                  f'Grating Angle. Modified {now_str}')
+                    update_header(hdul[0].header, 'ANGLE',
+                        Angle(row['dispangle'][0], unit=u.deg).to_string(unit=u.deg, sep=(' deg ', ' min'), fields=2),
+                        f'Grating Angle. Modified {now_str}')
                 if not maskrow['dispname']:
                     update_header(hdul[0].header, 'GRATING', row['dispname'][0], f'lines/mm & Blaze. Modified {now_str}')
 
@@ -202,14 +233,20 @@ class TableView(QtWidgets.QTableView):
     def show_context_menu(self, point: QtCore.QPoint) -> None:
         index = self.indexAt(point)
         if index.isValid():
-            self._menu = QtWidgets.QMenu(self)
+            menu = QtWidgets.QMenu(self)
+            menu.setAttribute(Qt.WA_DeleteOnClose)
+
             frametype = self.model().frametype(index)
-            if ('bias' in frametype) or ('arc' in frametype) or ('flat' in frametype):
-                action = self._menu.addAction('Set RA/Dec and Airmass to Zenith')
+            if any([x in frametype for x in ['bias', 'arc', 'flat']]):
+                action = menu.addAction('Set RA/Dec and Airmass to Zenith')
                 action.triggered.connect(lambda: self.model()._set_data_to_zenith(index))
-            action = self._menu.addAction('Delete row')
-            action.triggered.connect(lambda: self.model()._delete_row(index))
-            self._menu.popup(self.viewport().mapToGlobal(point))
+
+            selected_rows = sorted(set(ix.row() for ix in self.selectionModel().selectedIndexes()), reverse=True)
+            action = menu.addAction(f'Delete row{"s" if len(selected_rows) > 1 else ""}')
+            action.triggered.connect(lambda: [self.model().removeRow(row) for row in selected_rows] +
+                [self.selectionModel().clear()])
+
+            menu.popup(self.viewport().mapToGlobal(point))
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -222,7 +259,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
         self.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Expanding)
-    
+
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         self.table.model()._update_fits()
 
@@ -244,22 +281,19 @@ class Delegate(QtWidgets.QStyledItemDelegate):
     def setModelData(self, editor: QtWidgets.QLineEdit, model: TableModel, index: QtCore.QModelIndex) -> None:
         value = editor.text()
         model.setData(index, value)
-        model._modified_row(index)
 
     def updateEditorGeometry(self, editor: QtWidgets.QLineEdit, option: QtWidgets.QStyleOptionViewItem, index: QtCore.QModelIndex) -> None:
         editor.setGeometry(option.rect)
 
 def main(table, del_files: List[str]):
-    cols = ('filename', 'frametype', 'ra', 'dec', 'target', 'dispname', 'binning', 'mjd', 'airmass', 'exptime', 'dispangle', 'dichroic', 'slitwid')
-    app = QtWidgets.QApplication([])
+    cols = ('filename', 'frametype', 'ra', 'dec', 'target', 'dispname', 'binning', 'mjd', 'airmass', 'exptime', 'dispangle', 'dichroic', 'slitwid', 'calib')
+    if not QtWidgets.QApplication.instance():
+        app = QtWidgets.QApplication([])
+    else:
+        app = QtWidgets.QApplication.instance()
     window = MainWindow(table, cols, del_files)
     window.show()
     app.exec_()
 
-
-if __name__ == '__main__':
-    blue_table = Table.read('/Users/milan/Documents/GitHub/DBSP_DRP/table_red.dat', format='ascii')
-
-    main(blue_table, [])
-    # TODO:
-    #   - default size / column sizing
+# TODO:
+#   - default size / column sizing

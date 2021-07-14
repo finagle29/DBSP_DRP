@@ -3,18 +3,23 @@ Automatic Reduction Pipeline for P200 DBSP.
 """
 
 import argparse
-import glob
 import os
 import time
 import multiprocessing
 from typing import Optional, List
+import pickle
 
-from astropy.io import fits
-from astropy.table import Table, Column
 import numpy as np
-from pypeit.pypeitsetup import PypeItSetup
+from matplotlib import pyplot as plt
+from astropy.io import fits
+from astropy.table import Table, Column, Row
 
-from dbsp_drp import p200_arm_redux
+from pypeit.pypeitsetup import PypeItSetup
+import pypeit.display
+
+import tqdm
+
+from dbsp_drp import reduction, qa, fluxing, coadding, telluric, splicing
 from dbsp_drp import table_edit
 from dbsp_drp import fix_headers
 
@@ -23,35 +28,62 @@ def parser(options: Optional[List[str]] = None) -> argparse.Namespace:
     """Parses command line arguments
 
     Args:
-        options (Optional[List[str]], optional): List of command line arguments. Defaults to sys.argv[1:].
+        options (Optional[List[str]], optional): List of command line arguments.
+            Defaults to sys.argv[1:].
 
     Returns:
         argparse.Namespace: Parsed arguments
     """
     # Define command line arguments.
-    argparser = argparse.ArgumentParser(description="Automatic Data Reduction Pipeline for P200 DBSP")
+    argparser = argparse.ArgumentParser(description="Automatic Data Reduction Pipeline for P200 DBSP",
+        formatter_class=argparse.RawTextHelpFormatter)
 
     # Argument for fully-automatic (i.e. nightly) or with user-checking file typing
-    argparser.add_argument('-i', '--no-interactive', default=True, action='store_false',
+    argparser.add_argument('-i', '--no-interactive', default=False, action='store_true',
                            help='Interactive file-checking?')
 
     # Argument for input file directory
-    argparser.add_argument('-r', '--root', type=str, default=None,
+    argparser.add_argument('-r', '--root', type=str, default=None, required=True,
                            help='File path+root, e.g. /data/DBSP_20200127')
 
-    argparser.add_argument('-d', '--output_path', default=None,
+    argparser.add_argument('-d', '--output_path', default=None, required=True,
                            help='Path to top-level output directory.  '
                                 'Default is the current working directory.')
 
     # Argument for specifying only red/blue
 
-    argparser.add_argument('-a', '--arm', default=None,
-                           help='[red, blue] to only reduce one arm')
+    argparser.add_argument('-a', '--arm', default=None, choices=['red', 'blue'],
+                           help='[red, blue] to only reduce one arm (null splicing)')
+
+    argparser.add_argument('-m', '--manual-extraction', default=False, action='store_true',
+                           help='manual extraction')
 
     argparser.add_argument('--debug', default=False, action='store_true',
                            help='debug')
-    argparser.add_argument('-j', '--jobs', type=int, default=1,
+    argparser.add_argument('-j', '--jobs', type=int, default=1, metavar='N',
                             help='Number of processes to use')
+
+    argparser.add_argument('-p', '--parameter-file', type=str, default="",
+                           help="Path to parameter file. The parameter file should be formatted as follows:\n\n"
+                            "[blue]\n"
+                            "** PypeIt parameters for the blue side goes here **\n"
+                            "[red]\n"
+                            "** PypeIt parameters for the red side goes here **\n"
+                            "EOF\n\n"
+                            "The [red/blue] parameter blocks are optional, and their order does not matter.")
+
+    argparser.add_argument('-t', '--skip-telluric', default=False, action='store_true',
+                           help='Skip telluric correction')
+
+    argparser.add_argument('-c', '--null-coadd', default=False, action='store_true',
+                           help="Don't coadd consecutive exposures of the same target.\n"
+                                "By default consective exposures will be coadded.")
+
+    argparser.add_argument('--splicing-interpolate-gaps', default=False, action='store_true',
+                           help="Use this option to linearly interpolate across large gaps\n"
+                                "in the spectrum during splicing. The default behavior is to\n"
+                                "only use data from one detector in these gaps, which results\n"
+                                "in a slightly noisier spliced spectrum.")
 
     return argparser.parse_args() if options is None else argparser.parse_args(options)
 
@@ -64,12 +96,11 @@ def interactive_correction(ps: PypeItSetup) -> None:
     Todo:
         Make table to FITS header mapping mutable
 
-    :param ps: PypeIt metadata object created in p200_arm_redux.setup
+    :param ps: PypeIt metadata object created in dbsp_drp.reduction.setup
     :type ps: PypeItSetup
     """
     # function for interactively correcting the fits table
     fitstbl = ps.fitstbl
-    fitstbl.table.sort('filename')
     deleted_files = []
     table_edit.main(fitstbl.table, deleted_files)
     files_to_remove = []
@@ -85,6 +116,11 @@ def main(args):
 
     t = time.perf_counter()
 
+    if os.path.isdir(args.output_path):
+        os.chdir(args.output_path)
+    else:
+        os.makedirs(args.output_path, exist_ok=True)
+
     if args.arm:
         do_red = args.arm.lower() == 'red'
         do_blue = args.arm.lower() == 'blue'
@@ -92,214 +128,404 @@ def main(args):
         do_red = True
         do_blue = True
 
-    # Build
-    options_blue = {
-        'root': os.path.join(args.root, 'blue'),
-        'spectrograph': 'p200_dbsp_blue',
-        'output_path': args.output_path,
-        'extension': '.fits',
-        'background': None,
-        'cfg_split': 'all',
-        'calib_only': False,
-        'show': False,
-        'plot': False,
-        'do_not_reuse_masters': False,
-        'debug': args.debug,
-        'qa_dict': {}
-    }
+    red_root = os.path.join(args.root, 'red')
+    blue_root = os.path.join(args.root, 'blue')
+    qa_dict = {}
 
-    #options_blue['show'] = True
-    #options_blue['calib_only'] = True
-    #options_blue['do_not_reuse_masters'] = True
+    if args.parameter_file:
+        blue_user_config_lines = reduction.parse_pypeit_parameter_file(args.parameter_file, 'p200_dbsp_blue')
+        red_user_config_lines = reduction.parse_pypeit_parameter_file(args.parameter_file, 'p200_dbsp_red')
+    else:
+        blue_user_config_lines = []
+        red_user_config_lines = []
 
-    options_red = options_blue.copy()
-    options_red['spectrograph'] = 'p200_dbsp_red'
-    options_red['root'] = os.path.join(args.root, 'red')
-    options_red['qa_dict'] = options_blue['qa_dict']
+    if args.debug:
+        pypeit.display.display.connect_to_ginga(raise_err=True, allow_new=True)
 
     if do_red:
-        fix_headers.main(options_red['root'])
-        context = p200_arm_redux.setup(options_red)
+        red_files = fix_headers.main(red_root, args.no_interactive, args.no_interactive)
+        context = reduction.setup(red_files, args.output_path, 'p200_dbsp_red')
         # optionally use interactive correction
-        if args.no_interactive:
+        if not args.no_interactive:
             interactive_correction(context[0])
-        pypeit_file_red = p200_arm_redux.write_setup(options_red, context)[0]
-        # Grab pypeit file from write_setup
-        options_red['pypeit_file'] = pypeit_file_red
+        pypeit_file_red = reduction.write_setup(context, 'all', 'p200_dbsp_red', red_user_config_lines)[0]
 
     if do_blue:
-        fix_headers.main(options_blue['root'])
-        context = p200_arm_redux.setup(options_blue)
-        if args.no_interactive:
+        blue_files = fix_headers.main(blue_root, args.no_interactive, args.no_interactive)
+        context = reduction.setup(blue_files, args.output_path, 'p200_dbsp_blue')
+        if not args.no_interactive:
             interactive_correction(context[0])
-        pypeit_file_blue = p200_arm_redux.write_setup(options_blue, context)[0]
-        # Grab pypeit file from write_setup
-        options_blue['pypeit_file'] = pypeit_file_blue
+        pypeit_file_blue = reduction.write_setup(context, 'all', 'p200_dbsp_blue', blue_user_config_lines)[0]
 
 
-
-
-    #options_red['calib_only'] = True
-    #options_blue['calib_only'] = True
+    plt.switch_backend("agg")
+    # TODO: parallelize this
+    # Would need to look like
+    # Splitting up the .pypeit files into bits and pieces
+    # Oooh what if I just do the calibration first
+    # and then parallelize the reduction
+    output_spec1ds_blue = set()
+    output_spec1ds_red = set()
     if do_red:
-        p200_arm_redux.redux(options_red)
-        p200_arm_redux.save_2dspecs(options_red)
+        output_spec1ds_red, output_spec2ds_red = reduction.redux(pypeit_file_red, args.output_path)
+        qa_dict = qa.save_2dspecs(qa_dict, output_spec2ds_red, args.output_path, 'p200_dbsp_red')
     if do_blue:
-        p200_arm_redux.redux(options_blue)
-        p200_arm_redux.save_2dspecs(options_blue)
+        output_spec1ds_blue, output_spec2ds_blue = reduction.redux(pypeit_file_blue, args.output_path)
+        qa_dict = qa.save_2dspecs(qa_dict, output_spec2ds_blue, args.output_path, 'p200_dbsp_blue')
 
     if do_red or do_blue:
-        p200_arm_redux.write_extraction_QA(options_red)
+        qa.write_extraction_QA(qa_dict, args.output_path)
 
+    if do_red:
+        verification_counter = 0
+        red_pypeit_files = reduction.verify_spec1ds(output_spec1ds_red, verification_counter, args.output_path)
+        while red_pypeit_files:
+            verification_counter += 1
 
-    fname_len = len(os.path.abspath(options_red['output_path'])) + 15 # /blueNNNN.fits 
-    sensfunc_len = len(os.path.abspath(options_red['output_path'])) + 70 # /sens_blueNNNN-OBJ_DBSPb_YYYYMMMDDTHHMMSS.SPAT.fits
+            out_1d, out_2d = reduction.re_redux(red_pypeit_files, args.output_path)
+            red_pypeit_files = reduction.verify_spec1ds(out_1d, verification_counter, args.output_path)
+            qa_dict = qa.save_2dspecs(qa_dict, out_2d, args.output_path, 'p200_dbsp_red')
+
+            output_spec1ds_red |= out_1d
+            output_spec2ds_red |= out_2d
+    if do_blue:
+        verification_counter = 0
+        blue_pypeit_files = reduction.verify_spec1ds(output_spec1ds_blue, verification_counter, args.output_path)
+        while blue_pypeit_files:
+            verification_counter += 1
+
+            out_1d, out_2d = reduction.re_redux(blue_pypeit_files, args.output_path)
+            blue_pypeit_files = reduction.verify_spec1ds(out_1d, verification_counter, args.output_path)
+            qa_dict = qa.save_2dspecs(qa_dict, out_2d, args.output_path, 'p200_dbsp_blue')
+
+            output_spec1ds_blue |= out_1d
+            output_spec2ds_blue |= out_2d
+
+    # TODO: use a do/while loop to iterate on the manual extraction GUI until user is satisfied
+    if args.manual_extraction:
+        # wait for user acknowledgement
+        input("Ready for manual extraction? If using GNU screen/tmux behind ssh, make sure to check that $DISPLAY is correct.")
+        plt.switch_backend("Qt5Agg")
+
+        if do_red:
+            red_manual_pypeit_files = reduction.manual_extraction(output_spec2ds_red, pypeit_file_red, args.output_path)
+        if do_blue:
+            blue_manual_pypeit_files = reduction.manual_extraction(output_spec2ds_blue, pypeit_file_blue, args.output_path)
+        if do_red and red_manual_pypeit_files:
+            out_1d, out_2d = reduction.re_redux(red_manual_pypeit_files, args.output_path)
+            qa.save_2dspecs(qa_dict, out_2d, args.output_path, 'p200_dbsp_red')
+
+            output_spec1ds_red |= out_1d
+            output_spec2ds_red |= out_2d
+        if do_blue and blue_manual_pypeit_files:
+            out_1d, out_2d = reduction.re_redux(blue_manual_pypeit_files, args.output_path)
+            qa.save_2dspecs(qa_dict, out_2d, args.output_path, 'p200_dbsp_blue')
+
+            output_spec1ds_blue |= out_1d
+            output_spec2ds_blue |= out_2d
+
+    # spec1d_blueNNNN-OBJ_DBSPb_YYYYMMMDDTHHMMSS.SPAT.fits
+    fname_len = 72
+    # sens_blueNNNN-OBJ_DBSPb_YYYYMMMDDTHHMMSS.SPAT.fits
+    sensfunc_len = 70
     # Find standards and make sensitivity functions
-    spec1d_table = Table(names=('filename', 'arm', 'object', 'frametype', 'airmass', 'mjd', 'sensfunc'),
-                         dtype=(f'U{fname_len}', 'U4', 'U20', 'U8', float, float, f'U{sensfunc_len}'))
+    spec1d_table = Table(names=('filename', 'arm', 'object', 'frametype',
+                            'airmass', 'mjd', 'sensfunc', 'exptime'),
+                         dtype=(f'U{fname_len}', 'U4', 'U20', 'U8',
+                            float, float, f'U{sensfunc_len}', float))
 
     # Ingest spec_1d tables
-    paths = glob.glob(os.path.join(args.output_path, "Science/spec1d*.fits"))
-    for path in paths:
+    spec1ds = output_spec1ds_red | output_spec1ds_blue
+    for spec1d in spec1ds:
+        path = os.path.join(args.output_path, 'Science', spec1d)
         with fits.open(path) as hdul:
-            arm = 'red' if 'red' in path else 'blue'
-            spec1d_table.add_row((path, arm, hdul[0].header['TARGET'], hdul[1].header['OBJTYPE'],
-                                  hdul[0].header['AIRMASS'], hdul[0].header['MJD'], ''))
+            head0 = hdul[0].header
+            head1 = hdul[1].header
+            arm = 'red' if 'red' in head0['PYP_SPEC'] else 'blue'
+            spec1d_table.add_row((spec1d, arm, head0['TARGET'],
+                head1['OBJTYPE'], head0['AIRMASS'],
+                head0['MJD'], '', head0['EXPTIME']))
     spec1d_table.add_index('filename')
+    spec1d_table.sort(['arm', 'mjd'])
 
     if do_red:
         for row in spec1d_table[(spec1d_table['arm'] == 'red') & (spec1d_table['frametype'] == 'standard')]:
-            options_red['spec1dfile'] = row['filename']
-            spec1d_table['sensfunc'][spec1d_table['filename'] == row['filename']] = p200_arm_redux.make_sensfunc(options_red)
+            sensfunc = fluxing.make_sensfunc(row['filename'], args.output_path, 'p200_dbsp_red', red_user_config_lines)
+            if sensfunc == "":
+                spec1d_table['frametype'][spec1d_table['filename'] == row['filename']] = 'science'
+            else:
+                spec1d_table['sensfunc'][spec1d_table['filename'] == row['filename']] = sensfunc
     if do_blue:
         for row in spec1d_table[(spec1d_table['arm'] == 'blue') & (spec1d_table['frametype'] == 'standard')]:
-            options_blue['spec1dfile'] = row['filename']
-            spec1d_table['sensfunc'][spec1d_table['filename'] == row['filename']] = p200_arm_redux.make_sensfunc(options_blue)
-
-    stds = spec1d_table['frametype'] == 'standard'
-    standards_fluxing = []
-    for row in spec1d_table:
-        arm = spec1d_table['arm'] == row['arm']
-        if row['frametype'] == 'science':
-            best_sens = spec1d_table[stds & arm]['sensfunc'][np.abs(spec1d_table[stds & arm]['airmass'] - row['airmass']).argmin()]
-            standards_fluxing.append(best_sens)
-        elif row['frametype'] == 'standard':
-            if (stds & arm).sum() == 1:
-                best_sens = spec1d_table[stds & arm]['sensfunc'][np.abs(spec1d_table[stds & arm]['airmass'] - row['airmass']).argmin()]
-                standards_fluxing.append(best_sens)
+            sensfunc = fluxing.make_sensfunc(row['filename'], args.output_path, 'p200_dbsp_blue', blue_user_config_lines)
+            if sensfunc == "":
+                spec1d_table['frametype'][spec1d_table['filename'] == row['filename']] = 'science'
             else:
-                best_sens = spec1d_table[stds & arm]['sensfunc'][np.abs(spec1d_table[stds & arm]['airmass'] - row['airmass']).argsort()[1]]
-                standards_fluxing.append(best_sens)
+                spec1d_table['sensfunc'][spec1d_table['filename'] == row['filename']] = sensfunc
 
-    spec1d_table['sensfunc'] = standards_fluxing
+    if do_red:
+        arm = spec1d_table['arm'] == 'red'
+        stds = (spec1d_table['frametype'] == 'standard') & arm
+        if np.any(stds):
+            for row in spec1d_table[arm]:
+                if row['frametype'] == 'science':
+                    best_sens = spec1d_table[stds]['sensfunc'][np.abs(spec1d_table[stds]['airmass'] - row['airmass']).argmin()]
+                elif row['frametype'] == 'standard':
+                    if (stds).sum() == 1:
+                        best_sens = spec1d_table[stds]['sensfunc'][np.abs(spec1d_table[stds]['airmass'] - row['airmass']).argmin()]
+                    else:
+                        best_sens = spec1d_table[stds]['sensfunc'][np.abs(spec1d_table[stds]['airmass'] - row['airmass']).argsort()[1]]
+                spec1d_table.loc[row['filename']]['sensfunc'] = best_sens
+        else:
+            for filename in spec1d_table[arm]['filename']:
+                spec1d_table.loc[filename]['sensfunc'] = ''
+    if do_blue:
+        arm = spec1d_table['arm'] == 'blue'
+        stds = (spec1d_table['frametype'] == 'standard') & arm
+        if np.any(stds):
+            for row in spec1d_table[arm]:
+                if row['frametype'] == 'science':
+                    best_sens = spec1d_table[stds]['sensfunc'][np.abs(spec1d_table[stds]['airmass'] - row['airmass']).argmin()]
+                elif row['frametype'] == 'standard':
+                    if (stds).sum() == 1:
+                        best_sens = spec1d_table[stds]['sensfunc'][np.abs(spec1d_table[stds]['airmass'] - row['airmass']).argmin()]
+                    else:
+                        best_sens = spec1d_table[stds]['sensfunc'][np.abs(spec1d_table[stds]['airmass'] - row['airmass']).argsort()[1]]
+                spec1d_table.loc[row['filename']]['sensfunc'] = best_sens
+        else:
+            for filename in spec1d_table[arm]['filename']:
+                spec1d_table.loc[filename]['sensfunc'] = ''
 
     # build fluxfile
     if do_red:
-        options_red['spec1dfiles'] = {row['filename']: row['sensfunc'] for row in spec1d_table if row['arm'] == 'red'}
-        red_fluxfile = p200_arm_redux.build_fluxfile(options_red)
-        options_red['flux_file'] = red_fluxfile
+        spec1d_to_sensfunc = {row['filename']: row['sensfunc'] for row in spec1d_table if row['arm'] == 'red'}
+        red_fluxfile = fluxing.build_fluxfile(spec1d_to_sensfunc, args.output_path, 'p200_dbsp_red', red_user_config_lines)
     if do_blue:
-        options_blue['spec1dfiles'] = {row['filename']: row['sensfunc'] for row in spec1d_table if row['arm'] == 'blue'}
-        blue_fluxfile = p200_arm_redux.build_fluxfile(options_blue)
-        options_blue['flux_file'] = blue_fluxfile
+        spec1d_to_sensfunc = {row['filename']: row['sensfunc'] for row in spec1d_table if row['arm'] == 'blue'}
+        blue_fluxfile = fluxing.build_fluxfile(spec1d_to_sensfunc, args.output_path, 'p200_dbsp_blue', blue_user_config_lines)
 
     # flux data
     if do_red:
-        p200_arm_redux.flux(options_red)
+        fluxing.flux(red_fluxfile, args.output_path)
     if do_blue:
-        p200_arm_redux.flux(options_blue)
+        fluxing.flux(blue_fluxfile, args.output_path)
 
-    # TODO: coadd - intelligent coadding of multiple files
-    #options_blue['debug'] = True
-    #options_red['debug'] = True
+    # coadd - intelligent coadding of multiple files
+    # first make a column "coaddID" that is the same for frames to be coadded
+    # TODO: when there are multiple exposures of an object, splice/output all of them
+    coaddIDs = []
+    if args.null_coadd:
+        coaddIDs = range(len(spec1d_table))
+    else:
+        previous_row : Row = None
+        S_PER_DAY = 24 * 60 * 60
+        thresh = 15
+        for i, row in enumerate(spec1d_table):
+            if i == 0:
+                coaddIDs.append(0)
+            else:
+                # if this is the same object as the last one
+                # and they were taken consecutively
+                if ((row['arm'] == previous_row['arm']) and
+                    (row['object'] == previous_row['object']) and
+                    ((row['mjd']*S_PER_DAY - previous_row['mjd']*S_PER_DAY
+                        - previous_row['exptime']) < previous_row['exptime'])):
+                    coaddIDs.append(coaddIDs[-1])
+                else:
+                    coaddIDs.append(coaddIDs[-1] + 1)
+            previous_row = row
+
+    spec1d_table.add_column(coaddIDs, name="coadd_id")
+
     # figure out where on detector likely target is
+    spec1d_table.add_column(Column(name="spats", dtype=object, length=len(spec1d_table)))
+    spec1d_table.add_column(Column(name="fracpos", dtype=object, length=len(spec1d_table)))
     all_spats = []
+    all_fracpos = []
     # for each spec1d file
     for filename in spec1d_table['filename']:
-        with fits.open(filename) as hdul:
+        path = os.path.join(args.output_path, 'Science', filename)
+        with fits.open(path) as hdul:
             spats = []
+            fracpos = []
             for i in range(1, len(hdul) - 1):
                 # grab all of its extensions' spatial positions
                 spats.append(int(hdul[i].name.split('-')[0].lstrip('SPAT')))
+                fracpos.append(hdul[i].header['SPAT_FRACPOS'])
+            spats.sort()
+            fracpos.sort()
             all_spats.append(spats)
+            all_fracpos.append(fracpos)
+            spec1d_table.loc[filename]['spats'] = spats
+            spec1d_table.loc[filename]['fracpos'] = fracpos
     # add to table???
-    spec1d_table.add_column(all_spats, name="spats")
-    spec1d_table.add_column(Column(name="coadds", dtype=object, length=len(spec1d_table))) # need to make this dtype object
-
-    # for each arm
-        # find median/mean of spatial positions
-    if do_blue:
-        blue_spats = spec1d_table[spec1d_table['arm'] == 'blue']['spats']
-        blue_spats = [spat for spats in blue_spats for spat in spats]
-        avg_blue_spat = np.mean(blue_spats)
-        std_blue_spats = np.std(blue_spats)
-    if do_red:
-        red_spats = spec1d_table[spec1d_table['arm'] == 'red']['spats']
-        red_spats = [spat for spats in red_spats for spat in spats]
-        avg_red_spat = np.mean(red_spats)
-        std_red_spats = np.std(red_spats)
+    # this needs to be dtype object to allow for variable length lists
+    spec1d_table.add_column(Column(name="coadds", dtype=object, length=len(spec1d_table)))
+    spec1d_table.add_column([False]*len(all_spats), name="processed")
 
     # coadd
-    # probolem here
-    if do_red:
-        for row in spec1d_table[spec1d_table['arm'] == 'red']:
-            options_red['spec1dfile'] = row['filename']
-            spec1d_table.loc[row['filename']]['coadds'] = p200_arm_redux.coadd(options_red)
-    if do_blue:
-        for row in spec1d_table[spec1d_table['arm'] == 'blue']:
-            options_blue['spec1dfile'] = row['filename']
-            spec1d_table.loc[row['filename']]['coadds'] = p200_arm_redux.coadd(options_blue)
+    # iterate over coadd_ids
+    coadd_to_spec1d = {}
+    for coadd_id in set(coaddIDs):
+        subtable = spec1d_table[spec1d_table['coadd_id'] == coadd_id]
+        fname_spats = {row['filename']: row['spats'].copy() for row in subtable}
+        grouped_spats_list = coadding.group_coadds(fname_spats)
+        if all(subtable['arm'] == 'red'):
+            coadds = coadding.coadd(grouped_spats_list, args.output_path, 'p200_dbsp_red', red_user_config_lines)
+        if all(subtable['arm'] == 'blue'):
+            coadds = coadding.coadd(grouped_spats_list, args.output_path, 'p200_dbsp_blue', blue_user_config_lines)
+        assert all(subtable['arm'] == 'red') or all(subtable['arm'] == 'blue'),\
+            "Something went wrong with coadding..."
+        for row in subtable:
+            spec1d_table.loc[row['filename']]['coadds'] = coadds
+        for i, coadd in enumerate(coadds):
+            coadd_to_spec1d[coadd] = list(zip(grouped_spats_list[i]['fnames'], grouped_spats_list[i]['spats']))
 
-    # telluric correct
-    options_red['debug'] = False
-    options_red['plot'] = False
-    if do_red:
-        tellcorr_inputs = []
-        for row in spec1d_table[spec1d_table['arm'] == 'red']:
-            if isinstance(row['coadds'], list):
-                for obj in row['coadds']:
-                    tmp = options_red.copy()
-                    tmp['spec1dfile'] = obj
-                    tellcorr_inputs.append(tmp)
-#                    options_red['spec1dfile'] = obj
-#                    p200_arm_redux.telluric_correct(options_red)
-        pool = multiprocessing.Pool(args.jobs)
-        pool.map(p200_arm_redux.telluric_correct, tellcorr_inputs)
-        #for opts in tellcorr_inputs:    
-        #    pool.apply_async(p200_arm_redux.telluric_correct, opts, error_callback=lambda e: print("error!"))
-        pool.close()
-        pool.join()
+    if not args.skip_telluric:
+        # telluric correct
+        if do_red:
+            tellcorr_inputs = []
+            tell_coadd_fnames = set()
+            for row in spec1d_table[spec1d_table['arm'] == 'red']:
+                if isinstance(row['coadds'], list):
+                    for obj in row['coadds']:
+                        if not obj in tell_coadd_fnames:
+                            tmp = (obj, args.output_path, 'p200_dbsp_red', red_user_config_lines)
+                            tellcorr_inputs.append(tmp)
+                            tell_coadd_fnames.add(obj)
+            if args.jobs == 1:
+                # do it in series
+                for tellcorr_input in tqdm.tqdm(tellcorr_inputs):
+                    telluric.telluric_correct(*tellcorr_input)
+            else:
+                pool = multiprocessing.Pool(args.jobs)
+                list(tqdm.tqdm(pool.imap(telluric.picklable_telluric_correct, tellcorr_inputs), total=len(tellcorr_inputs)))
+                pool.close()
+                pool.join()
 
-    
-    # splicing method 1: choose single object closest to arm mean
-    # TODO: better splicing - make sure spatial fraction is similar on blue/red
-    # TODO: better splicing - handle multiple observations of same target throughout night
+            # Maybe do something here to verify that telluric correction succeeded
+            # and if so, change the coadd names
+            for coadd in tell_coadd_fnames:
+                tell = coadd.replace(".fits", "_tellcorr.fits")
+                tellpath = os.path.join(args.output_path, 'Science', tell)
+                coaddpath = os.path.join(args.output_path, 'Science', coadd)
+                # check if tell exists and is newer than coadd
+                if os.path.isfile(tellpath) and (os.path.getmtime(tellpath) > os.path.getmtime(coaddpath)):
+                    # modify coadd
+                    for row in spec1d_table:
+                        if coadd in row['coadds']:
+                            ix = row['coadds'].index(coadd)
+                            spec1d_table.loc[row['filename']]['coadds'][ix] = tell
+                    coadd_to_spec1d[tell] = coadd_to_spec1d[coadd]
+                    del coadd_to_spec1d[coadd]
+
+
+    # current splicing - make sure spatial fraction is similar on blue/red
+    # TODO: handle multiple observations of same target throughout night with null coadding
     # splice data
     splicing_dict = {}
     blue_mask = spec1d_table['arm'] == 'blue'
     red_mask = spec1d_table['arm'] == 'red'
-    if do_red and do_blue:
-        # make splicing dict
+
+    os.makedirs(os.path.join(args.output_path, 'spliced'), exist_ok=True)
+
+    def get_std_trace(std_path: str) -> float:
+        max_sn = -1
+        max_fracpos = -1
+        with fits.open(std_path) as hdul:
+            # loop through trace hdus
+            for hdu in hdul:
+                if not 'SPAT' in hdu.name:
+                    continue
+
+                # look at s/n
+                if 'OPT_COUNTS' in hdu.data.dtype.names:
+                    this_sn = np.nanmedian(hdu.data['OPT_COUNTS']/hdu.data['OPT_COUNTS_SIG'])
+                elif 'BOX_COUNTS' in hdu.data.dtype.names:
+                    this_sn = np.nanmedian(hdu.data['BOX_COUNTS']/hdu.data['BOX_COUNTS_SIG'])
+                else:
+                    this_sn = -1
+
+                if this_sn > max_sn:
+                    max_sn = this_sn
+                    max_fracpos = hdu.header['SPAT_FRACPOS']
+
+        if max_fracpos == -1:
+            raise Exception(f"Error! No HDUs in {os.path.basename(std_path)} have median S/N > 0.")
+        return max_fracpos
+
+    ## Need to find red + blue fracpos for standards
+    # hopefully standards only have one star each?
+    # or should i actually try to do matching there
+    fracpos_diff_list = []
+    stds = spec1d_table['frametype'] == 'standard'
+    if do_red or do_blue:
+        FRACPOS_SUM = 1.0
+        FRACPOS_TOL = 0.05
+        if do_red and do_blue:
+            # real matching + splicing
+            std_fracpos_sums = []
+            if (stds & blue_mask).any() and (stds & red_mask).any():
+                for row in spec1d_table[stds]:
+                    # find closest mjd frame of other arm
+                    if not row['processed']:
+                        other_arm = spec1d_table['arm'] != row['arm']
+                        corresponding_row = spec1d_table[other_arm & stds][np.abs(spec1d_table[other_arm & stds]['mjd'] - row['mjd']).argmin()]
+                        this_path = os.path.join(args.output_path, 'Science', row['filename'])
+                        corresponding_path = os.path.join(args.output_path, 'Science', corresponding_row['filename'])
+                        std_fracpos_sums.append(get_std_trace(this_path) + get_std_trace(corresponding_path))
+                        spec1d_table.loc[row['filename']]['processed'] = True
+                        spec1d_table.loc[corresponding_row['filename']]['processed'] = True
+                FRACPOS_SUM = np.mean(std_fracpos_sums)
+                FRACPOS_TOL = FRACPOS_SUM * .025
+
+        # setup splicing dict
+        splicing_dict = {}
+        # for each target
         for row in spec1d_table:
             target = row['object']
-            spacings = np.array(row['spats'])
-            if row['arm'] == 'blue':
-                target_spat = avg_blue_spat
-            else:
-                target_spat = avg_red_spat
-            best_ix = np.abs(spacings - target_spat).argmin()
+            arm = row['arm']
+            # for each of its fracpos
+            for i, fracpos in enumerate(row['fracpos']):
+                coadd = row['coadds'][i]
+                targ_dict = splicing_dict.get(target)
+                # normalize fracpos to red
+                if do_red and do_blue and arm == 'blue':
+                    fracpos = FRACPOS_SUM - fracpos
+                # if it's not in the dict
+                if targ_dict is None:
+                    # put it in the dict
+                    splicing_dict[target] = {fracpos: {
+                        arm: {
+                            'spec1ds': coadd_to_spec1d[coadd],
+                            'coadd': coadd
+                        }
+                    }}
+                # else
+                else:
+                    close_enough = False
+                    # for each existing fracpos
+                    for fracpos_existing in list(targ_dict):
+                        # if its close enough
+                        fracpos_diff_list.append(abs(fracpos_existing - fracpos))
+                        if abs(fracpos_existing - fracpos) < FRACPOS_TOL:
+                            # put it in the dict
+                            splicing_dict[target][fracpos_existing][arm] = {
+                                'spec1ds': coadd_to_spec1d[coadd],
+                                'coadd': coadd
+                            }
+                            close_enough = True
+                            break
+                    if not close_enough:
+                        # If this fracpos isn't close enough to any others
+                        splicing_dict[target][fracpos] = {arm: {
+                            'spec1ds': coadd_to_spec1d[coadd],
+                            'coadd': coadd
+                        }}
+        # And now, actually splice!
+        splicing.splice(splicing_dict, args.splicing_interpolate_gaps, red_root, args.output_path)
 
-            if row['arm'] == 'blue':
-                best_spec = row['coadds'][best_ix]
-            else:
-                best_spec = row['coadds'][best_ix].replace(".fits", "_tellcorr.fits")
-            
-            if splicing_dict.get(target):
-                splicing_dict[target][row['arm']] = best_spec
-            else:
-                splicing_dict[target] = {row['arm']: best_spec}
-        # splice
-        options_red['splicing_dict'] = splicing_dict
-        p200_arm_redux.splice(options_red)
-    
+    with open("fracpos_data.pickle", "wb") as f:
+        pickle.dump((fracpos_diff_list, FRACPOS_SUM), f)
+
     print('Elapsed time: {0} seconds'.format(time.perf_counter() - t))
