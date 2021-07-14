@@ -144,10 +144,10 @@ def main(args: argparse.Namespace):
                 parr[i].start()
 
 def show_spec2d_helper(file):
-    return show_2dspec.main(show_2dspec.parse_args([file]))
+    return show_2dspec.Show2DSpec.main(show_2dspec.Show2DSpec.parse_args([file]))
 
 def show_spec1d_helper(exten, file):
-    return show_1dspec.main(
-        show_1dspec.parse_args(['--extract', 'BOX', '--exten', exten,
+    return show_1dspec.Show1DSpec.main(
+        show_1dspec.Show1DSpec.parse_args(['--extract', 'BOX', '--exten', exten,
             '--flux', file])
     )
