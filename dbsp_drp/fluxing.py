@@ -92,6 +92,11 @@ def build_fluxfile(spec1d_to_sensfunc: Dict[str,str], output_path: str,
         str: path to created fluxfile
     """
     cfg_lines = user_config_lines[:]
+    # Minor kludge to deal with PypeIt#1230
+    if (not any('extinct_correct' in line for line in cfg_lines) and
+        not any(('algorithm' in line) and ('IR' in line) for line in cfg_lines)):
+        cfg_lines.append('[fluxcalib]\n')
+        cfg_lines.append('extinct_correct=True\n')
     cfg_lines.append("\n")
 
     # data section
