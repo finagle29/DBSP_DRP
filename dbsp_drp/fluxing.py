@@ -60,9 +60,9 @@ def make_sensfunc(standard_file: str, output_path: str, spectrograph: str,
 
         sensobj.run()
 
-        sensobj.out_table['SENS_ZEROPOINT_GPM'] = orig_mask.T
-        sensobj.out_table['SENS_ZEROPOINT_FIT_GPM'] = orig_mask.T
-        sensobj.save()
+        #sensobj.out_table['SENS_ZEROPOINT_GPM'] = orig_mask.T
+        #sensobj.out_table['SENS_ZEROPOINT_FIT_GPM'] = orig_mask.T
+        sensobj.to_file(outfile, overwrite=True)
         return os.path.basename(outfile)
     except (pypmsgs.PypeItError, ValueError) as err:
         print(f"ERROR creating sensitivity function using {standard_file}")
@@ -77,6 +77,8 @@ def build_fluxfile(spec1d_to_sensfunc: Dict[str,str], output_path: str,
         spectrograph: str, user_config_lines: List[str]) -> str:
     """
     Writes the fluxfile for fluxing.
+
+    Uses archived sensitivity function if no standard was reduced.
 
     Args:
         spec1d_to_sensfunc (Dict[str,str]): maps spec1d filenames to the
