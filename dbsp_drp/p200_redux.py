@@ -224,15 +224,11 @@ def main(args):
             output_spec1ds_blue |= out_1d
             output_spec2ds_blue |= out_2d
 
-    # spec1d_blueNNNN-OBJ_DBSPb_YYYYMMMDDTHHMMSS.SPAT.fits
-    fname_len = 72
-    # sens_blueNNNN-OBJ_DBSPb_YYYYMMMDDTHHMMSS.SPAT.fits
-    sensfunc_len = 70
     # Find standards and make sensitivity functions
     spec1d_table = Table(names=('filename', 'arm', 'object', 'frametype',
                             'airmass', 'mjd', 'sensfunc', 'exptime'),
-                         dtype=(f'U{fname_len}', 'U4', 'U20', 'U8',
-                            float, float, f'U{sensfunc_len}', float))
+                         dtype=(f'U255', 'U4', 'U255', 'U8',
+                            float, float, f'U255', float))
 
     # Ingest spec_1d tables
     spec1ds = output_spec1ds_red | output_spec1ds_blue
