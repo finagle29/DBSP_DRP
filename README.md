@@ -1,6 +1,11 @@
 [![Documentation Status](https://readthedocs.org/projects/dbsp-drp/badge/?version=latest)](https://dbsp-drp.readthedocs.io/en/latest/?badge=latest)
 ![Test](https://github.com/finagle29/DBSP_DRP/workflows/Test/badge.svg)
 
+![PyPI version](https://img.shields.io/pypi/v/DBSP_DRP?label=PyPI&logo=python&logoColor=white)
+![conda-forge version](https://img.shields.io/conda/vn/conda-forge/dbsp_drp?logo=conda-forge&logoColor=white)
+![pip downloads](https://img.shields.io/pypi/dm/DBSP_DRP)
+![conda downloads](https://img.shields.io/conda/dn/conda-forge/DBSP_DRP?label=conda%20downloads)
+
 # DBSP_DRP
 
 

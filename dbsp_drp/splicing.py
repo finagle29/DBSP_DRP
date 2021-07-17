@@ -17,12 +17,7 @@ from pypeit import msgs
 
 import dbsp_drp
 
-def get_raw_header_from_coadd(coadd: str, root: str) -> str:
-    if coadd is not None:
-        return fits.open(os.path.join(os.path.dirname(root), f"{os.path.basename(coadd).split('-')[0]}.fits"))[0].header
-    return fits.Header()
-
-def get_raw_hdus_from_spec1d(spec1d_list: List[str], root: str, output_path: str) -> List[fits.BinTableHDU]:
+def get_raw_hdus_from_spec1d(spec1d_list: List[Tuple[str, int]], root: str, output_path: str) -> List[fits.BinTableHDU]:
     ret = []
     for (spec1d, spat) in spec1d_list:
         raw_fname = os.path.join(os.path.dirname(root), f"{os.path.basename(spec1d).split('_')[1].split('-')[0]}.fits")
@@ -124,13 +119,16 @@ def adjust_and_combine_overlap(
         Tuple[np.ndarray, np.ndarray, np.ndarray],
         Tuple[np.ndarray, np.ndarray, np.ndarray]
 ]:
+    if ((spec_b is None or not spec_b['wave'].shape[0]) and
+        (spec_r is None or not spec_r['wave'].shape[0])):
+        raise ValueError("Both arguments cannot be empty or None.")
     # TODO: propagate input masks
-    if spec_b is not None and spec_r is None:
+    if spec_r is None or not spec_r['wave'].shape[0]:
         return ((spec_b['wave'], spec_b['flux'], spec_b['ivar'] ** -0.5),
                 (None, None, None),
                 (spec_b['wave'], spec_b['flux'], spec_b['ivar'] ** -0.5))
-    if spec_r is not None and spec_b is None:
-        return ((spec_r['wave'], spec_r['flux'], spec_r['ivar'] ** -0.5),
+    if spec_b is None or not spec_b['wave'].shape[0]:
+        return ((spec_r['wave'], red_mult*spec_r['flux'], red_mult*spec_r['ivar'] ** -0.5),
                 (spec_r['wave'], spec_r['flux'], spec_r['ivar'] ** -0.5),
                 (None, None, None))
 

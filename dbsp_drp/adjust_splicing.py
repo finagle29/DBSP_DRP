@@ -27,74 +27,77 @@ def main(args: argparse.Namespace):
             raise FileNotFoundError(f"File {fname} not found!")
 
         hdul = fits.open(fname, mode="update")
-        spec_r = hdul['RED'].data
-        spec_b = hdul['BLUE'].data
-        spliced = hdul['SPLICED'].data
+        adjust_splicing_GUI(hdul, fname)
 
-        red_mult = hdul['SPLICED'].header.get('RED_MULT', 1.0)
-        gaps = hdul['SPLICED'].header.get('INTERP_GAPS', False)
+def adjust_splicing_GUI(hdul: fits.HDUList, fname: str):
+    spec_r = hdul['RED'].data
+    spec_b = hdul['BLUE'].data
+    spliced = hdul['SPLICED'].data
 
-        # prepare for aco
-        spec_r = fits.FITS_rec.from_columns([*spec_r.columns, fits.Column(name='ivar', array=spec_r['sigma'] ** -2.0, format='D')])
-        spec_b = fits.FITS_rec.from_columns([*spec_b.columns, fits.Column(name='ivar', array=spec_b['sigma'] ** -2.0, format='D')])
+    red_mult = hdul['SPLICED'].header.get('RED_MULT', 1.0)
+    gaps = hdul['SPLICED'].header.get('INTERP_GAPS', False)
 
-        #fig = plt.figure(figsize=(10,5))
-        fig, ax = plt.subplots(figsize=(10,5))
-        fig.subplots_adjust(bottom=0.2, right=0.8)
-        ax.plot(spec_b['wave'], spec_b['flux'], c='b', alpha=0.5)
-        red_l, = ax.plot(spec_r['wave'], spec_r['flux'], c='r', alpha=0.5)
-        spliced_l, = ax.plot(spliced['wave'], spliced['flux'], c='k')
+    # prepare for aco
+    spec_r = fits.FITS_rec.from_columns([*spec_r.columns, fits.Column(name='ivar', array=spec_r['sigma'] ** -2.0, format='D')])
+    spec_b = fits.FITS_rec.from_columns([*spec_b.columns, fits.Column(name='ivar', array=spec_b['sigma'] ** -2.0, format='D')])
 
-        ax.set_xlim(3000, 10000)
+    #fig = plt.figure(figsize=(10,5))
+    fig, ax = plt.subplots(figsize=(10,5))
+    fig.subplots_adjust(bottom=0.2, right=0.8)
+    ax.plot(spec_b['wave'], spec_b['flux'], c='b', alpha=0.5)
+    red_l, = ax.plot(spec_r['wave'], spec_r['flux'], c='r', alpha=0.5)
+    spliced_l, = ax.plot(spliced['wave'], spliced['flux'], c='k')
 
-        ax.set_xlabel(r"Wavelength ($\AA$)")
-        ax.set_ylabel(r"Flux ($10^{-17}\mathrm{erg}/\mathrm{s}/\mathrm{cm}^2/\AA$)")
+    ax.set_xlim(3000, 10000)
 
-        def update(_):
-            try:
-                red_mult = float(text_box.text)
-                interp_gaps = check.get_status()[0]
+    ax.set_xlabel(r"Wavelength ($\AA$)")
+    ax.set_ylabel(r"Flux ($10^{-17}\mathrm{erg}/\mathrm{s}/\mathrm{cm}^2/\AA$)")
 
-                wave, flux, _ = adjust_and_combine_overlap(spec_b, spec_r, interp_gaps, red_mult=red_mult)[0]
+    def update(_):
+        try:
+            red_mult = float(text_box.text)
+            interp_gaps = check.get_status()[0]
 
-                red_l.set_ydata(spec_r['flux'] * red_mult)
-                spliced_l.set_data(wave, flux)
+            wave, flux, _ = adjust_and_combine_overlap(spec_b, spec_r, interp_gaps, red_mult=red_mult)[0]
 
-                plt.draw()
-            except ValueError:
-                pass
+            red_l.set_ydata(spec_r['flux'] * red_mult)
+            spliced_l.set_data(wave, flux)
 
-        def save(_):
-            try:
-                red_mult = float(text_box.text)
-                interp_gaps = check.get_status()[0]
-                wave, flux, sig = adjust_and_combine_overlap(spec_b, spec_r, interp_gaps, red_mult=red_mult)[0]
+            plt.draw()
+        except ValueError:
+            pass
 
-                col_wvs = fits.Column(name='wave', array=wave, unit='ANGSTROM', format='D')
-                col_flux = fits.Column(name='flux', array=flux, unit='E-17 ERG/S/CM^2/ANG', format='D')
-                col_error = fits.Column(name='sigma', array=sig, unit='E-17 ERG/S/CM^2/ANG', format='D')
-                table_hdu = fits.BinTableHDU.from_columns([col_wvs, col_flux, col_error], name="SPLICED")
+    def save(_):
+        try:
+            red_mult = float(text_box.text)
+            interp_gaps = check.get_status()[0]
+            wave, flux, sig = adjust_and_combine_overlap(spec_b, spec_r, interp_gaps, red_mult=red_mult)[0]
 
-                table_hdu.header['RED_MULT'] = red_mult
-                table_hdu.header['INTERP_GAPS'] = interp_gaps
+            col_wvs = fits.Column(name='wave', array=wave, unit='ANGSTROM', format='D')
+            col_flux = fits.Column(name='flux', array=flux, unit='E-17 ERG/S/CM^2/ANG', format='D')
+            col_error = fits.Column(name='sigma', array=sig, unit='E-17 ERG/S/CM^2/ANG', format='D')
+            table_hdu = fits.BinTableHDU.from_columns([col_wvs, col_flux, col_error], name="SPLICED")
 
-                hdul.pop()
-                hdul.append(table_hdu)
-                hdul.writeto(fname, overwrite=True)
-            except Exception as e:
-                QtWidgets.QMessageBox.warning(None, "Error occured while saving changes: " + e)
+            table_hdu.header['RED_MULT'] = red_mult
+            table_hdu.header['INTERP_GAPS'] = interp_gaps
 
-        axbox = fig.add_axes([0.15, 0.05, 0.4, 0.05])
-        text_box = TextBox(axbox, "Red multiplier", str(red_mult))
-        text_box.on_submit(update)
+            hdul.pop()
+            hdul.append(table_hdu)
+            hdul.writeto(fname, overwrite=True)
+        except Exception as e:
+            QtWidgets.QMessageBox.warning(None, "Error occured while saving changes: " + e)
 
-        axbutton = fig.add_axes([0.6, 0.05, 0.1, 0.05])
-        button = Button(axbutton, "Save")
-        button.on_clicked(save)
+    axbox = fig.add_axes([0.15, 0.05, 0.4, 0.05])
+    text_box = TextBox(axbox, "Red multiplier", str(red_mult))
+    text_box.on_submit(update)
 
-        axcheck = fig.add_axes([0.81, 0.35, 0.15, 0.3])
-        axcheck.set_frame_on(False)
-        check = CheckButtons(axcheck, ['interpolate gaps'], [gaps])
-        check.on_clicked(update)
+    axbutton = fig.add_axes([0.6, 0.05, 0.1, 0.05])
+    button = Button(axbutton, "Save")
+    button.on_clicked(save)
 
-        plt.show()
+    axcheck = fig.add_axes([0.81, 0.35, 0.15, 0.3])
+    axcheck.set_frame_on(False)
+    check = CheckButtons(axcheck, ['interpolate gaps'], [gaps])
+    check.on_clicked(update)
+
+    plt.show()
