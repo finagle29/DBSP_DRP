@@ -4,24 +4,10 @@ Installing DBSP_DRP
 
 Conda is the recommended pacakage manager used to install ``DBSP_DRP``.
 
-From Source
-###########
-
-.. code-block :: console
-
-    $ git clone https://github.com/finagle29/DBSP_DRP.git
-    $ cd DBSP_DRP
-    $ conda env create -f environment.yml
-    $ conda activate dbsp_drp
-    $ pip install -e .
-
-This performs an editable install, which allows you to make modifications to the code and immediately see their effects.
-Importantly, this can be used in combination with ``git`` branches to test features in development.
-
 Using pip
 #########
 
-First download the provided `environment.yml file <https://raw.githubusercontent.com/finagle29/DBSP_DRP/master/environment.yml>`__
+First download the provided `environment.yml file <https://raw.githubusercontent.com/finagle29/DBSP_DRP/main/environment.yml>`__
 
 Now use the environment.yml file to create a conda environment with the required dependencies.
 
@@ -35,7 +21,22 @@ Now use ``pip`` to install DBSP_DRP
 
 .. code-block :: console
 
-    $ pip install git+https://github.com/finagle29/DBSP_DRP.git
+    $ pip install dbsp-drp
+
+
+From Source
+###########
+
+.. code-block :: console
+
+    $ git clone https://github.com/finagle29/DBSP_DRP.git
+    $ cd DBSP_DRP
+    $ conda env create -f environment.yml
+    $ conda activate dbsp_drp
+    $ pip install -e .
+
+This performs an editable install, which allows you to make modifications to the code and immediately see their effects.
+Importantly, this can be used in combination with ``git`` branches to test features in development.
 
 ************
 Post-Install
@@ -55,7 +56,7 @@ To determine the location of your PypeIt installation, open the Python interpret
     >>> print(os.path.dirname(pypeit.__file__))
     /Users/me/anaconda3/envs/dbsp_drp/lib/python3.7/site-packages/pypeit
 
-An easier alternative is to download and run `this script <https://raw.githubusercontent.com/finagle29/DBSP_DRP/master/bin/download_tellfile>`__,
+An easier alternative is to download and run `this script <https://raw.githubusercontent.com/finagle29/DBSP_DRP/main/bin/download_tellfile>`__,
 which will perform the download and install it into the current PypeIt installation.
 
 .. code-block :: console

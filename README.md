@@ -59,7 +59,7 @@ An easier alternative is to use the [download_tellfile](bin/download_tellfile) s
 ## Installation
 You can install using `pip`
 ```shell_session
-$ pip install git+https://github.com/finagle29/DBSP_DRP.git
+$ pip install dbsp-drp
 ```
 
 Or you can install from source
