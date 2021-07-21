@@ -2,13 +2,8 @@ import argparse
 import os
 from typing import Optional, List
 
-import matplotlib.pyplot as plt
-from matplotlib.widgets import TextBox, Button, CheckButtons
-
 from astropy.io import fits
 
-from dbsp_drp.splicing import adjust_and_combine_overlap
-from dbsp_drp import show_spectrum
 
 def parse(options: Optional[List[str]] = None) -> argparse.Namespace:
     argparser = argparse.ArgumentParser(description="Trim spliced spectrum to wavelength range.",
@@ -41,3 +36,5 @@ def main(args: argparse.Namespace):
         hdul['SPLICED'].data['wave'] = wave[mask]
         hdul['SPLICED'].data['flux'] = flux[mask]
         hdul['SPLICED'].data['sigma'] = err[mask]
+
+        hdul.close()
