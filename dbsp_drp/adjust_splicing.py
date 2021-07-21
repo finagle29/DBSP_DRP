@@ -10,6 +10,7 @@ from astropy.io import fits
 from PySide2 import QtWidgets
 
 from dbsp_drp.splicing import adjust_and_combine_overlap
+from dbsp_drp import show_spectrum
 
 def parse(options: Optional[List[str]] = None) -> argparse.Namespace:
     argparser = argparse.ArgumentParser(description="Red/Blue splicing adjustment for P200 DBSP",
@@ -48,7 +49,13 @@ def adjust_splicing_GUI(hdul: fits.HDUList, fname: str):
     red_l, = ax.plot(spec_r['wave'], spec_r['flux'], c='r', alpha=0.5)
     spliced_l, = ax.plot(spliced['wave'], spliced['flux'], c='k')
 
-    ax.set_xlim(3000, 10000)
+    bottom_b, top_b = show_spectrum.sensible_ylim(spec_b['wave'], spec_b['flux'])
+    bottom_r, top_r = show_spectrum.sensible_ylim(spec_r['wave'], spec_r['flux'])
+    bottom_s, top_s = show_spectrum.sensible_ylim(spliced['wave'], spliced['flux'])
+
+    bottom = min(bottom_b, bottom_r, bottom_s)
+    top = max(top_b, top_r, top_s)
+    ax.set_ylim(bottom, top)
 
     ax.set_xlabel(r"Wavelength ($\AA$)")
     ax.set_ylabel(r"Flux ($10^{-17}\mathrm{erg}/\mathrm{s}/\mathrm{cm}^2/\AA$)")

@@ -4,7 +4,7 @@ All-purpose interactive spectrum plotter for DBSP_DRP and intermediate PypeIt fi
 import argparse
 import os
 import sys
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -108,12 +108,36 @@ def plot(wave: np.ndarray, flux: np.ndarray, err: np.ndarray, title: str) -> Non
     plt.xlabel(r"Wavelength ($\AA$)")
     plt.ylabel(r"Flux ($10^{-17}\mathrm{erg}/\mathrm{s}/\mathrm{cm}^2/\AA$)")
 
-    top1 = np.abs(np.percentile(flux, 95)) * 1.5
-    top2 = np.max(flux[wave > 4000]) * 1.1
-    top = max(top1, top2)
-    bottom = -0.05 * top
-
-    plt.ylim(bottom, top)
+    plt.ylim(sensible_ylim(wave, flux))
     plt.legend()
     plt.title(title)
     plt.show()
+
+def sensible_ylim(wave: np.ndarray, flux: np.ndarray) -> Tuple[float, float]:
+    """
+    Returns a tuple of sensible y-axis limits for plotting spectra.
+
+    Usage:
+
+    >>> plt.step(wave, flux)
+    >>> plt.ylim(sensible_ylim(wave, flux))
+    >>> plt.show()
+
+    Args:
+        wave (np.ndarray): wavelength array
+        flux (np.ndarray): flux array
+
+    Returns:
+        Tuple[float, float]: bottom, top
+    """
+    top1 = np.abs(np.percentile(flux, 95)) * 1.5
+    print(top1)
+
+    minwave = wave[int(len(wave) * 0.1)]
+    maxwave = wave[int(len(wave) * 0.9)]
+
+    top2 = np.max(flux[(wave > minwave) & (wave < maxwave)]) * 1.1
+    print(top2)
+    top = max(top1, top2)
+    bottom = -0.05 * top
+    return bottom, top
