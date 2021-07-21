@@ -138,6 +138,17 @@ def adjust_and_combine_overlap(
     # maybe need to fix the overlaps?
     # need more finely spaced grid to be completely contained within coarser grid
 
+    if overlap_lo > overlap_hi:
+        # there is no overlap!
+        # we can't adjust the flux level
+        # so we just concatenate!
+        final_wvs = np.concatenate([spec_b['wave'], spec_r['wave']])
+        final_flam = np.concatenate([spec_b['flux'], spec_r['flux']*red_mult])
+        final_flam_sig = np.concatenate([spec_b['ivar'] ** -0.5, (spec_r['ivar'] ** -0.5) * red_mult])
+        return ((final_wvs, final_flam, final_flam_sig),
+            (spec_r['wave'], spec_r['flux'], spec_r['ivar'] ** -0.5),
+            (spec_b['wave'], spec_b['flux'], spec_b['ivar'] ** -0.5))
+
     olap_r = (spec_r['wave'] < overlap_hi)
     olap_b = (spec_b['wave'] > overlap_lo)
 
@@ -163,7 +174,6 @@ def adjust_and_combine_overlap(
     olap_flam_b = spec_b['flux'][olap_b][:-1]
     olap_flam_sig_b = spec_b['ivar'][olap_b][:-1] ** -0.5
 
-    olap_flam_r_interp = np.interp(olap_wvs_b, olap_wvs_r, olap_flam_r)
     olap_flam_r_interp, olap_flam_sig_r_interp = interp_w_error(olap_wvs_b, olap_wvs_r, olap_flam_r, olap_flam_sig_r, interpolate_gaps)
 
     olap_flams = np.array([olap_flam_r_interp, olap_flam_b])
