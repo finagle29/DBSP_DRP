@@ -14,7 +14,9 @@ from pypeit.pypeitsetup import PypeItSetup
 from pypeit.core import framematch
 from pypeit import pypeit
 from pypeit import fluxcalibrate
-from pypeit.scripts import show_2dspec, show_1dspec
+from pypeit.scripts import show_2dspec
+
+from dbsp_drp import show_spectrum
 
 def get_cfg_lines(spectrograph: str) -> List[str]:
     cfg_lines = [
@@ -154,14 +156,13 @@ def main(args: argparse.Namespace):
             parr = [ None ] * specs
             for i in range(specs):
                 parr[i] = Process(target = show_spec1d_helper,
-                    args=(str(i), output_spec1ds[0]))
+                    args=(str(i+1), output_spec1ds[0]))
                 parr[i].start()
 
 def show_spec2d_helper(file):
     return show_2dspec.Show2DSpec.main(show_2dspec.Show2DSpec.parse_args([file]))
 
 def show_spec1d_helper(exten, file):
-    return show_1dspec.Show1DSpec.main(
-        show_1dspec.Show1DSpec.parse_args(['--extract', 'BOX', '--exten', exten,
-            '--flux', file])
+    return show_spectrum.main(
+        show_spectrum.parser(['--BOX', '--exten', exten, file])
     )
