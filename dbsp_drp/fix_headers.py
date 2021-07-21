@@ -2,12 +2,15 @@ import os
 import io
 import glob
 from datetime import datetime
+import sys
 
 from astropy.io import fits
 from astropy.coordinates import Angle, SkyCoord, AltAz, EarthLocation
 from astropy.time import Time
 import astropy.units as u
 
+def entrypoint():
+    main(sys.argv[1], False, True)
 
 def _get_ra_or_dec(fname, is_ra, header, modified_str, prompt_user) -> bool:
     kw = 'RA' if is_ra else 'DEC'

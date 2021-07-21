@@ -16,6 +16,9 @@ from pypeit.onespec import OneSpec
 from pypeit import msgs
 from pypeit.pypmsgs import PypeItError
 
+def entrypoint():
+    main(parser())
+
 def parser(options: Optional[List[str]] = None) -> argparse.Namespace:
     argparser = argparse.ArgumentParser(description="All-purpose interactive "
         "spectrum plotter for DBSP_DRP and intermediate PypeIt files.",

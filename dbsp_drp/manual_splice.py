@@ -14,6 +14,9 @@ import dbsp_drp
 from pypeit.history import History
 from dbsp_drp import splicing, adjust_splicing
 
+def entrypoint():
+    main(parse())
+
 def parse(options: Optional[List[str]] = None) -> argparse.Namespace:
     argparser = argparse.ArgumentParser(description="Manually splice two coadded files together for DBSP.\n"
         "After preparing the spliced spectrum, the dbsp_adjust_splicing GUI pops up to allow for the splicing "

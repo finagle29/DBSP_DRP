@@ -18,6 +18,9 @@ from pypeit.scripts import show_2dspec
 
 from dbsp_drp import show_spectrum
 
+def entrypoint():
+    main(parse())
+
 def get_cfg_lines(spectrograph: str) -> List[str]:
     cfg_lines = [
         "[rdx]",

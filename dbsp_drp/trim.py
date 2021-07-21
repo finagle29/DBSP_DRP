@@ -4,6 +4,8 @@ from typing import Optional, List
 
 from astropy.io import fits
 
+def entrypoint():
+    main(parse())
 
 def parse(options: Optional[List[str]] = None) -> argparse.Namespace:
     argparser = argparse.ArgumentParser(description="Trim spliced spectrum to wavelength range.",

@@ -25,6 +25,9 @@ from dbsp_drp import table_edit
 from dbsp_drp import fix_headers
 
 
+def entrypoint():
+    main(parser())
+
 def parser(options: Optional[List[str]] = None) -> argparse.Namespace:
     """Parses command line arguments
 

@@ -12,6 +12,9 @@ from PySide2 import QtWidgets
 from dbsp_drp.splicing import adjust_and_combine_overlap
 from dbsp_drp import show_spectrum
 
+def entrypoint():
+    main(parse())
+
 def parse(options: Optional[List[str]] = None) -> argparse.Namespace:
     argparser = argparse.ArgumentParser(description="Red/Blue splicing adjustment for P200 DBSP",
         formatter_class=argparse.RawTextHelpFormatter)
