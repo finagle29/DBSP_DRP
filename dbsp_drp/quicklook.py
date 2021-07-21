@@ -40,7 +40,8 @@ def parse(options: Optional[List[str]] = None) -> argparse.Namespace:
     argparser = argparse.ArgumentParser(description="Quicklook for P200 DBSP",
         formatter_class=argparse.RawTextHelpFormatter)
 
-    argparser.add_argument("fname", type=str, help="file to take a quick look at, or else red/blue\n"
+    argparser.add_argument("fname", type=str, nargs="+",
+        help="file to take a quick look at, or else red/blue\n"
         "to just perform rough calibrations")
 
     argparser.add_argument("--no-show", default=False, action="store_true",
@@ -51,10 +52,13 @@ def parse(options: Optional[List[str]] = None) -> argparse.Namespace:
 def main(args: argparse.Namespace):
     t = time.perf_counter()
     # need an arc frame and a flat frame
-    root = args.fname.rstrip('0123456789.fits')
-    paths = glob.glob(f'{root}*.fits')
+    if all('red' in os.path.basename(fname) for fname in args.fname):
+        spectrograph = 'p200_dbsp_red'
+    elif all('blue' in os.path.basename(fname) for fname in args.fname):
+        spectrograph = 'p200_dbsp_blue'
+    else:
+        sys.exit(f"Raw files must be from same spectrograph: {args.fname}.")
 
-    spectrograph = 'p200_dbsp_red' if 'red' in os.path.basename(args.fname) else 'p200_dbsp_blue'
     arm = spectrograph.split('_')[-1]
 
     CFG_LINES = get_cfg_lines(spectrograph)
@@ -63,9 +67,11 @@ def main(args: argparse.Namespace):
     arcimg = ""
     sciimg = args.fname
 
-    calib_only = not os.path.isfile(sciimg)
+    calib_only = any(not os.path.isfile(fname) for fname in args.fname)
 
     if calib_only:
+        root = args.fname.rstrip('0123456789.fits')
+        paths = glob.glob(f'{root}*.fits')
 
         for path in paths:
             with fits.open(path) as hdul:
@@ -82,7 +88,7 @@ def main(args: argparse.Namespace):
             raise Exception(f"Could not find a flat and an arc frame in the same directory as {root}!")
         files = [arcimg, flatimg]
     else:
-        files = [sciimg]
+        files = args.fname
 
     ps = PypeItSetup(files, path="./", spectrograph_name=spectrograph,
         cfg_lines = CFG_LINES)
@@ -94,7 +100,9 @@ def main(args: argparse.Namespace):
         file_bits[0] = bm.turn_on(file_bits[0], ['arc', 'tilt'])
         file_bits[1] = bm.turn_on(file_bits[1], ['pixelflat', 'trace', 'illumflat'])
     else:
-        file_bits[0] = bm.turn_on(file_bits[0], 'science')
+        for i in range(len(files)):
+            file_bits[i] = bm.turn_on(file_bits[i], 'science')
+        ps.fitstbl['calib_id'] = 1
 
     asrt = np.array([ps.fitstbl['filename'].data.tolist().index(os.path.basename(fname)) for fname in files])
     ps.fitstbl.set_frame_types(file_bits[asrt])
@@ -126,7 +134,13 @@ def main(args: argparse.Namespace):
         ]))
 
     if output_spec1ds and not calib_only:
-        sensfiles = [resource_filename("dbsp_drp", f"data/sens_{arm}_archived.fits")]
+        spec = ps.spectrograph
+        config = '_'.join([
+            arm,
+            spec.get_meta_value(sciimg[0], 'dispname').replace('/', '_'),
+            spec.get_meta_value(sciimg[0], 'dichroic').lower()
+        ])
+        sensfiles = [resource_filename("dbsp_drp", f"data/sens_{config}.fits")]
         FxCalib = fluxcalibrate.FluxCalibrate.get_instance(output_spec1ds, sensfiles, par=ps.par['fluxcalib'])
 
     print(f"Time elapsed: {time.perf_counter() - t}s.")
