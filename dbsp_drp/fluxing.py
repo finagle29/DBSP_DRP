@@ -19,6 +19,16 @@ from pypeit import fluxcalibrate
 from pypeit.scripts.flux_calib import read_fluxfile
 from pypeit.spectrographs.util import load_spectrograph
 
+archived_sensfuncs = [
+    'blue_300_3990_d55', # current wavelength range 3000 - 7500 Å
+    'blue_600_4000_d55', # current wavelength range 3000 - 6200 Å
+    'blue_600_4000_d68', # current wavelength range 3730 - 6800 Å
+    'red_316_7500_d55',  # current wavelength range 4600 - 11000 Å
+    'red_600_10000_d55', # current wavelength range 5500 - 9000 Å
+    'red_1200_7100_d68', # current wavelength range 7420 - 9060 Å
+    'red_1200_9400_d55', # current wavelength range 8000 - 9600 Å
+]
+
 def make_sensfunc(standard_file: str, output_path: str, spectrograph: str,
         user_config_lines: List[str], debug: bool = False) -> str:
     """
@@ -32,14 +42,11 @@ def make_sensfunc(standard_file: str, output_path: str, spectrograph: str,
 
         outfile = os.path.join(output_path, standard_file.replace('spec1d', 'sens'))
 
-        #par['sensfunc']['UVIS']['extinct_correct'] = False
-
-        sensobj = sensfunc.SensFunc.get_instance(spec1dfile, outfile, par=par['sensfunc'], debug=debug)
 
         # read in spec1dfile to get wavelengths
         sobjs = SpecObjs.from_fitsfile(spec1dfile)
         wave_star = sobjs[0].OPT_WAVE
-        orig_mask = sensobj.counts_mask.copy()
+        orig_mask = sobjs[0].OPT_MASK.reshape((len(wave_star), 1))
         mask = np.ones_like(orig_mask).astype(bool)
 
         if 'red' in spectrograph:
@@ -55,6 +62,8 @@ def make_sensfunc(standard_file: str, output_path: str, spectrograph: str,
             mask[wave_star < 3000] = False
             par['sensfunc']['UVIS']['nresln'] = 4.5
             par['sensfunc']['UVIS']['balm_mask_wid'] = 0
+
+        sensobj = sensfunc.SensFunc.get_instance(spec1dfile, outfile, par=par['sensfunc'], debug=debug)
 
         sensobj.counts_mask &= mask
 
@@ -103,11 +112,15 @@ def build_fluxfile(spec1d_to_sensfunc: Dict[str,str], output_path: str,
     cfg_lines.append('flux read')
     for spec1d, sensfun in spec1d_to_sensfunc.items():
         spec_path = os.path.join(output_path, 'Science', spec1d)
-        if sensfun:
-            sens_path = os.path.join(output_path, sensfun)
-        else:
-            arm = spectrograph.split('_')[-1]
-            sens_path = resource_filename("dbsp_drp", f"data/sens_{arm}_archived.fits")
+        sens_path = os.path.join(output_path, sensfun)
+        if not os.path.isfile(sens_path):
+            if sensfun in archived_sensfuncs:
+                sens_path = resource_filename("dbsp_drp", f"data/sens_{sensfun}.fits")
+            else:
+                print(f"WARNING: sensitivity function {sensfun} could not be located, and is not archived by DBSP_DRP")
+                print("Please add a standard star exposure taken with the same configuration to your raw data folder "
+                    "and restart data reduction")
+                sens_path = ''
         cfg_lines.append(f'  {spec_path} {sens_path}')
     cfg_lines.append('flux end')
 

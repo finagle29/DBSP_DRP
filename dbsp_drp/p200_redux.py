@@ -16,6 +16,7 @@ from astropy.table import Table, Column, Row
 
 from pypeit.pypeitsetup import PypeItSetup
 import pypeit.display
+from pypeit.spectrographs.util import load_spectrograph
 
 import tqdm
 
@@ -262,6 +263,16 @@ def main(args):
     if do_red:
         arm = spec1d_table['arm'] == 'red'
         stds = (spec1d_table['frametype'] == 'standard') & arm
+
+        red_arm = load_spectrograph('p200_dbsp_red')
+        rawfile = os.path.join(args.root,
+            spec1d_table[arm][0]['filename'].split('_')[1].split('-')[0] + '.fits'
+        )
+        config = '_'.join([
+            'red',
+            red_arm.get_meta_value(rawfile, 'dispname').replace('/', '_'),
+            red_arm.get_meta_value(rawfile, 'dichroic').lower()
+        ])
         if np.any(stds):
             for row in spec1d_table[arm]:
                 if row['frametype'] == 'science':
@@ -274,10 +285,20 @@ def main(args):
                 spec1d_table.loc[row['filename']]['sensfunc'] = best_sens
         else:
             for filename in spec1d_table[arm]['filename']:
-                spec1d_table.loc[filename]['sensfunc'] = ''
+                spec1d_table.loc[filename]['sensfunc'] = config
     if do_blue:
         arm = spec1d_table['arm'] == 'blue'
         stds = (spec1d_table['frametype'] == 'standard') & arm
+
+        blue_arm = load_spectrograph('p200_dbsp_blue')
+        rawfile = os.path.join(args.root,
+            spec1d_table[arm][0]['filename'].split('_')[1].split('-')[0] + '.fits'
+        )
+        config = '_'.join([
+            'blue',
+            blue_arm.get_meta_value(rawfile, 'dispname').replace('/', '_'),
+            blue_arm.get_meta_value(rawfile, 'dichroic').lower()
+        ])
         if np.any(stds):
             for row in spec1d_table[arm]:
                 if row['frametype'] == 'science':
@@ -290,7 +311,7 @@ def main(args):
                 spec1d_table.loc[row['filename']]['sensfunc'] = best_sens
         else:
             for filename in spec1d_table[arm]['filename']:
-                spec1d_table.loc[filename]['sensfunc'] = ''
+                spec1d_table.loc[filename]['sensfunc'] = config
 
     # build fluxfile
     if do_red:
