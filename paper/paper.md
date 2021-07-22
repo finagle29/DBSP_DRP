@@ -20,8 +20,6 @@ affiliations:
     index: 1
   - name: Division of Physics, Mathematics and Astronomy, California Institute of Technology
     index: 2
-  - name: Caltech Optical Observatories, California Institute of Technology
-    index: 3
 date: 22 June 2021
 bibliography: paper.bib
 nocite: |
@@ -66,7 +64,7 @@ The new functionality that DBSP_DRP brings is in orchestrating the complex data
 reduction process by making smart decisions so that no user input is required
 after verifying the correctness of the metadata in the raw FITS files in a
 table-like GUI.
-Though the primary function of DBSP_DRP is to autmatically reduce an entire
+Though the primary function of DBSP_DRP is to automatically reduce an entire
 night of data without user input, it has the flexibility for astronomers to
 fine-tune the data reduction with GUIs for manually identifying the faintest
 objects, as well as exposing the full set of PypeIt parameters to be tweaked
