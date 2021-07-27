@@ -37,3 +37,41 @@ jobs:
       - name: Testing with pytest
         run: |
           pytest
+
+  test_dev:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9]
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          environment-file: environment.yml
+          activate-environment: dbsp_drp
+          python-version: ${{ matrix.python-version }}
+          channel-priority: strict
+
+      - run: |
+          conda info
+          conda config --show-sources
+          conda config --show
+          conda remove --force pypeit
+          conda install pip
+          pip install git+https://github.com/pypeit/pypeit.git@develop#egg=pypeit
+
+      - name: Install DBSP_DRP
+        run: |
+          pip install -e .
+          conda list
+          pip list
+
+      - name: Testing with pytest
+        run: |
+          pytest
