@@ -76,7 +76,7 @@ def main(args: argparse.Namespace):
     calib_only = any(not os.path.isfile(fname) for fname in args.fname)
 
     if calib_only:
-        root = args.fname.rstrip('0123456789.fits')
+        root = args.fname[0].rstrip('0123456789.fits')
         paths = glob.glob(f'{root}*.fits')
 
         for path in paths:
