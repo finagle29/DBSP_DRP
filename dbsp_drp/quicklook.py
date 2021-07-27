@@ -1,6 +1,7 @@
 import argparse
 import os
 import time
+import sys
 from typing import List, Optional
 import glob
 from multiprocessing import Process

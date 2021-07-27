@@ -134,13 +134,12 @@ def sensible_ylim(wave: np.ndarray, flux: np.ndarray) -> Tuple[float, float]:
         Tuple[float, float]: bottom, top
     """
     top1 = np.abs(np.percentile(flux, 95)) * 1.5
-    print(top1)
 
     minwave = wave[int(len(wave) * 0.1)]
     maxwave = wave[int(len(wave) * 0.9)]
 
     top2 = np.max(flux[(wave > minwave) & (wave < maxwave)]) * 1.1
-    print(top2)
+
     top = max(top1, top2)
     bottom = -0.05 * top
     return bottom, top
