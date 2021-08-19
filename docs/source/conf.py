@@ -18,7 +18,7 @@ import sphinx_rtd_theme
 # -- Project information -----------------------------------------------------
 
 project = 'DBSP_DRP'
-copyright = '2020, Milan S. Roberson'
+copyright = '2020-2021, California Institute of Technology'
 author = 'Milan S. Roberson'
 
 
