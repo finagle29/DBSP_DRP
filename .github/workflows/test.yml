@@ -12,6 +12,11 @@ jobs:
       matrix:
         python-version: [3.8, 3.9]
       fail-fast: false
+    # okay to fail if:
+    #   on == push && branch != main
+    #   OR
+    #   on == pull_request && target != main
+    continue-on-error: ${{ ((github.event_name == 'push') && (github.ref != 'refs/heads/main')) || ((github.event_name == 'push') && (github.base_ref != 'refs/heads/main')) }}
 
     steps:
       - uses: actions/checkout@v2
@@ -47,6 +52,11 @@ jobs:
       matrix:
         python-version: [3.8, 3.9]
       fail-fast: false
+    # okay to fail if:
+    #   on == push && branch == main
+    #   OR
+    #   on == pull_request && target == main
+    continue-on-error: ${{ ((github.event_name == 'push') && (github.ref == 'refs/heads/main')) || ((github.event_name == 'push') && (github.base_ref == 'refs/heads/main')) }}
 
     steps:
       - uses: actions/checkout@v2
