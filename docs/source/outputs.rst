@@ -6,13 +6,13 @@ Assuming you ran DBSP_DRP with ``dbsp_reduce -r $RAW_PATH -d $OUTPUT_PATH``,
 then in the ``$OUTPUT_PATH/Science`` directory you will find
 
 PypeIt 2D Spectrum files ``spec2d_redNNNN-target_DBSPr_obstimestamp.fits``
-described in more detail `here <https://pypeit.readthedocs.io/en/latest/out_spec2D.html>`_.
+described in more detail `here <https://pypeit.readthedocs.io/en/latest/out_spec2D.html>`__.
 Briefly, these files hold flat-fielded 2d spectral images, as well as sky, noise, object,
 wavelength, and bad pixel mask images.
 These files can be visually inspected using the command ``pypeit_show_2dspec SPEC2D_FILE``.
 
 PypeIt 1D Spectrum files ``spec1d_redNNNN-target_DBSPr_obstimstamp.fits``
-described in more detail `here <https://pypeit.readthedocs.io/en/latest/out_spec1D.html>`_.
+described in more detail `here <https://pypeit.readthedocs.io/en/latest/out_spec1D.html>`__.
 Briefly, these files hold 1d spectra for each object that was traced and extracted from the
 raw frame. Each object's spectrum is stored in a separate extension of the FITS file, and the
 extension names are of the form ``SPATNNNN-SLITMMMM-DET01`` where the SPAT number describes the
@@ -23,7 +23,7 @@ These files can be visually inspected using the command ``pypeit_show_1dspec --e
 to view extension N of the file.
 
 PypeIt 1D Coadd files ``redNNNN-redNNNN_target_SPATNNNN.fits`` described in more detail
-`here <https://pypeit.readthedocs.io/en/latest/coadd1d.html#current-coadd1d-data-model>`_.
+`here <https://pypeit.readthedocs.io/en/latest/coadd1d.html#current-coadd1d-data-model>`__.
 These files exist to separate out multiple objects on the same frame into their own file, and to
 coadd consecutive exposures of the same frame.
 These files can be visually inspected using the command ``lt_xspec COADD_FILE``.

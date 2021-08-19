@@ -91,9 +91,14 @@ def group_coadds(fname_to_spats: dict):
     """
     Groups coadds. Destroys input.
 
-    Takes in dict mapping filenames to a list of integer spatial positions
-    Returns list of dicts mapping 'fnames' to a list of filenames and 'spats'
-        to a list of integer spatial positions.
+    Args:
+        fname_to_spats (dict): maps filenames to a list of integer spatial
+            positions
+
+    Returns:
+        List[Dict[str, Union[List[str], List[int]]]]: Returns a list of dicts
+            mapping 'fnames' to a list of filenames and 'spats' to a list of
+            integer spatial positions.
     """
     # input is dict mapping fname to spats
     # end result is mapping from arb. label of trace -> spats list and fnames list
