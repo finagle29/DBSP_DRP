@@ -16,7 +16,7 @@ jobs:
     #   on == push && branch != main
     #   OR
     #   on == pull_request && target != main
-    continue-on-error: ${{ ((github.event_name == 'push') && (github.ref != 'refs/heads/main')) || ((github.event_name == 'push') && (github.base_ref != 'refs/heads/main')) }}
+    continue-on-error: ${{ ((github.event_name == 'push') && (github.ref != 'refs/heads/main')) || ((github.event_name == 'pull_request') && (github.base_ref != 'refs/heads/main')) }}
 
     steps:
       - uses: actions/checkout@v2
@@ -56,7 +56,7 @@ jobs:
     #   on == push && branch == main
     #   OR
     #   on == pull_request && target == main
-    continue-on-error: ${{ ((github.event_name == 'push') && (github.ref == 'refs/heads/main')) || ((github.event_name == 'push') && (github.base_ref == 'refs/heads/main')) }}
+    continue-on-error: ${{ ((github.event_name == 'push') && (github.ref == 'refs/heads/main')) || ((github.event_name == 'pull_request') && (github.base_ref == 'refs/heads/main')) }}
 
     steps:
       - uses: actions/checkout@v2
