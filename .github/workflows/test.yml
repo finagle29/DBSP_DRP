@@ -74,7 +74,7 @@ jobs:
           conda config --show
           conda remove --force pypeit
           conda install pip
-          pip install git+https://github.com/pypeit/pypeit.git@develop#egg=pypeit
+          pip install git+https://github.com/pypeit/pypeit.git@1.4.2#egg=pypeit
 
       - name: Install DBSP_DRP
         run: |
