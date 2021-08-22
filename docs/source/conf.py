@@ -13,8 +13,7 @@
 import os
 import sys
 import sphinx_rtd_theme
-import dbsp_drp
-
+import importlib.metadata
 
 # -- Project information -----------------------------------------------------
 
@@ -22,7 +21,7 @@ project = 'DBSP_DRP'
 copyright = '2020-2021, California Institute of Technology'
 author = 'Milan S. Roberson'
 
-version = dbsp_drp.__version__
+version = importlib.metadata.version('dbsp_drp')
 
 # -- General configuration ---------------------------------------------------
 
