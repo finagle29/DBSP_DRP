@@ -21,7 +21,8 @@ project = 'DBSP_DRP'
 copyright = '2020-2021, California Institute of Technology'
 author = 'Milan S. Roberson'
 
-version = importlib.metadata.version('dbsp_drp')
+release = importlib.metadata.version('dbsp_drp')
+version = release.split('+')[0]
 
 # -- General configuration ---------------------------------------------------
 
