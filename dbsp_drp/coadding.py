@@ -42,13 +42,13 @@ def coadd(grouped_spats_list: List[dict], output_path: str, spectrograph: str,
     Args:
         grouped_spats_list (List[dict]): a list of dicts mapping ``fnames`` to a list of filenames
             and ``spats`` to a list of integer spatial pixel positions.
-        output_path (str): [description]
-        spectrograph (str): [description]
-        user_config_lines (List[str]): [description]
-        debug (bool, optional): [description]. Defaults to False.
+        output_path (str): Coadded files will be written to ``output_path/Science``
+        spectrograph (str): PypeIt name of spectrograph.
+        user_config_lines (List[str]): User-provided PypeIt configuration.
+        debug (bool, optional): Show debugging output/plots? Defaults to False.
 
     Returns:
-        List[str]: Returns a list of filenames of coadded spectra.
+        List[str]: List of filenames of coadded spectra.
     """
     outfiles = []
     for d in grouped_spats_list:
@@ -77,6 +77,17 @@ def coadd(grouped_spats_list: List[dict], output_path: str, spectrograph: str,
 
 def coadd_one_object(spec1dfiles: List[str], objids: List[str], coaddfile: str,
         spectrograph: str, user_config_lines: List[str], debug: bool = False):
+    """
+    Coadds multiple 1D spectra of one object.
+
+    Args:
+        spec1dfiles (List[str]): List of spec1d files to coadd.
+        objids (List[str]): List of object IDs to coadd.
+        coaddfile (str): Outpath path and filename for coadd file.
+        spectrograph (str): PypeIt name of spectrograph
+        user_config_lines (List[str]): User-provided PypeIt configuration
+        debug (bool, optional): Show debugging output/plots? Defaults to False.
+    """
     par = load_spectrograph(spectrograph).default_pypeit_par()
     default_cfg_lines = par.to_config()
     par = pypeitpar.PypeItPar.from_cfg_lines(cfg_lines = default_cfg_lines, merge_with=user_config_lines)
@@ -96,9 +107,9 @@ def group_coadds(fname_to_spats: dict):
             positions
 
     Returns:
-        List[Dict[str, Union[List[str], List[int]]]]: Returns a list of dicts
-            mapping 'fnames' to a list of filenames and 'spats' to a list of
-            integer spatial positions.
+        List[Dict[str, Union[List[str], List[int]]]]: List of dicts mapping
+        'fnames' to a list of filenames and 'spats' to a list of
+        integer spatial positions.
     """
     # input is dict mapping fname to spats
     # end result is mapping from arb. label of trace -> spats list and fnames list

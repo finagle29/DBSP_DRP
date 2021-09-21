@@ -60,7 +60,6 @@ class ManualTracingGUI:
         self.targets = list(specs_dict)#.keys()
         self.spec_index = 0
 
-        self.manual_dict = {targ: [] for targ in self.targets}
         self.manual_dict = {targ: {'spat_spec': [],
                                     'fwhm': [],
                                     'bgs': [],
