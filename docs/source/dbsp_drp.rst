@@ -12,6 +12,14 @@ Subpackages
 Submodules
 ----------
 
+dbsp\_drp.adjust\_splicing module
+---------------------------------
+
+.. automodule:: dbsp_drp.adjust_splicing
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 dbsp\_drp.coadding module
 -------------------------
 
@@ -48,6 +56,14 @@ dbsp\_drp.manual\_aperture module
 ---------------------------------
 
 .. automodule:: dbsp_drp.manual_aperture
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+dbsp\_drp.manual\_splice module
+-------------------------------
+
+.. automodule:: dbsp_drp.manual_splice
    :members:
    :undoc-members:
    :show-inheritance:
@@ -92,6 +108,14 @@ dbsp\_drp.reduction module
    :undoc-members:
    :show-inheritance:
 
+dbsp\_drp.show\_spectrum module
+-------------------------------
+
+.. automodule:: dbsp_drp.show_spectrum
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 dbsp\_drp.splicing module
 -------------------------
 
@@ -112,6 +136,22 @@ dbsp\_drp.telluric module
 -------------------------
 
 .. automodule:: dbsp_drp.telluric
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+dbsp\_drp.trim module
+---------------------
+
+.. automodule:: dbsp_drp.trim
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+dbsp\_drp.version module
+------------------------
+
+.. automodule:: dbsp_drp.version
    :members:
    :undoc-members:
    :show-inheritance:

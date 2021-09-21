@@ -26,7 +26,7 @@ of the red and blue sides of one night's data.
 It adds several GUIs to allow for easier control of your reduction:
 
 - select which data to reduce, and verify the correctness of your FITS headers in an editable table GUI
-- manually place traces for a sort of manually "forced" spectroscopy with the `-m` option
+- manually place traces for a sort of manually "forced" spectroscopy with the ``-m`` option
 - after manually placing traces, manually select sky regions and tweak the FWHM of your manual traces
 
 DBSP_DRP also provides a quicklook script for making real-time decisions during
@@ -80,7 +80,7 @@ object observed is the right one.
 
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Getting Started:
 
    installing
@@ -91,12 +91,29 @@ object observed is the right one.
 ----
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
+   :caption: Post-Reduction
+
+   viewing
+   trim
+
+----
+
+.. toctree::
+   :maxdepth: 1
    :caption: Fine-tuning Your Reduction:
 
    manual_extraction
    qa
    adjust_splicing
+
+----
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Installing DBSP_DRP On-site
+
+   docker
 
 ----
 
