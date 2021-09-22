@@ -2,7 +2,17 @@
 Installing DBSP_DRP
 *******************
 
-Conda is the recommended package manager used to install ``DBSP_DRP``.
+Conda is the recommended method for installing ``DBSP_DRP``.
+
+
+Using conda
+###########
+
+Install ``DBSP_DRP`` from conda by running
+
+.. code-block :: console
+
+    $ conda install -c conda-forge dbsp_drp
 
 Using pip
 #########
@@ -86,7 +96,7 @@ Make sure your PypeIt installation was successful
 The expected output of this command is a usage/help message for PypeIt, which
 confirms that PypeIt is installed correctly.
 
-Run some built-in tests for DBSP_DRP, including verification that the quicklook script works
+Run some built-in tests for ``DBSP_DRP``, including verification that the quicklook script works
 
 .. code-block:: console
 
