@@ -24,7 +24,7 @@ def parser(options: Optional[List[str]] = None) -> argparse.Namespace:
         "spectrum plotter for DBSP_DRP and intermediate PypeIt files.",
         formatter_class=argparse.RawTextHelpFormatter)
 
-    argparser.add_argument("fname", type=str, help="path to fits file")
+    argparser.add_argument("fname", type=str, help="path to FITS file")
 
     argparser.add_argument("--extension", type=str, default=None,
                            help="Extension name or number")
@@ -41,6 +41,19 @@ def parser(options: Optional[List[str]] = None) -> argparse.Namespace:
 
 # all purpose spectrum viewer
 def main(args: argparse.Namespace) -> None:
+    """
+    Attempts to parse input FITS file as ``OneSpec``, ``SpecObjs``, and
+    DBSP_DRP final data output.
+
+    Args:
+        args (argparse.Namespace): input arguments
+
+    Raises:
+        LookupError: Raised if the input extension is not found in the input
+            FITS file.
+        IndexError: Raised if the input integer extension is outside of the
+            valid range for indexing the input FITS file's extensions.
+    """
     try:
         extension = int(args.extension)
     except:
@@ -102,8 +115,13 @@ def plot(wave: np.ndarray, flux: np.ndarray, err: np.ndarray, title: str) -> Non
     """
     Plots spectrum and error with sensible y-scale limits.
 
+    Flux and error have units of :math:`10^{-17}\\mathrm{erg}/\\mathrm{s}/\\mathrm{cm}^2/\\overset{\\circ}{\\mathrm{A}}`.
+
     Args:
-        spec (fits.FITS_rec): Spectrum to plot
+        wave (np.ndarray): Wavelengh array
+        flux (np.ndarray): Flux array
+        err (np.ndarray): Flux error array
+        title (str): Plot title.
     """
     plt.step(wave, flux, c='k', label='spectrum')
     plt.step(wave, err, c='gray', label='error')

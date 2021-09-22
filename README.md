@@ -39,9 +39,6 @@ or use this BibTeX reference
 
 and please also cite [PypeIt](https://github.com/pypeit/PypeIt#citation).
 
-## Citation
-If you use DBSP_DRP in your research, please also reference [PypeIt](https://github.com/pypeit/PypeIt#citation).
-
 ## Prerequisites
 DBSP_DRP's dependencies are detailed in [environment.yml](environment.yml).
 You can install all prerequisites by downloading the environment.yml file, navigating to the directory containing it in your terminal window and running

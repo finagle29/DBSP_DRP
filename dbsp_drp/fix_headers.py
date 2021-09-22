@@ -3,6 +3,7 @@ import io
 import glob
 from datetime import datetime
 import sys
+from typing import List
 
 from astropy.io import fits
 from astropy.coordinates import Angle, SkyCoord, AltAz, EarthLocation
@@ -12,7 +13,23 @@ import astropy.units as u
 def entrypoint():
     main(sys.argv[1], False, True)
 
-def _get_ra_or_dec(fname, is_ra, header, modified_str, prompt_user) -> bool:
+def _get_ra_or_dec(fname: str, is_ra: bool, header: fits.Header,
+        modified_str: str, prompt_user: bool) -> bool:
+    """
+    Verifies that RA/DEC keyword in ``header`` exists and can be parsed as an
+    Angle. Optionally prompts user to correct the value.
+
+    Args:
+        fname (str): name of file being checked.
+        is_ra (bool): True to check RA, False to check DEC.
+        header (fits.Header): Header being checked.
+        modified_str (str): String appended to the keyword's comment noting
+            when the header card was modified.
+        prompt_user (bool): Prompt user for RA/DEC if missing/bad?
+
+    Returns:
+        bool: True iff the RA/DEC value is good.
+    """
     kw = 'RA' if is_ra else 'DEC'
     unit = 'hour' if is_ra else 'deg'
     coord_str = None
@@ -49,7 +66,24 @@ def _get_ra_or_dec(fname, is_ra, header, modified_str, prompt_user) -> bool:
                 print(f"File {fname} is missing {kw} keyword in header. Be sure to correct this!")
             return False
 
-def main(path_prefix, throw_errors, prompt_user):
+def main(path_prefix: str, throw_errors: bool, prompt_user: bool) -> List[str]:
+    """
+    Fixes FITS files found in ``path_prefix/*.fits`` or ``path_prefix*.fits``
+    for common DBSP errors: empty file, extra bytes at the end, swapped
+    GRATING/ANGLE values, missing/wrong RA/DEC/AIRMASS.
+
+    Args:
+        path_prefix (str): Where to look for FITS files.
+        throw_errors (bool): Raise error when file cannot be automatically fixed?
+        prompt_user (bool): Prompt user to fix missing/bad headers?
+
+    Raises:
+        ValueError: If ``throw_errors``, raised when ANGLE and GRATING both
+            cannot be parsed as angles.
+
+    Returns:
+        List[str]: list of files with headers good enough to start reduction.
+    """
     dt = datetime.now()
     modified_str = f" Modified {dt.isoformat(timespec='seconds')}"
 
@@ -90,6 +124,7 @@ def main(path_prefix, throw_errors, prompt_user):
                 except:
                     msg = (f"In {fname} ANGLE in header ({header['ANGLE']}) is not parseable as an angle" +
                         f"and neither is GRATING ({header['GRATING']}), the usual suspect.")
+                    ## TODO: if prompt_user, prompt user for correct ANGLE/GRATING values.
                     if throw_errors:
                         raise ValueError(msg) from exc
                     else:

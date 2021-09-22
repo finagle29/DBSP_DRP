@@ -1,3 +1,6 @@
+"""
+Command-line tool for tripping spliced spectrum to a specified wavelength range.
+"""
 import argparse
 import os
 from typing import Optional, List
@@ -15,10 +18,10 @@ def parse(options: Optional[List[str]] = None) -> argparse.Namespace:
         "output from DBSP_DRP to trim. Can be multiple files.")
 
     argparser.add_argument("--low", type=float, default=3300,
-        help="Min wavelength after trimming")
+        help="Min wavelength after trimming. Default is 3300 Å.")
 
     argparser.add_argument("--high", type=float, default=10500,
-        help="Max wavelength after trimming")
+        help="Max wavelength after trimming. Default is 10500 Å.")
 
     return argparser.parse_args() if options is None else argparser.parse_args(options)
 

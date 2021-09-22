@@ -22,7 +22,23 @@ from pypeit import msgs
 from pypeit.spec2dobj import Spec2DObj
 from pypeit.specobjs import SpecObjs
 
-def save_one2dspec(ax: plt.Axes, spec: np.ndarray, edges: Tuple[np.ndarray, np.ndarray], traces: List[np.ndarray], fwhms: List[np.ndarray]) -> None:
+def save_one2dspec(ax: plt.Axes, spec: np.ndarray,
+        edges: Tuple[np.ndarray, np.ndarray], traces: List[np.ndarray],
+        fwhms: List[np.ndarray]) -> None:
+    """
+    Displays a 2D spectrum on the input Matplotlib Axes, with slit edges and
+    object traces and extraction FWHMs overplotted.
+
+    Args:
+        ax (plt.Axes): Axes object for plotting.
+        spec (np.ndarray): 2D spectrum to plot.
+        edges (Tuple[np.ndarray, np.ndarray]): Left and right slit edges,
+            as arrays of the spatial pixel position of the edge for each pixel
+            in the spectral direction.
+        traces (List[np.ndarray]): Object traces as arrays of spatial pixel
+            positions for each pixel in the spectral direction.
+        fwhms (List[np.ndarray]): Extraction FWHMs for each object trace.
+    """
     all_left, all_right = edges
 
     norm = ImageNormalize(spec, interval=ZScaleInterval())
@@ -42,7 +58,25 @@ def save_one2dspec(ax: plt.Axes, spec: np.ndarray, edges: Tuple[np.ndarray, np.n
             ax.plot(trace, xs, 'orange', lw=1)
             ax.fill_betweenx(xs, trace - fwhm, trace + fwhm, color='orange', alpha=0.2)
 
-def save_2dspecs(qa_dict: dict, output_spec2ds: List[str], output_path: str, spectrograph: str) -> None:
+def save_2dspecs(qa_dict: dict, output_spec2ds: List[str], output_path: str,
+        spectrograph: str) -> dict:
+    """
+    Saves PNG images of each spectra at various steps in the reduction process.
+    In one PNG, displayed from left to right are science image, sky model,
+    sky-subtracted image, sky-subtraction residuals, sky- and
+    object-subtraction residuals.
+
+    Args:
+        qa_dict (dict): Dict mapping target names to a dict containing lists of
+            PNG filenames, airmasses, UTCs, and raw data filenames, from
+            previous call of ``save_2dspecs``, or empty dict for first call.
+        output_spec2ds (List[str]): List of spec2d filenames.
+        output_path (str): reduction output path.
+        spectrograph (str): PypeIt name of spectrograph.
+
+    Returns:
+        dict: updated ``qa_dict``
+    """
     obj_png_dict = qa_dict
 
     arm = 'blue' if 'blue' in spectrograph else 'red'
@@ -123,6 +157,15 @@ def save_2dspecs(qa_dict: dict, output_spec2ds: List[str], output_path: str, spe
     return obj_png_dict
 
 def write_extraction_QA(qa_dict: dict, output_path: str) -> None:
+    """
+    Write Extraction.html page allowing for convenient viewing of PNGs saved in
+    ``save_2dspecs``.
+
+    Args:
+        qa_dict (dict): Dict mapping target names to a dict containing lists of
+            PNG filenames, airmasses, UTCs, and raw data filenames.
+        output_path (str): reduction output path
+    """
     out_path = os.path.join(output_path, 'QA')
 
     pngs = [os.path.basename(fullpath) for fullpath in glob.glob(os.path.join(out_path, 'PNGs', 'Extraction', '*.png'))]
