@@ -23,6 +23,15 @@ def entrypoint():
     main(parse())
 
 def get_cfg_lines(spectrograph: str) -> List[str]:
+    """
+    Get standard quicklook PypeIt configuration for ``spectrograph``.
+
+    Args:
+        spectrograph (str): PypeIt name of spectrograph.
+
+    Returns:
+        List[str]: Standard PypeIt quicklook configuration for ``spectrograph``.
+    """
     cfg_lines = [
         "[rdx]",
         f"spectrograph = {spectrograph}",

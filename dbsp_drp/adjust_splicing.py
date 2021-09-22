@@ -34,6 +34,14 @@ def main(args: argparse.Namespace):
         adjust_splicing_GUI(hdul, fname)
 
 def adjust_splicing_GUI(hdul: fits.HDUList, fname: str):
+    """
+    Opens a Matplotlib GUI for users to manually adjust the matching of overall
+    red/blue flux levels, as well as interpolate over detector gaps.
+
+    Args:
+        hdul (fits.HDUList): HDUList read in from DBSP_DRP final data output file.
+        fname (str): Output path and filename to write adjusted spectrum to.
+    """
     spec_r = hdul['RED'].data
     spec_b = hdul['BLUE'].data
     spliced = hdul['SPLICED'].data

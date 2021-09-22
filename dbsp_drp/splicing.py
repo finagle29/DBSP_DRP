@@ -17,7 +17,22 @@ from pypeit import msgs
 
 import dbsp_drp
 
-def get_raw_hdus_from_spec1d(spec1d_list: List[Tuple[str, int]], root: str, output_path: str) -> List[fits.BinTableHDU]:
+def get_raw_hdus_from_spec1d(spec1d_list: List[Tuple[str, int]], root: str,
+        output_path: str) -> List[fits.BinTableHDU]:
+    """
+    Returns list of ``fits.BinTableHDU`` s, each containing the raw header and
+    the 1D spectrum, of the input spec1d files.
+
+    Args:
+        spec1d_list (List[Tuple[str, int]]): List of (spec1d filename, spatial
+            pixel coordinate)
+        root (str): Path to raw data files, possibly including filename prefix.
+        output_path (str): reduction output path
+
+    Returns:
+        List[fits.BinTableHDU]: List of raw data headers and data from input
+            spec1d files.
+    """
     ret = []
     for (spec1d, spat) in spec1d_list:
         raw_fname = os.path.join(os.path.dirname(root), f"{os.path.basename(spec1d).split('_')[1].split('-')[0]}.fits")
@@ -42,6 +57,19 @@ def get_raw_hdus_from_spec1d(spec1d_list: List[Tuple[str, int]], root: str, outp
 def splice(splicing_dict: dict, interpolate_gaps: bool, root: str, output_path: str) -> None:
     """
     Splices red and blue spectra together.
+
+    .. code-block::
+
+        splicing_dict[target_name][position_along_slit][arm] = {
+            'spec1ds': [(spec1d_filename_1, spatial_pixel_1), (spec1d_filename_2, spatial_pixel_2)],
+            'coadd': coadd_filename
+        }
+
+    Args:
+        splicing_dict (dict): Guides splicing.
+        interpolate_gaps (bool): Interpolate across gaps in wavelength coverage?
+        root (str): Path to raw data files, possibly including filename prefix.
+        output_path (str): reduction output path
     """
     for target, targets_dict in splicing_dict.items():
         label = 'a'
@@ -119,6 +147,31 @@ def adjust_and_combine_overlap(
         Tuple[np.ndarray, np.ndarray, np.ndarray],
         Tuple[np.ndarray, np.ndarray, np.ndarray]
 ]:
+    """
+    Takes in red and blue spectra, adjusts overall flux level by red_mult, and
+    combines overlap region.
+
+    In the overlap region, the red spectrum is linearly interpolated to match
+    the blue spectrum's wavelength spacing.
+
+    Args:
+        spec_b (fits.FITS_rec): blue spectrum
+        spec_r (fits.FITS_rec): red spectrum.
+        interpolate_gaps (bool): Interpolate across gaps in wavelength coverage?
+        red_mult (float, optional): Factor multiplied into the red spectrum to
+            match overal flux level with the blue spectrum. Defaults to 1.0.
+
+    Raises:
+        ValueError: Raised when both `spec_b` and `spec_r` are empty or None.
+
+    Returns:
+        Tuple[
+            Tuple[np.ndarray, np.ndarray, np.ndarray],
+            Tuple[np.ndarray, np.ndarray, np.ndarray],
+            Tuple[np.ndarray, np.ndarray, np.ndarray]
+        ]: (blue, red, combined) spectra, where each spectrum is a tuple of
+            (wavelengths, flux, error)
+    """
     if ((spec_b is None or not spec_b['wave'].shape[0]) and
         (spec_r is None or not spec_r['wave'].shape[0])):
         raise ValueError("Both arguments cannot be empty or None.")
@@ -191,8 +244,22 @@ def adjust_and_combine_overlap(
         (spec_r['wave'], spec_r['flux'], spec_r['ivar'] ** -0.5),
         (spec_b['wave'], spec_b['flux'], spec_b['ivar'] ** -0.5))
 
-def interp_w_error(x: np.ndarray, xp: np.ndarray, yp: np.ndarray, err_yp: np.ndarray,
-                    interpolate_gaps: bool) -> Tuple[np.ndarray, np.ndarray]:
+def interp_w_error(x: np.ndarray, xp: np.ndarray, yp: np.ndarray,
+    err_yp: np.ndarray, interpolate_gaps: bool) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Linearly interpolate the data points (``xp``, ``yp``) with ``err_yp``
+    uncertainty onto the grid ``x``.
+
+    Args:
+        x (np.ndarray): destination x data
+        xp (np.ndarray): source x data
+        yp (np.ndarray): source y data
+        err_yp (np.ndarray): source y error data
+        interpolate_gaps (bool): Interpolate across gaps in ``xp``?
+
+    Returns:
+        Tuple[np.ndarray, np.ndarray]: Interpolated y and error.
+    """
     if len(xp) == 1:
         return np.ones_like(x) * yp[0], np.ones_like(x) * err_yp[0]
 

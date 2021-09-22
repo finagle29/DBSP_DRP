@@ -92,7 +92,8 @@ def parser(options: Optional[List[str]] = None) -> argparse.Namespace:
     return argparser.parse_args() if options is None else argparser.parse_args(options)
 
 def interactive_correction(ps: PypeItSetup) -> None:
-    """Allows for human correction of FITS headers and frame typing.
+    """
+    Allows for human correction of FITS headers and frame typing.
 
     Launches a GUI via dbsp_drp.table_edit, which handles saving updated FITS headers.
     table_edit depends on the current DBSP headers.
@@ -100,8 +101,8 @@ def interactive_correction(ps: PypeItSetup) -> None:
     Todo:
         Make table to FITS header mapping mutable
 
-    :param ps: PypeIt metadata object created in dbsp_drp.reduction.setup
-    :type ps: PypeItSetup
+    Args:
+        ps (PypeItSetup): PypeItSetup object created in dbsp_drp.reduction.setup
     """
     # function for interactively correcting the fits table
     fitstbl = ps.fitstbl

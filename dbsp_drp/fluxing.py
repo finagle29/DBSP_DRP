@@ -32,7 +32,17 @@ archived_sensfuncs = [
 def make_sensfunc(standard_file: str, output_path: str, spectrograph: str,
         user_config_lines: List[str], debug: bool = False) -> str:
     """
-    Makes a sensitivity function
+    Makes a sensitivity function.
+
+    Args:
+        standard_file (str): Filename of standard exposure.
+        output_path (str): Partial path to standard exposure.
+        spectrograph (str): PypeIt name of spectrograph.
+        user_config_lines (List[str]): User-provided PypeIt configuration.
+        debug (bool, optional): Show debugging output/plots? Defaults to False.
+
+    Returns:
+        str: Filename of sensitivity function file, or empty string on failure.
     """
     try:
         spec1dfile = os.path.join(output_path, 'Science', standard_file)
@@ -93,15 +103,15 @@ def build_fluxfile(spec1d_to_sensfunc: Dict[str,str], output_path: str,
         spec1d_to_sensfunc (Dict[str,str]): maps spec1d filenames to the
             sensitivity function they should use
         output_path (str): reduction output path
-        spectrograph (str): spectrograph name
-        user_config_lines (List[str]): list of user-supplied PypeIt
-            configuration lines
+        spectrograph (str): PypeIt name of spectrograph.
+        user_config_lines (List[str]): User-provided PypeIt configuration.
 
     Returns:
         str: path to created fluxfile
     """
+    ## TODO: Refactor this into flux() below.
     cfg_lines = user_config_lines[:]
-    # Minor kludge to deal with PypeIt#1230
+    # Minor kludge to deal with PypeIt#1230. Remove after PypeIt >= v1.5.0 is required.
     if (not any('extinct_correct' in line for line in cfg_lines) and
         not any(('algorithm' in line) and ('IR' in line) for line in cfg_lines)):
         cfg_lines.append('[fluxcalib]\n')
@@ -135,7 +145,12 @@ def build_fluxfile(spec1d_to_sensfunc: Dict[str,str], output_path: str,
 
 def flux(flux_file: str, output_path: str, debug: bool = False) -> None:
     """
-    Fluxes spectra.
+    Flux spectra.
+
+    Args:
+        flux_file (str): Path to flux file
+        output_path (str): reduction output path
+        debug (bool, optional): Show debugging output/plots? Defaults to False.
     """
     # Load the file
     config_lines, spec1dfiles, sensfiles = read_fluxfile(flux_file)
