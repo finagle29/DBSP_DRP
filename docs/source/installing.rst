@@ -100,5 +100,14 @@ Run some built-in tests for ``DBSP_DRP``, including verification that the quickl
 
 .. code-block:: console
 
-    $ cd /path/to/DBSP_DRP
-    $ pytest .
+    $ pytest --pyargs dbsp_drp
+
+Warning: the ``DBSP_DRP`` built-in tests take 5-15 minutes to run, depending on the speed of your computer,
+and will raise a large number of warnings that can be safely ignored.
+
+Optionally run some built-in tests for PypeIt (note that these will take upwards of 30 minutes to run and
+similarly raise a large numbr of ignorable warnings).
+
+.. code-block:: console
+
+    $ pytest --pyargs pypeit
