@@ -83,6 +83,7 @@ object observed is the right one.
    :maxdepth: 1
    :caption: Getting Started:
 
+   community
    installing
    usage
    quicklook
