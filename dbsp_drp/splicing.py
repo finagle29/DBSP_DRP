@@ -95,10 +95,10 @@ def splice(splicing_dict: dict, interpolate_gaps: bool, root: str, output_path: 
                 (blue_wvs, blue_flam, blue_sig)) = adjust_and_combine_overlap(spec_b, spec_r, interpolate_gaps)
 
             primary_header = fits.Header()
-            primary_header['DBSP_DRP_V'] = dbsp_drp.__version__
+            primary_header['HIERARCH DBSP_DRP_V'] = dbsp_drp.__version__
             primary_header['PYPEIT_V'] = pypeit.__version__
             primary_header['NUMPY_V'] = np.__version__
-            primary_header['ASTROPY_V'] = astropy.__version__
+            primary_header['HIERARCH ASTROPY_V'] = astropy.__version__
             primary_header['B_COADD'] = bluefile
             primary_header['R_COADD'] = redfile
             primary_hdu = fits.PrimaryHDU(header=primary_header)
@@ -122,7 +122,7 @@ def splice(splicing_dict: dict, interpolate_gaps: bool, root: str, output_path: 
             col_error = fits.Column(name='sigma', array=final_flam_sig, unit='E-17 ERG/S/CM^2/ANG', format='D')
             table_hdu = fits.BinTableHDU.from_columns([col_wvs, col_flux, col_error], name="SPLICED")
 
-            table_hdu.header['INTERP_GAPS'] = interpolate_gaps
+            table_hdu.header['HIERARCH INTERP_GAPS'] = interpolate_gaps
 
             hdul = fits.HDUList(hdus=[primary_hdu, *raw_red_hdus, *raw_blue_hdus, red_hdu, blue_hdu, table_hdu])
 

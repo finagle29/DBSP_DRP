@@ -93,10 +93,10 @@ def main(args: argparse.Namespace):
 
     # build the final data product
     primary_header = fits.Header()
-    primary_header['DBSP_DRP_V'] = dbsp_drp.__version__
+    primary_header['HIERARCH DBSP_DRP_V'] = dbsp_drp.__version__
     primary_header['PYPEIT_V'] = pypeit.__version__
     primary_header['NUMPY_V'] = np.__version__
-    primary_header['ASTROPY_V'] = astropy.__version__
+    primary_header['HIERARCH ASTROPY_V'] = astropy.__version__
     primary_header['B_COADD'] = args.blue_file
     primary_header['R_COADD'] = args.red_file
     primary_hdu = fits.PrimaryHDU(header=primary_header)

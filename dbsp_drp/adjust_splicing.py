@@ -97,7 +97,7 @@ def adjust_splicing_GUI(hdul: fits.HDUList, fname: str):
             table_hdu = fits.BinTableHDU.from_columns([col_wvs, col_flux, col_error], name="SPLICED")
 
             table_hdu.header['RED_MULT'] = red_mult
-            table_hdu.header['INTERP_GAPS'] = interp_gaps
+            table_hdu.header['HIERARCH INTERP_GAPS'] = interp_gaps
 
             hdul.pop()
             hdul.append(table_hdu)
