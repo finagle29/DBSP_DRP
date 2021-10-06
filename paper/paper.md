@@ -20,7 +20,7 @@ affiliations:
     index: 1
   - name: Division of Physics, Mathematics and Astronomy, California Institute of Technology
     index: 2
-date: 22 June 2021
+date: 21 September 2021
 bibliography: paper.bib
 nocite: |
   @Lunnan2020
@@ -29,17 +29,21 @@ nocite: |
 # Summary
 
 <!--
-A summary describing the high-level functionality and purpose of the software for a diverse, non-specialist audience.
+A summary describing the high-level functionality and purpose of the software
+for a diverse, non-specialist audience.
 -->
 
 In astronomy, the spectrum of light emitted from astrophysical sources is of
 great use, allowing astronomers to classify objects and measure their
 properties.
-To measure the spectrum, astronomers use spectrographs, which use dispersive
-elements to split the incoming light into its constituent wavelengths, and then
-image this dispersed light with a detector, most commonly a CCD.
+To measure the spectrum of a source, astronomers use spectrographs, in which
+dispersive elements spatially separate the incoming light by wavelength, and
+detectors, most commonly CCDs, image this dispersed light.
 But to do science with the spectrum, the 2D image in pixel coordinates taken by
 the CCD must be converted into a 1D spectrum of flux vs. wavelength.
+This process of converting 2D CCD images into 1D spectra is called data
+reduction.
+
 To increase the signal-to-noise ratio, astronomers can take multiple exposures
 of the same object and coadd their 1D spectra to reveal faint absorption lines
 or increase the precision with which an important emission line can be measured.
@@ -51,8 +55,6 @@ If two detectors cover an overlapping region, caused by partial reflectance of
 a dichroic (wavelength-dependent beam splitter), then the spectra from each
 detector need to be spliced together, combining the light collected by each
 detector.
-This process of converting 2D CCD images into 1D spectra is called data
-reduction.
 
 DBSP_DRP is a python package that provides fully automated data reduction of
 data taken by the Double Spectrograph (DBSP) at the 200-inch Hale Telescope at
@@ -74,7 +76,7 @@ swapping FITS header cards, adding (an) extra null byte/s to FITS files making
 them not conform to the FITS specification, and not writing the coordinates of
 the observation to file.
 Additionally, DBSP_DRP contains a quicklook script for making real-time
-decisions during an observing run, and can open a GUI displaying a minimally
+decisions during an observing run, and it can open a GUI displaying a minimally
 reduced exposure in under 15 seconds.
 Docker containers are available for ease of deploying DBSP_DRP in its quicklook
 configuration (without some large atmospheric model files) or in its full
@@ -83,7 +85,8 @@ configuration.
 # Statement of Need
 
 <!--
-A Statement of Need section that clearly illustrates the research purpose of the software.
+A Statement of Need section that clearly illustrates the research purpose of
+the software.
 -->
 
 Palomar Observatory, located near San Diego, CA, is a multinational observatory
@@ -99,8 +102,8 @@ It is used on 42% of the nights in a year, comprising nearly all of the
 valuable “dark” (moonless) time.
 In previous years, standard astronomical practice left the data reduction up to
 the user.
-However, attitudes in instrument building have shifted since DBSP was built.
-The pipeline is now considered an indispensable component of the astronomical
+However, attitudes in instrument-building have shifted since DBSP was built.
+A pipeline is now considered an indispensable component of an astronomical
 instrument.
 In fact, the difference between a good pipeline and a great pipeline means the
 difference between counting some of the photons vs. counting all of the photons.
@@ -108,34 +111,38 @@ difference between counting some of the photons vs. counting all of the photons.
 Spectroscopy is a severe bottleneck in time-domain astronomy; currently less
 than 10% of discoveries are spectroscopically classified.
 Without a pipeline, data reduction is a difficult process and the standard
-method without a pipeline is to use IRAF, a 35 year old program on which
-development and maintenance was discontinued in 2013 and whose use is
-discouraged by many in the field e.g. @Ogaz2018.
-Needless to say, data reduction sans pipeline is extremely time-consuming.
+method without a pipeline is to use IRAF [@IRAF86;@IRAF93], a 35-year-old
+program on which development and maintenance was discontinued in 2013 and whose
+use is discouraged by many in the field e.g. @Ogaz2018.
+Needless to say, data reduction sans existing pipeline is extremely
+time-consuming.
 There is a clear need for a modern and stable automated data reduction pipeline
 for DBSP.
 
 During observing runs, one would like to be able to quickly inspect data as it
 is taken, in order to ensure that it is of sufficient quality to do the desired
 science with.
-For objects whose brightness may have changed between a
-previous observation and the observing run, the observer may have uncertainties
-regarding how long of an exposure is needed to produce quality data.
-For very faint objects or objects in crowded fields, the observer may not even
-be sure that the telescope is pointed at the right object!
-A quicklook functionality, that can do a rudimentary reduction to correct for
+For objects whose brightness may have changed between a previous observation
+and the current observing run, or for nights with highly variable cloud cover,
+the observer may be unsure how long of an exposure is needed to produce quality
+data.
+For very faint objects, objects in crowded fields, or objects with uncertain
+positions (e.g. due to high or uncertain motion across the sky), the observer
+may not even be sure that the telescope is pointed at the right object!
+A quicklook functionality, which can do a rudimentary reduction to correct for
 instrumental signatures and subtract light from the sky, revealing the spectra
 of the objects observed, can answer questions of exposure time and whether the
 object observed is the right one.
 
-DBSP_DRP is currently being used by the ZTF Bright Transient Survey [@Fremling2020;@Perley2020],
-the ZTF Census of the Local Universe [@De2020], and a program investigating
-ZTF Superluminous Supernovae (Lunnan et al., 2020; Chen et al., in preparation).
+DBSP_DRP is currently being used by the ZTF Bright Transient Survey
+[@Fremling2020;@Perley2020], the ZTF Census of the Local Universe [@De2020],
+and a program investigating ZTF Superluminous Supernovae
+(Lunnan et al., 2020; Chen et al., in preparation).
 @Ravi2021arXiv is the first (known) publication that used DBSP_DRP for data
 reduction.
 The development of DBSP_DRP also lays the groundwork towards a fully automated
 pipeline for the Next Generation Palomar Spectrograph that is planned to be
-deployed on the Palomar 200-inch Hale Telescope in 2022.
+deployed on the Palomar 200-inch Hale Telescope in 2023.
 
 # Acknowledgements
 
@@ -150,5 +157,10 @@ Sharma, and Igor Andreoni.
 
 MSR is extremely grateful to the welcoming, friendly, and helpful team of
 developers on the PypeIt team, without whom this package would not exist.
+
+This research made use of Astropy,[^1] a community-developed core Python
+package for Astronomy [@astropy:2013;@astropy:2018].
+
+[^1]: http://www.astropy.org
 
 # References
