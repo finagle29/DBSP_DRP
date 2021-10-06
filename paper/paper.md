@@ -113,7 +113,7 @@ than 10% of discoveries are spectroscopically classified.
 Without a pipeline, data reduction is a difficult process and the standard
 method without a pipeline is to use IRAF [@IRAF86;@IRAF93], a 35-year-old
 program on which development and maintenance was discontinued in 2013 and whose
-use is discouraged by many in the field e.g. @Ogaz2018.
+use is discouraged by many in the field (e.g. @Ogaz2018).
 Needless to say, data reduction sans existing pipeline is extremely
 time-consuming.
 There is a clear need for a modern and stable automated data reduction pipeline
