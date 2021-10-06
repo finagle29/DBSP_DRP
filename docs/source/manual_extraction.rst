@@ -6,7 +6,7 @@ Manual Tracing GUI
 ******************
 
 After the first round of reducing the red and/or blue sides,
-``dbsp_reduce`` will open a matplotlib window to display the sky-subtracted spectra,
+``dbsp_reduce`` will open a Matplotlib window to display the sky-subtracted spectra,
 along with any object traces that were automatically detected.
 
 Using the left and
@@ -18,7 +18,7 @@ zoom tool and then with your mouse over the trace, press the ``m`` key to mark t
 trace.
 
 If you make a mistake, you can press ``d`` with your mouse over a
-previously-marked trace to delete the trace.
+previously marked trace to delete the trace.
 
 To adjust the region of the spectrum that will be collapsed to select apertures and
 background regions, press ``c``, then left click and drag to highlight the region to
@@ -45,7 +45,7 @@ To mark background regions, press ``b`` and then left click and drag to mark
 background regions by shading them in gray.
 
 You can delete a background region by holding your mouse over the shaded background
-regions and press ``d`` to delete.
+regions and pressing ``d`` to delete.
 
 Once you are finished adjusting manual traces/FWHMs and marking background regions,
 close the window to be shown the same GUI for the next object you marked a manual

@@ -20,7 +20,9 @@ from astropy.io import fits
 loc = EarthLocation.of_site('Palomar')
 
 def update_airmass(row: astropy.table.Row) -> None:
-    """Updates the ``airmass`` entry of ``row`` based on the ``ra`` ``dec`` and ``mjd`` entries.
+    """
+    Updates the ``airmass`` entry of ``row`` based on the ``ra`` ``dec`` and
+    ``mjd`` entries.
 
     Args:
         row (astropy.table.Row): Row to be updated
@@ -31,7 +33,8 @@ def update_airmass(row: astropy.table.Row) -> None:
     row['airmass'] = skycoord.transform_to(altaz).secz
 
 def get_zenith_ra_dec(time: str) -> astropy.coordinates.SkyCoord:
-    """Returns RA and Dec of the zenith at Palomar at the given time
+    """
+    Returns RA and Dec of the zenith at Palomar at the given time
 
     Args:
         time (str): MJD time
@@ -45,10 +48,19 @@ def get_zenith_ra_dec(time: str) -> astropy.coordinates.SkyCoord:
 
 class TableModel(QtCore.QAbstractTableModel):
     def __init__(self, data: Table, cols: tuple = None, del_files: list = None):
+        """
+        Create TableModel object.
+
+        Args:
+            data (Table): data table represented by this object.
+            cols (tuple, optional): Columns to display. Defaults to None, in
+                which case all columns are displayed.
+            del_files (list, optional): List of deleted files/rows. Defaults to None.
+        """
         super(TableModel, self).__init__()
         # would use
         # self._data = Table(data, masked = True, copy = False)
-        # but it actually copies for some reason? MSR
+        # but it actually copies for some reason? --MSR
         self._data = data
         self._cols = cols if cols is not None else data.colnames
 
@@ -64,7 +76,7 @@ class TableModel(QtCore.QAbstractTableModel):
         self._col_count = len(self._cols)
 
         self._modified_files = set()
-        self._deleled_files = del_files
+        self._deleled_files = del_files if del_files is not None else []
 
     def data(self, index: QtCore.QModelIndex, role) -> Union[str, QtGui.QColor, None]:
         if role in (Qt.DisplayRole, Qt.EditRole):
@@ -285,8 +297,17 @@ class Delegate(QtWidgets.QStyledItemDelegate):
     def updateEditorGeometry(self, editor: QtWidgets.QLineEdit, option: QtWidgets.QStyleOptionViewItem, index: QtCore.QModelIndex) -> None:
         editor.setGeometry(option.rect)
 
-def main(table, del_files: List[str]):
-    cols = ('filename', 'frametype', 'ra', 'dec', 'target', 'dispname', 'binning', 'mjd', 'airmass', 'exptime', 'dispangle', 'dichroic', 'slitwid', 'calib')
+def main(table: Table, del_files: List[str]):
+    """
+    Opens header/metadata editing table GUI.
+
+    Args:
+        table (Table): table containing metadata
+        del_files (List[str]): List of files to be deleted. Mutated!
+    """
+    cols = ('filename', 'frametype', 'ra', 'dec', 'target', 'dispname',
+        'binning', 'mjd', 'airmass', 'exptime', 'dispangle', 'dichroic',
+        'slitwid', 'calib')
     if not QtWidgets.QApplication.instance():
         app = QtWidgets.QApplication([])
     else:

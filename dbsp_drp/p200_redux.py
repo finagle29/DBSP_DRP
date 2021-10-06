@@ -16,6 +16,7 @@ from astropy.table import Table, Column, Row
 
 from pypeit.pypeitsetup import PypeItSetup
 import pypeit.display
+from pypeit.spectrographs.util import load_spectrograph
 
 import tqdm
 
@@ -23,6 +24,9 @@ from dbsp_drp import reduction, qa, fluxing, coadding, telluric, splicing
 from dbsp_drp import table_edit
 from dbsp_drp import fix_headers
 
+
+def entrypoint():
+    main(parser())
 
 def parser(options: Optional[List[str]] = None) -> argparse.Namespace:
     """Parses command line arguments
@@ -88,7 +92,8 @@ def parser(options: Optional[List[str]] = None) -> argparse.Namespace:
     return argparser.parse_args() if options is None else argparser.parse_args(options)
 
 def interactive_correction(ps: PypeItSetup) -> None:
-    """Allows for human correction of FITS headers and frame typing.
+    """
+    Allows for human correction of FITS headers and frame typing.
 
     Launches a GUI via dbsp_drp.table_edit, which handles saving updated FITS headers.
     table_edit depends on the current DBSP headers.
@@ -96,8 +101,8 @@ def interactive_correction(ps: PypeItSetup) -> None:
     Todo:
         Make table to FITS header mapping mutable
 
-    :param ps: PypeIt metadata object created in dbsp_drp.reduction.setup
-    :type ps: PypeItSetup
+    Args:
+        ps (PypeItSetup): PypeItSetup object created in dbsp_drp.reduction.setup
     """
     # function for interactively correcting the fits table
     fitstbl = ps.fitstbl
@@ -224,15 +229,11 @@ def main(args):
             output_spec1ds_blue |= out_1d
             output_spec2ds_blue |= out_2d
 
-    # spec1d_blueNNNN-OBJ_DBSPb_YYYYMMMDDTHHMMSS.SPAT.fits
-    fname_len = 72
-    # sens_blueNNNN-OBJ_DBSPb_YYYYMMMDDTHHMMSS.SPAT.fits
-    sensfunc_len = 70
     # Find standards and make sensitivity functions
     spec1d_table = Table(names=('filename', 'arm', 'object', 'frametype',
                             'airmass', 'mjd', 'sensfunc', 'exptime'),
-                         dtype=(f'U{fname_len}', 'U4', 'U20', 'U8',
-                            float, float, f'U{sensfunc_len}', float))
+                         dtype=(f'U255', 'U4', 'U255', 'U8',
+                            float, float, f'U255', float))
 
     # Ingest spec_1d tables
     spec1ds = output_spec1ds_red | output_spec1ds_blue
@@ -266,6 +267,16 @@ def main(args):
     if do_red:
         arm = spec1d_table['arm'] == 'red'
         stds = (spec1d_table['frametype'] == 'standard') & arm
+
+        red_arm = load_spectrograph('p200_dbsp_red')
+        rawfile = os.path.join(args.root,
+            spec1d_table[arm][0]['filename'].split('_')[1].split('-')[0] + '.fits'
+        )
+        config = '_'.join([
+            'red',
+            red_arm.get_meta_value(rawfile, 'dispname').replace('/', '_'),
+            red_arm.get_meta_value(rawfile, 'dichroic').lower()
+        ])
         if np.any(stds):
             for row in spec1d_table[arm]:
                 if row['frametype'] == 'science':
@@ -278,10 +289,20 @@ def main(args):
                 spec1d_table.loc[row['filename']]['sensfunc'] = best_sens
         else:
             for filename in spec1d_table[arm]['filename']:
-                spec1d_table.loc[filename]['sensfunc'] = ''
+                spec1d_table.loc[filename]['sensfunc'] = config
     if do_blue:
         arm = spec1d_table['arm'] == 'blue'
         stds = (spec1d_table['frametype'] == 'standard') & arm
+
+        blue_arm = load_spectrograph('p200_dbsp_blue')
+        rawfile = os.path.join(args.root,
+            spec1d_table[arm][0]['filename'].split('_')[1].split('-')[0] + '.fits'
+        )
+        config = '_'.join([
+            'blue',
+            blue_arm.get_meta_value(rawfile, 'dispname').replace('/', '_'),
+            blue_arm.get_meta_value(rawfile, 'dichroic').lower()
+        ])
         if np.any(stds):
             for row in spec1d_table[arm]:
                 if row['frametype'] == 'science':
@@ -294,7 +315,7 @@ def main(args):
                 spec1d_table.loc[row['filename']]['sensfunc'] = best_sens
         else:
             for filename in spec1d_table[arm]['filename']:
-                spec1d_table.loc[filename]['sensfunc'] = ''
+                spec1d_table.loc[filename]['sensfunc'] = config
 
     # build fluxfile
     if do_red:

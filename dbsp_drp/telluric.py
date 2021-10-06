@@ -4,9 +4,6 @@ Telluric correction for P200 DBSP.
 import os
 from typing import List
 
-import numpy as np
-from astropy.io import fits
-
 from pypeit.par import pypeitpar
 from pypeit.core import telluric
 from pypeit.spectrographs.util import load_spectrograph
@@ -14,13 +11,22 @@ from pypeit.spectrographs.util import load_spectrograph
 def telluric_correct(coadd: str, output_path: str, spectrograph: str,
         user_config_lines: List[str], debug: bool = False, plot: bool = False):
     """
-    method to telluric correct one coadded file
+    Telluric correct one coadd file.
+
+    Args:
+        coadd (str): Coadd filename.
+        output_path (str): reduction output path
+        spectrograph (str): PypeIt name of spectrograph.
+        user_config_lines (List[str]): User-provided PypeIt configuration
+        debug (bool, optional): Show debugging output? Defaults to False.
+        plot (bool, optional): Show debugging plots? Defaults to False.
     """
     coadd_path = os.path.join(output_path, 'Science', coadd)
     spectrograph = load_spectrograph(spectrograph)
     par = spectrograph.default_pypeit_par()
 
     par['telluric']['objmodel'] = 'poly'
+    ## TODO: Change fit_wv_min_max based on where the red detector defect is.
     par['telluric']['fit_wv_min_max'] = [5500, 11000]
     # maybe somehow choose between poly and exp??????? look at median
     par['telluric']['model'] = 'exp'

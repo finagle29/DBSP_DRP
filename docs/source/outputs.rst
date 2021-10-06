@@ -3,17 +3,17 @@ Data Reduction Outputs
 **********************
 
 Assuming you ran DBSP_DRP with ``dbsp_reduce -r $RAW_PATH -d $OUTPUT_PATH``,
-then in the ``$OUTPUT_PATH/Science`` directory you will find
+then in the ``$OUTPUT_PATH/Science`` directory you will find:
 
 PypeIt 2D Spectrum files ``spec2d_redNNNN-target_DBSPr_obstimestamp.fits``
-described in more detail `here <https://pypeit.readthedocs.io/en/latest/out_spec2D.html>`_.
-Briefly, these files hold flat-fielded 2d spectral images, as well as sky, noise, object,
+described in more detail `here <https://pypeit.readthedocs.io/en/latest/out_spec2D.html>`__.
+Briefly, these files hold flat-fielded 2D spectral images, as well as sky, noise, object,
 wavelength, and bad pixel mask images.
 These files can be visually inspected using the command ``pypeit_show_2dspec SPEC2D_FILE``.
 
 PypeIt 1D Spectrum files ``spec1d_redNNNN-target_DBSPr_obstimstamp.fits``
-described in more detail `here <https://pypeit.readthedocs.io/en/latest/out_spec1D.html>`_.
-Briefly, these files hold 1d spectra for each object that was traced and extracted from the
+described in more detail `here <https://pypeit.readthedocs.io/en/latest/out_spec1D.html>`__.
+Briefly, these files hold 1D spectra for each object that was traced and extracted from the
 raw frame. Each object's spectrum is stored in a separate extension of the FITS file, and the
 extension names are of the form ``SPATNNNN-SLITMMMM-DET01`` where the SPAT number describes the
 spatial pixel coordinate of the object and the SLIT number is only useful for spectrographs
@@ -23,7 +23,7 @@ These files can be visually inspected using the command ``pypeit_show_1dspec --e
 to view extension N of the file.
 
 PypeIt 1D Coadd files ``redNNNN-redNNNN_target_SPATNNNN.fits`` described in more detail
-`here <https://pypeit.readthedocs.io/en/latest/coadd1d.html#current-coadd1d-data-model>`_.
+`here <https://pypeit.readthedocs.io/en/latest/coadd1d.html#current-coadd1d-data-model>`__.
 These files exist to separate out multiple objects on the same frame into their own file, and to
 coadd consecutive exposures of the same frame.
 These files can be visually inspected using the command ``lt_xspec COADD_FILE``.
@@ -35,7 +35,7 @@ Telluric-corrected 1D Coadd files have ``_tellcorr`` appended to the base filena
 
 In the directory ``$OUTPUT_PATH/spliced`` are the spliced final data products.
 The final data product of DBSP_DRP is a FITS file named ``target_char.fits`` with structure described below,
-where ``char`` is a one letter designation of which object along the slit it is.
+where ``char`` is a one-letter designation of which object along the slit it is.
 
 .. table:: table
     :widths: 16 7 20 20
@@ -43,13 +43,13 @@ where ``char`` is a one letter designation of which object along the slit it is.
     ================ ======== ======================================================= =================================================
     Extension Number Name     Header                                                  Data
     ================ ======== ======================================================= =================================================
-    0                PRIMARY  Version info about DBSP_DRP, PypeIt, numpy and astropy  None
-    1                RED0031  Header from raw red side fits file                      Fluxed (not telluric-corrected) red side spectrum
-    2                RED0032  Header from raw red side fits file                      Fluxed (not telluric-corrected) red side spectrum
-    3                BLUE0032 Header from raw blue side fits file                     Fluxed blue side spectrum
-    4                BLUE0032 Header from raw blue side fits file                     Fluxed blue side spectrum
-    5                RED      Header from raw red side fits file                      Fluxed (and telluric-corrected) red side spectrum
-    6                BLUE     Header from raw blue side fits file                     Fluxed blue side spectrum
+    0                PRIMARY  Version info about DBSP_DRP, PypeIt, NumPy and Astropy  None
+    1                RED0031  Header from raw red side FITS file                      Fluxed (not telluric-corrected) red side spectrum
+    2                RED0032  Header from raw red side FITS file                      Fluxed (not telluric-corrected) red side spectrum
+    3                BLUE0032 Header from raw blue side FITS file                     Fluxed blue side spectrum
+    4                BLUE0032 Header from raw blue side FITS file                     Fluxed blue side spectrum
+    5                RED      Header from raw red side FITS file                      Fluxed (and telluric-corrected) red side spectrum
+    6                BLUE     Header from raw blue side FITS file                     Fluxed blue side spectrum
     7                SPLICED  Empty                                                   Final spliced spectrum
     ================ ======== ======================================================= =================================================
 

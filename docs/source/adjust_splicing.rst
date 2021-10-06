@@ -1,3 +1,40 @@
+***************
+Manual Splicing
+***************
+
+In the case that the association of objects/traces between the red and blue
+sides of DBSP is incorrect, you can use the script ``dbsp_splice`` to manually
+stitch together two coadded spectra.
+
+You must provide the path to the raw files, so that the raw headers can be
+packaged into the final data product, as well as the filename to save the
+spliced spectrum to, and the red and blue coadds you wish to splice together.
+
+.. code-block :: console
+
+  $ dbsp_splice --help
+  usage: dbsp_splice [-h] [-r RED_FILE] [-b BLUE_FILE] raw_data_path outfile
+
+  Manually splice two coadded files together for DBSP.
+  After preparing the spliced spectrum, the dbsp_adjust_splicing GUI pops up to
+  allow for the splicing to be adjusted. To save the manually spliced spectrum,
+  you MUST press save in the GUI.
+
+  positional arguments:
+    raw_data_path         Path to raw data from this reduction
+    outfile               Destination of spliced spectrum.
+
+  optional arguments:
+    -h, --help            show this help message and exit
+    -r RED_FILE, --red_file RED_FILE
+                          redNNNN-redMMMM_SPATXXXX.fits file.
+    -b BLUE_FILE, --blue_file BLUE_FILE
+                          blueNNNN-redMMMM_SPATXXXX.fits file.
+
+
+Note that although the ``red_file`` and ``blue_file`` arguments are optional,
+you must supply at least one of them.
+
 *******************************
 Adjusting splicing between arms
 *******************************
