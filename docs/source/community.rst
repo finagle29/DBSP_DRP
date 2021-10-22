@@ -7,7 +7,7 @@ Contributing
 Contributions come in many different kinds, spanning bug fixes and new features
 to suggestions for improved documentation or ways to make your DBSP_DRP
 workflow easier for you and more efficient. All types of contributions from the
-community are greatly welcomed and much appreciated.
+community are greatly welcomed and much appreciated!
 
 If you want to fix a bug or contribute a new feature, please create a fork of
 DBSP_DRP on GitHub, make changes to your fork, and then create a Pull Request
