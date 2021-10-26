@@ -6,9 +6,9 @@ tags:
   - data reduction
   - spectroscopy
 authors:
-  - name: Milan S. Roberson
+  - name: Milan S. Roberson[^1]
     orcid: 0000-0003-1118-3132
-    affiliation: "1,2,3"
+    affiliation: "1,2"
   - name: Christoffer Fremling
     orcid: 0000-0002-4223-103X
     affiliation: 2
@@ -20,15 +20,13 @@ affiliations:
     index: 1
   - name: Division of Physics, Mathematics and Astronomy, California Institute of Technology
     index: 2
-  - name: Physics and Astronomy Department, University of California, Los Angeles[^1]
-    index: 3
 date: 21 September 2021
 bibliography: paper.bib
 nocite: |
   @Lunnan2020
 ---
 
-[^1]: Present affiliation.
+[^1]: Present affiliation: Department of Physics & Astronomy, University of California, Los Angeles.
 
 # Summary
 
