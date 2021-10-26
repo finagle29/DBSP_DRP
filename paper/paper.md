@@ -8,7 +8,7 @@ tags:
 authors:
   - name: Milan S. Roberson
     orcid: 0000-0003-1118-3132
-    affiliation: "1,2"
+    affiliation: "1,2,3"
   - name: Christoffer Fremling
     orcid: 0000-0002-4223-103X
     affiliation: 2
@@ -20,11 +20,15 @@ affiliations:
     index: 1
   - name: Division of Physics, Mathematics and Astronomy, California Institute of Technology
     index: 2
+  - name: Physics and Astronomy Department, University of California, Los Angeles[^1]
+    index: 3
 date: 21 September 2021
 bibliography: paper.bib
 nocite: |
   @Lunnan2020
 ---
+
+[^1]: Present affiliation.
 
 # Summary
 
@@ -158,9 +162,9 @@ Sharma, and Igor Andreoni.
 MSR is extremely grateful to the welcoming, friendly, and helpful team of
 developers on the PypeIt team, without whom this package would not exist.
 
-This research made use of Astropy,[^1] a community-developed core Python
+This research made use of Astropy,[^2] a community-developed core Python
 package for Astronomy [@astropy:2013;@astropy:2018].
 
-[^1]: http://www.astropy.org
+[^2]: http://www.astropy.org
 
 # References
