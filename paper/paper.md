@@ -20,13 +20,13 @@ affiliations:
     index: 1
   - name: Division of Physics, Mathematics and Astronomy, California Institute of Technology
     index: 2
-date: 21 September 2021
+date: 26 October 2021
 bibliography: paper.bib
 nocite: |
   @Lunnan2020
 ---
 
-[^1]: Present affiliation: Department of Physics & Astronomy, University of California, Los Angeles.
+[^1]: Present address: Department of Physics and Astronomy, University of California, Los Angeles.
 
 # Summary
 
