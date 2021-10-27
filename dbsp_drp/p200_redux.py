@@ -478,7 +478,6 @@ def main(args):
     ## Need to find red + blue fracpos for standards
     # hopefully standards only have one star each?
     # or should i actually try to do matching there
-    fracpos_diff_list = []
     stds = spec1d_table['frametype'] == 'standard'
     if do_red or do_blue:
         FRACPOS_SUM = 1.0
@@ -528,7 +527,6 @@ def main(args):
                     # for each existing fracpos
                     for fracpos_existing in list(targ_dict):
                         # if its close enough
-                        fracpos_diff_list.append(abs(fracpos_existing - fracpos))
                         if abs(fracpos_existing - fracpos) < FRACPOS_TOL:
                             # put it in the dict
                             splicing_dict[target][fracpos_existing][arm] = {
@@ -545,8 +543,5 @@ def main(args):
                         }}
         # And now, actually splice!
         splicing.splice(splicing_dict, args.splicing_interpolate_gaps, red_root, args.output_path)
-
-    with open("fracpos_data.pickle", "wb") as f:
-        pickle.dump((fracpos_diff_list, FRACPOS_SUM), f)
 
     print('Elapsed time: {0} seconds'.format(time.perf_counter() - t))
