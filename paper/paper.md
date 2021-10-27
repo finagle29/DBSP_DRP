@@ -6,7 +6,7 @@ tags:
   - data reduction
   - spectroscopy
 authors:
-  - name: Milan S. Roberson
+  - name: Milan S. Roberson[^1]
     orcid: 0000-0003-1118-3132
     affiliation: "1,2"
   - name: Christoffer Fremling
@@ -20,11 +20,13 @@ affiliations:
     index: 1
   - name: Division of Physics, Mathematics and Astronomy, California Institute of Technology
     index: 2
-date: 21 September 2021
+date: 26 October 2021
 bibliography: paper.bib
 nocite: |
   @Lunnan2020
 ---
+
+[^1]: Present address: Department of Physics and Astronomy, University of California, Los Angeles.
 
 # Summary
 
@@ -158,9 +160,9 @@ Sharma, and Igor Andreoni.
 MSR is extremely grateful to the welcoming, friendly, and helpful team of
 developers on the PypeIt team, without whom this package would not exist.
 
-This research made use of Astropy,[^1] a community-developed core Python
+This research made use of Astropy,[^2] a community-developed core Python
 package for Astronomy [@astropy:2013;@astropy:2018].
 
-[^1]: http://www.astropy.org
+[^2]: http://www.astropy.org
 
 # References
