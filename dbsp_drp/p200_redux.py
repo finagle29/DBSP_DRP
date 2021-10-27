@@ -47,10 +47,12 @@ def parser(options: Optional[List[str]] = None) -> argparse.Namespace:
                            help='Interactive file-checking?')
 
     # Argument for input file directory
-    argparser.add_argument('-r', '--root', type=str, default=None, required=True,
+    argparser.add_argument('-r', '--root', type=os.path.abspath, default=None,
+                           required=True,
                            help='File path+root, e.g. /data/DBSP_20200127')
 
-    argparser.add_argument('-d', '--output_path', default=None, required=True,
+    argparser.add_argument('-d', '--output_path', type=os.path.abspath,
+                           default='.',
                            help='Path to top-level output directory.  '
                                 'Default is the current working directory.')
 
