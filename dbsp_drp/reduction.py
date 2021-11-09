@@ -120,7 +120,7 @@ def set_calibs(table: Table):
     prev_row = None
     prev_coord = None
     for row in table:
-        if ('arc' in row['frametype']) and (row['airmass'] != 1.0) and (row['airmass'] is not None):
+        if ('arc' in row['frametype']) and (row['airmass'] != 1.0) and (row['ra'] is not None) and (row['dec'] is not None):
             coord = SkyCoord(row['ra'], row['dec'], unit=u.deg)
             if calib_ID == 1:
                 table.loc[row['filename']]['calib'] = calib_ID
