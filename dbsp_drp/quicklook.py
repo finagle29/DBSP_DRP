@@ -107,7 +107,7 @@ def main(args: argparse.Namespace):
 
     ps = PypeItSetup(files, path="./", spectrograph_name=spectrograph,
         cfg_lines = CFG_LINES)
-    ps.build_fitstbl()
+    ps.build_fitstbl(strict=False)
 
     bm = framematch.FrameTypeBitMask()
     file_bits = np.zeros(len(files), dtype=bm.minimum_dtype())
@@ -124,6 +124,13 @@ def main(args: argparse.Namespace):
     ps.fitstbl.set_combination_groups()
 
     ps.fitstbl['setup'] = 'A'
+
+    ## Hacky but needed to workaround PypeIt
+    # pypeit.PypeIt crashes if all ra/dec data is missing, so we fake some
+    if sum(ps.fitstbl['ra'] != None) == 0:
+        ps.fitstbl['ra'][0] = 0
+    if sum(ps.fitstbl['dec'] != None) == 0:
+        ps.fitstbl['dec'][0] = 0
 
     ofiles = ps.fitstbl.write_pypeit(configs='A', cfg_lines=CFG_LINES)
 
