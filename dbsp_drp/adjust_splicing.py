@@ -31,7 +31,11 @@ def main(args: argparse.Namespace):
             raise FileNotFoundError(f"File {fname} not found!")
 
         hdul = fits.open(fname, mode="update")
-        adjust_splicing_GUI(hdul, fname)
+        if hdul[0].header['R_COADD'] and hdul[0].header['B_COADD']:
+            adjust_splicing_GUI(hdul, fname)
+        else:
+            missing_side = 'blue' if hdul[0].header['R_COADD'] else 'red'
+            print(f"Cannot adjust splicing of {fname} because {missing_side} data is not present.")
 
 def adjust_splicing_GUI(hdul: fits.HDUList, fname: str):
     """
