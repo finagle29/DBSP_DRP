@@ -16,10 +16,10 @@ of ``DBSP_DRP`` the downloaded Docker image contains:
     Tag        Version                                    Example Name
     ========== ========================================== ============================
     (blank)    same as ``latest`` tag                     ``finagle29/dbsp_ql``
-    ``latest`` latest released version (currently 0.9.0)  ``finagle29/dbsp_ql:latest``
+    ``latest`` latest released version (currently 1.0.0)  ``finagle29/dbsp_ql:latest``
     ``main``   latest commit on ``main`` branch           ``finagle29/dbsp_ql:main``
     ``edge``   latest commit on ``develop`` branch        ``finagle29/dbsp_ql:edge``
-    ``0.9.0``  version 0.9.0                              ``finagle29/dbsp_ql:0.9.0``
+    ``1.0.0``  version 1.0.0                              ``finagle29/dbsp_ql:1.0.0``
     ========== ========================================== ============================
 
 
