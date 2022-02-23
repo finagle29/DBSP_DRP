@@ -10,6 +10,7 @@ dbsp_drp/version.py
 docs/html/
 docs/doctrees/
 docs/source/_build
+docs/source/conf.py
 
 # build output
 build
