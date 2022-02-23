@@ -2,7 +2,37 @@
 Installing DBSP_DRP
 *******************
 
-Conda is the recommended pacakage manager used to install ``DBSP_DRP``.
+Conda is the recommended method for installing ``DBSP_DRP``.
+
+
+Using conda
+###########
+
+Install ``DBSP_DRP`` from conda by running
+
+.. code-block :: console
+
+    $ conda install -c conda-forge dbsp_drp
+
+Using pip
+#########
+
+First download the provided `environment.yml file <https://raw.githubusercontent.com/finagle29/DBSP_DRP/main/environment.yml>`__
+
+Now use the environment.yml file to create a conda environment with the required dependencies.
+
+.. code-block :: console
+
+    $ cd /path/to/Downloads
+    $ conda env create -f environment.yml
+    $ conda activate dbsp_drp
+
+Now use ``pip`` to install DBSP_DRP
+
+.. code-block :: console
+
+    $ pip install dbsp-drp
+
 
 From Source
 ###########
@@ -17,25 +47,6 @@ From Source
 
 This performs an editable install, which allows you to make modifications to the code and immediately see their effects.
 Importantly, this can be used in combination with ``git`` branches to test features in development.
-
-Using pip
-#########
-
-First download the provided `environment.yml file <https://raw.githubusercontent.com/finagle29/DBSP_DRP/master/environment.yml>`__
-
-Now use the environment.yml file to create a conda environment with the required dependencies.
-
-.. code-block :: console
-
-    $ cd /path/to/Downloads
-    $ conda env create -f environment.yml
-    $ conda activate dbsp_drp
-
-Now use ``pip`` to install DBSP_DRP
-
-.. code-block :: console
-
-    $ pip install git+https://github.com/finagle29/DBSP_DRP.git
 
 ************
 Post-Install
@@ -55,7 +66,7 @@ To determine the location of your PypeIt installation, open the Python interpret
     >>> print(os.path.dirname(pypeit.__file__))
     /Users/me/anaconda3/envs/dbsp_drp/lib/python3.7/site-packages/pypeit
 
-An easier alternative is to download and run `this script <https://raw.githubusercontent.com/finagle29/DBSP_DRP/master/bin/download_tellfile>`__,
+An easier alternative is to download and run `this script <https://raw.githubusercontent.com/finagle29/DBSP_DRP/main/bin/download_tellfile>`__,
 which will perform the download and install it into the current PypeIt installation.
 
 .. code-block :: console
@@ -82,9 +93,21 @@ Make sure your PypeIt installation was successful
 
     $ run_pypeit -h
 
-Run some built-in tests for DBSP_DRP, including verification that the quicklook script works
+The expected output of this command is a usage/help message for PypeIt, which
+confirms that PypeIt is installed correctly.
+
+Run some built-in tests for ``DBSP_DRP``, including verification that the quicklook script works
 
 .. code-block:: console
 
-    $ cd /path/to/DBSP_DRP
-    $ pytest .
+    $ pytest --pyargs dbsp_drp
+
+Warning: the ``DBSP_DRP`` built-in tests take 5-15 minutes to run, depending on the speed of your computer,
+and will raise a large number of warnings that can be safely ignored.
+
+Optionally run some built-in tests for PypeIt (note that these will take upwards of 30 minutes to run and
+similarly raise a large numbr of ignorable warnings).
+
+.. code-block:: console
+
+    $ pytest --pyargs pypeit

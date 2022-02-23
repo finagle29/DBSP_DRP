@@ -27,6 +27,18 @@ from dbsp_drp.manual_tracing import ManualTracingGUI
 
 def parse_pypeit_parameter_file(parameter_file: str,
         spectrograph: str) -> List[str]:
+    """
+    Grab user-provided PypeIt configuration for ``spectrograph`` from
+    ``parameter_file``, which contains user-provided PypeIt configuration for
+    both arms of DBSP.
+
+    Args:
+        parameter_file (str): User-provided file with their PypeIt config.
+        spectrograph (str): PypeIt name of spectrograph.
+
+    Returns:
+        List[str]: User-provided PypeIt configuration for ``spectrograph``
+    """
     user_config_lines = []
     read_lines = False
     arm = 'red' if 'red' in spectrograph else 'blue'
@@ -47,9 +59,9 @@ def parse_pypeit_parameter_file(parameter_file: str,
 
 def search_table_for_arc(row: Row, i: int, table: Table, step: int, max_sep: Angle) -> Tuple[int, int]:
     """
-    Searches table starting at row i in steps of j_init / abs(j) for frames
-    within max_separation. If an arc frame is found, the arc's calib is
-    assigned to row.
+    Searches table starting at row ``i`` in steps of ``step`` for frames within
+    ``max_separation`` of ``row``. If an arc frame is found, the arc's ``calib``
+    is assigned to ``row``.
 
     Args:
         row (Row): starting row
@@ -108,7 +120,7 @@ def set_calibs(table: Table):
     prev_row = None
     prev_coord = None
     for row in table:
-        if ('arc' in row['frametype']) and (row['airmass'] != 1.0):
+        if ('arc' in row['frametype']) and (row['airmass'] != 1.0) and (row['ra'] is not None) and (row['dec'] is not None):
             coord = SkyCoord(row['ra'], row['dec'], unit=u.deg)
             if calib_ID == 1:
                 table.loc[row['filename']]['calib'] = calib_ID
@@ -142,8 +154,16 @@ def set_calibs(table: Table):
 def setup(file_list: List[str], output_path: str, spectrograph: str) -> Tuple[PypeItSetup, str]:
     """
     Does PypeIt setup, without writing the .pypeit file
-    """
 
+    Args:
+        file_list (List[str]): List of raw data files to reduce.
+        output_path (str): reduction output path
+        spectrograph (str): PypeIt name of spectrograph.
+
+    Returns:
+        Tuple[PypeItSetup, str]: PypeItSetup object, reduction output path
+    """
+    # TODO: do we need to check if output_path is None or return it?
     # Get the output directory
     output_path = os.getcwd() if output_path is None else output_path
     sort_dir = os.path.join(output_path, 'setup_files')
@@ -174,6 +194,18 @@ def write_setup(context: Tuple[PypeItSetup, str], cfg_split: str,
         spectrograph: str, user_config_lines: List[str]) -> List[str]:
     """
     Writes the .pypeit file
+
+    Args:
+        context (Tuple[PypeItSetup, str]): PypeItSetup object, reduction output path
+        cfg_split (str): [description]
+        spectrograph (str): PypeIt name of spectrograph.
+        user_config_lines (List[str]): User-provided PypeIt configuration.
+
+    Raises:
+        RuntimeError: Raised if files were not assigned a frame type.
+
+    Returns:
+        List[str]: List of PypeIt files generated.
     """
     ps, output_path = context
 
@@ -203,6 +235,16 @@ def redux(pypeit_file: str, output_path: str, reuse_masters: bool = True,
         show: bool = False, calib_only: bool = False) -> Tuple[set, set]:
     """
     Runs the reduction
+
+    Args:
+        pypeit_file (str): Path to PypeIt reduction file.
+        output_path (str): reduction output path
+        reuse_masters (bool, optional): Reuse master calibration files (if they exist). Defaults to True.
+        show (bool, optional): Show debugging/intermediate plots. Defaults to False.
+        calib_only (bool, optional): Only perform calibration? Defaults to False.
+
+    Returns:
+        Tuple[set, set]: set of filenames of reduced (spec1d, spec2d) files.
     """
     splitnm = os.path.splitext(pypeit_file)
     if splitnm[1] != '.pypeit':
@@ -237,7 +279,12 @@ def redux(pypeit_file: str, output_path: str, reuse_masters: bool = True,
 
 def delete_duplicate_hdus_by_name(path: str, base_name: str = ""):
     """
-    Removes ``SpecObj`` s with identical names, leaving one behind.
+    Removes ``SpecObj`` s with identical names from a FITS file containing a
+    ``SpecObjs`` object, leaving one ``SpecObj`` with the duplicate name behind.
+
+    Args:
+        path (str): Path to FITS file.
+        base_name (str, optional): Name of file used for logging. Defaults to "".
     """
     specobjs = SpecObjs.from_fitsfile(path)
     if len({sobj['NAME'] for sobj in specobjs}) < specobjs.nobj:
@@ -253,7 +300,12 @@ def delete_duplicate_hdus_by_name(path: str, base_name: str = ""):
 
 def delete_completely_masked_hdus(path: str, base_name: str = ""):
     """
-    Removes ``SpecObj`` s that are completely masked, i.e. no good pixels/data.
+    Removes ``SpecObj`` s that are completely masked, i.e. no good pixels/data,
+    from a FITS file containing a ``SpecObjs`` file.
+
+    Args:
+        path (str): Path to FITS file.
+        base_name (str, optional): Name of file used for logging. Defaults to "".
     """
     specobjs = SpecObjs.from_fitsfile(path)
     changed = False
@@ -268,15 +320,24 @@ def delete_completely_masked_hdus(path: str, base_name: str = ""):
         specobjs.write_to_fits(specobjs.header, path, overwrite=True)
         specobjs.write_info(os.path.splitext(path)[0] + '.txt', "MultiSlit")
 
-def verify_spec1ds(output_spec1ds: List[str], verification_counter: int, output_path: str) -> List[str]:
+def verify_spec1ds(output_spec1ds: List[str], verification_counter: int,
+        output_path: str) -> List[str]:
     """
     Verifies validity of spec1d files, fixes some, and generates and returns a
     list of pypeit files for targets that need to be rerun.
+
+    Args:
+        output_spec1ds (List[str]): List of spec1d filenames
+        verification_counter (int): number of times verification has been run
+        output_path (str): reduction output path
+
+    Returns:
+        List[str]: List of PypeIt files for targets that need to be rereduced.
     """
     # TODO: have different reasons files can be flagged for re-reduction, with
     #   a corresponding set of parameters to change
     # TODO: have redux produce and this function consume a set
-    #   args['unverified_spec1ds'] so only changed files are re-checked
+    #   of `unverified_spec1ds` so only changed files are re-checked
     targets_list = []
     for spec1d in output_spec1ds:
         path = os.path.join(output_path, 'Science', spec1d)
@@ -301,6 +362,17 @@ def verify_spec1ds(output_spec1ds: List[str], verification_counter: int, output_
     return []
 
 def manual_extraction_GUI(output_spec2ds: List[str], output_path: str) -> dict:
+    """
+    Runs the Manual Tracing GUI.
+
+    Args:
+        output_spec2ds (List[str]): List of spec2d files to inspect in GUI.
+        output_path (str): reduction output path
+
+    Returns:
+        dict: Maps target names needing manual tracing to a dict specifying how
+            they should be manually traced.
+    """
     spec2ds = output_spec2ds
 
     gui_dict = {}
@@ -346,15 +418,19 @@ def write_manual_pypeit_files(old_pypeit_file: str, targets_list: List[List[str]
     Writes pypeit files based on the default pypeit file for this reduction,
     but with filtered targets and additional manual parameter lines.
 
-    Arguments:
-        old_pypeit_file: default pypeit file,
-        targets_list: [[target1, target2], [target3, target4]] will result in
-            1 & 2 being reduced together and 3 & 4 being reduced together. The
-            target names are blueNNNN-ZTF21abcd.
-        manual_lines_fn: function mapping [target1, target2] to the cfg lines
-            they need
-        needs_std_fn: function target1 -> bool, True if target1 needs a
-            standard star to be reduced alongside it
+    Args:
+        old_pypeit_file (str): default pypeit file,
+        targets_list (List[List[str]]): [[target1, target2], [target3, target4]]
+            will result in 1 & 2 being reduced together and 3 & 4 being reduced
+            together. The target names are blueNNNN-ZTF21abcd.
+        manual_lines_fn (Callable[[List[str]], List[str]]): function mapping
+            [target1, target2] to the cfg lines they need.
+        needs_std_fn (Callable[[str], bool]): function mapping target1 -> bool.
+            True if target1 needs a standard star to be reduced alongside it.
+
+    Returns:
+        List[str]: List of new PypeIt reduction files for the manually traced
+            targets.
     """
 
     new_pypeit_files = []
@@ -375,7 +451,8 @@ def write_manual_pypeit_files(old_pypeit_file: str, targets_list: List[List[str]
                 if 'science' in line and '|' in line and all([targ_fname not in line for targ_fname in target_fnames]):
                     pass
                 elif 'standard' in line and '|' in line and any(needs_std_fn(target) for target in targets):
-                    setup_lines.append(line)
+                    pass
+                    #setup_lines.append(line)
                 else:
                     if '# Setup' in line:
                         setup = True
@@ -399,6 +476,18 @@ def write_manual_pypeit_files(old_pypeit_file: str, targets_list: List[List[str]
 
 def manual_extraction(output_spec2ds: List[str], pypeit_file: str,
         output_path: str) -> list:
+    """
+    wglwk
+
+    Args:
+        output_spec2ds (List[str]): List of spec2d files to potentially
+            manually extract.
+        pypeit_file (str): PypeIt reduction file for initial reduction.
+        output_path (str): reduction output path.
+
+    Returns:
+        list: List of new PypeIt reduction files for the manually traced targets.
+    """
     manual_dict = manual_extraction_GUI(output_spec2ds, output_path)
 
     targets_list = [[key] for key in manual_dict.keys()]
@@ -416,7 +505,18 @@ def manual_extraction(output_spec2ds: List[str], pypeit_file: str,
     needs_std_fn = lambda targ: manual_dict[targ]['needs_std']
     return write_manual_pypeit_files(pypeit_file, targets_list, manual_lines_fn, needs_std_fn)
 
-def re_redux(pypeit_files: list, output_path: str) -> Tuple[set, set]:
+def re_redux(pypeit_files: List[str], output_path: str) -> Tuple[set, set]:
+    """
+    Runs multiple reductions, returns the combined sets of output spec1d,
+    spec2d files.
+
+    Args:
+        pypeit_files (List[str]): List of PypeIt reduction files to run.
+        output_path (str): reduction output path
+
+    Returns:
+        Tuple[set, set]: set of filenames of reduced (spec1d, spec2d) files.
+    """
     output_spec1ds = set()
     output_spec2ds = set()
     for pypeit_file in pypeit_files:
