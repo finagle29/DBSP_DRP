@@ -25,10 +25,6 @@ from pypeit.specobjs import SpecObjs
 
 from dbsp_drp.manual_tracing import ManualTracingGUI
 
-<<<<<<< HEAD
-def parse_pypeit_parameter_file(parameter_file: str, arm: str,
-        arms: List[str]) -> List[str]:
-=======
 def parse_pypeit_parameter_file(parameter_file: str,
         spectrograph: str) -> List[str]:
     """
@@ -43,7 +39,6 @@ def parse_pypeit_parameter_file(parameter_file: str,
     Returns:
         List[str]: User-provided PypeIt configuration for ``spectrograph``
     """
->>>>>>> develop
     user_config_lines = []
     read_lines = False
     other_arms = arms.copy()

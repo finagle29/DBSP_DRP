@@ -158,8 +158,8 @@ def adjust_and_combine_overlap_all(arm_files: List[str], target: str, interpolat
 def adjust_and_combine_overlap(
     bluer_spec: Optional[Tuple[np.ndarray, np.ndarray, np.ndarray]],
     redder_spec: Optional[Tuple[np.ndarray, np.ndarray, np.ndarray]],
-    target: str = "",
     interpolate_gaps: bool,
+    target: str = "",
     red_mult: float = 1.0
 ) -> Tuple[
         Tuple[np.ndarray, np.ndarray, np.ndarray],
