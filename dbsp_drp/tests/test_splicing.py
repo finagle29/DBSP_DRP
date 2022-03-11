@@ -14,7 +14,7 @@ def interp_w_error_tester(xmin, xmax, xsize, xpmin, xpmax, xpsize):
     yp = 1 - xp ** 2 + 1.1 * xp + np.sin(xp)
     err_yp = np.random.rand(xpsize)
 
-    y, yerr = splicing.interp_w_error(x, xp, yp, err_yp)
+    y, yerr = splicing.interp_w_error(x, xp, yp, err_yp, False)
     y_numpy = np.interp(x, xp, yp)
     assert np.all(y == y_numpy)
 

@@ -1,0 +1,116 @@
+name: docker_build_and_push
+
+on:
+  push:
+    paths-ignore:
+      - 'docs/**'
+    branches:
+      - 'main'
+      - 'develop'
+    tags:
+      - '*'
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+
+jobs:
+  build_quicklook:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      -
+        name: Docker meta quicklook
+        id: meta_ql
+        uses: docker/metadata-action@v3
+        with:
+          images: finagle29/dbsp_ql
+          tags: |
+            type=semver,pattern={{version}}
+            type=edge,branch=develop
+            type=ref,event=pr
+
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      -
+        name: Login to DockerHub
+        #if: github.event_name != 'pull_request'
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      -
+        name: chmod -R g+w .
+        run: chmod -R g+w .
+
+      -
+        name: Build and push quicklook
+        id: docker_build_ql
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          target: dbsp_ql
+          #push: ${{ github.event_name != 'pull_request' }}
+          push: true
+          tags: ${{ steps.meta_ql.outputs.tags }}
+          labels: ${{ steps.meta_ql.outputs.labels }}
+
+      -
+        run: docker system df
+
+  build_full_drp:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      -
+        name: Login to DockerHub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      -
+        name: Docker meta full drp
+        id: meta_drp
+        uses: docker/metadata-action@v3
+        with:
+          images: finagle29/dbsp_drp
+          tags: |
+            type=semver,pattern={{version}}
+            type=edge,branch=develop
+            type=ref,event=pr
+
+      -
+        name: chmod -R g+w .
+        run: chmod -R g+w .
+
+      -
+        name: Build and push full drp
+        id: docker_build_drp
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          target: dbsp_drp
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta_drp.outputs.tags }}
+          labels: ${{ steps.meta_drp.outputs.labels }}
+
+      -
+        run: docker system df

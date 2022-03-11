@@ -16,7 +16,8 @@ class ManualTracingGUI:
             'spec': spectrum_2d,
             'edges': [all_left_edges, all_right_edges],
             'traces': traces,
-            'fwhms': fwhms
+            'fwhms': fwhms,
+            'fwhmfit': automatically fit fwhms
         }
 
     How to use:
@@ -59,7 +60,6 @@ class ManualTracingGUI:
         self.targets = list(specs_dict)#.keys()
         self.spec_index = 0
 
-        self.manual_dict = {targ: [] for targ in self.targets}
         self.manual_dict = {targ: {'spat_spec': [],
                                     'fwhm': [],
                                     'bgs': [],
@@ -119,6 +119,10 @@ class ManualTracingGUI:
         return self.specs_dict[self.target]['edges']
 
     @property
+    def fwhmfit(self):
+        return self.specs_dict[self.target]['fwhmfit']
+
+    @property
     def traces(self):
         return self.specs_dict[self.target]['traces']
 
@@ -146,7 +150,7 @@ class ManualTracingGUI:
         self.axes.clear()
         self.canvas.set_window_title(self.target)
 
-        qa.save_one2dspec(self.axes, self.sky_resid, self.edges, self.traces)
+        qa.save_one2dspec(self.axes, self.sky_resid, self.edges, self.traces, self.fwhmfit)
         plt.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
 
         numrows, numcols = self.sky_resid.shape

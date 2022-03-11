@@ -1,0 +1,11 @@
+#!/usr/bin/env python
+
+"""
+Adjust DBSP splicing
+"""
+
+from dbsp_drp import adjust_splicing
+
+if __name__ == "__main__":
+    args = adjust_splicing.parse()
+    adjust_splicing.main(args)

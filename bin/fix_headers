@@ -8,4 +8,4 @@ import sys
 from dbsp_drp import fix_headers
 
 if __name__ == "__main__":
-    fix_headers.main(sys.argv[1])
+    fix_headers.main(sys.argv[1], False, True)

@@ -12,16 +12,17 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../..'))
 import sphinx_rtd_theme
-
+import importlib.metadata
 
 # -- Project information -----------------------------------------------------
 
 project = 'DBSP_DRP'
-copyright = '2020, Milan S. Roberson'
+copyright = '2020-2021, California Institute of Technology'
 author = 'Milan S. Roberson'
 
+release = importlib.metadata.version('dbsp_drp')
+version = release.split('+')[0]
 
 # -- General configuration ---------------------------------------------------
 

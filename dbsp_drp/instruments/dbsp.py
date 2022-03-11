@@ -166,7 +166,17 @@ class DBSP(Instrument):
         """
         List of paths to archived sensfuncs.
         """
-        return [resource_filename("dbsp_drp", f"data/sens_{arm}_archived.fits") for arm in self.arm_prefixes]
+        configs = archived_sensfuncs = [
+            'blue_300_3990_d55', # current wavelength range 3000 - 7500 Å
+            'blue_600_4000_d55', # current wavelength range 3000 - 6200 Å
+            'blue_600_4000_d68', # current wavelength range 3730 - 6800 Å
+            'red_316_7500_d55',  # current wavelength range 4600 - 11000 Å
+            'red_600_10000_d55', # current wavelength range 5500 - 9000 Å
+            'red_1200_7100_d68', # current wavelength range 7420 - 9060 Å
+            'red_1200_9400_d55', # current wavelength range 8000 - 9600 Å
+        ]
+        
+        return [resource_filename("dbsp_drp", f"data/sens_{config}.fits") for config in configs]
 
     def _get_std_trace(self, std_path: str) -> float:
         max_sn = -1

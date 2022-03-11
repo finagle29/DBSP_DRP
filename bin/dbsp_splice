@@ -1,0 +1,11 @@
+#!/usr/bin/env python
+
+"""
+Manually splice DBSP spectrum.
+"""
+
+from dbsp_drp import manual_splice
+
+if __name__ == "__main__":
+    args = manual_splice.parse()
+    manual_splice.main(args)

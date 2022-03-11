@@ -15,8 +15,8 @@ from dbsp_drp import instruments
 
 @pytest.fixture(scope="module")
 def pypeit_setup(tmp_path_factory, files_path) -> pypeit.pypeitsetup.PypeItSetup:
-    tmp_path = tmp_path_factory.mktemp("sample_data_copy")
-    orig_files = os.path.join(files_path, 'sample_data')
+    tmp_path = tmp_path_factory.mktemp("table_edit_test_data_copy")
+    orig_files = os.path.join(files_path, 'table_edit_test_data')
     tmp_root_dir = shutil.copytree(orig_files, tmp_path, dirs_exist_ok=True)
     ps = pypeit.pypeitsetup.PypeItSetup.from_file_root(tmp_root_dir, 'p200_dbsp_red',
                                         extension='.fits', output_path=tmp_root_dir)

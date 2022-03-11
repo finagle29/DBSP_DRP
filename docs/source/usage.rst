@@ -7,8 +7,9 @@ After :doc:`installing`, you are ready to reduce some DBSP data!
 .. code-block :: console
 
     $ dbsp_reduce --help
-    usage: dbsp_reduce [-h] [-i] [-r ROOT] [-d OUTPUT_PATH] [-a ARM] [-m]
-                       [--debug] [-j JOBS] [-p PARAMETER_FILE] [-t]
+    usage: dbsp_reduce [-h] [-i] -r ROOT -d OUTPUT_PATH [-a {red,blue}] [-m]
+                   [--debug] [-j N] [-p PARAMETER_FILE] [-t] [-c]
+                   [--splicing-interpolate-gaps]
 
     Automatic Data Reduction Pipeline for P200 DBSP
 
@@ -17,25 +18,31 @@ After :doc:`installing`, you are ready to reduce some DBSP data!
         -i, --no-interactive  Interactive file-checking?
         -r ROOT, --root ROOT  File path+root, e.g. /data/DBSP_20200127
         -d OUTPUT_PATH, --output_path OUTPUT_PATH
-                              Path to top-level output directory.  Default is the current working directory.
-        -a ARM, --arm ARM     [red, blue] to only reduce one arm (null splicing)
+                                Path to top-level output directory.  Default is the current working directory.
+        -a {red,blue}, --arm {red,blue}
+                                [red, blue] to only reduce one arm (null splicing)
         -m, --manual-extraction
-                              manual extraction
+                                manual extraction
         --debug               debug
-        -j JOBS, --jobs JOBS  Number of processes to use
+        -j N, --jobs N        Number of processes to use
         -p PARAMETER_FILE, --parameter-file PARAMETER_FILE
-                              Path to parameter file. The parameter file should be formatted as follows:
+                                Path to parameter file. The parameter file should be formatted as follows:
 
-                              [blue]
-                              ** PypeIt parameters for the blue side goes here **
-                              [red]
-                              ** PypeIt parameters for the red side goes here **
-                              EOF
+                                [blue]
+                                ** PypeIt parameters for the blue side goes here **
+                                [red]
+                                ** PypeIt parameters for the red side goes here **
+                                EOF
 
-                              The [red/blue] parameter blocks are optional, and their order does not matter.
+                                The [red/blue] parameter blocks are optional, and their order does not matter.
         -t, --skip-telluric   Skip telluric correction
         -c, --null-coadd      Don't coadd consecutive exposures of the same target.
-                              By default consective exposures of the same target will be coadded.
+                                By default consective exposures will be coadded.
+        --splicing-interpolate-gaps
+                                Use this option to linearly interpolate across large gaps
+                                in the spectrum during splicing. The default behavior is to
+                                only use data from one detector in these gaps, which results
+                                in a slightly noisier spliced spectrum.
 
 
 The basic usage of DBSP_DRP is as follows:

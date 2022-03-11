@@ -17,6 +17,7 @@ from astropy.table import Table, Column, Row
 
 from pypeit.pypeitsetup import PypeItSetup
 import pypeit.display
+from pypeit.spectrographs.util import load_spectrograph
 
 import tqdm
 
@@ -25,6 +26,9 @@ from dbsp_drp import table_edit
 from dbsp_drp import fix_headers
 from dbsp_drp import instruments
 
+
+def entrypoint():
+    main(parser())
 
 def parser(options: Optional[List[str]] = None) -> argparse.Namespace:
     """Parses command line arguments
@@ -45,10 +49,12 @@ def parser(options: Optional[List[str]] = None) -> argparse.Namespace:
                            help='Interactive file-checking?')
 
     # Argument for input file directory
-    argparser.add_argument('-r', '--root', type=str, default=None,
+    argparser.add_argument('-r', '--root', type=os.path.abspath, default=None,
+                           required=True,
                            help='File path+root, e.g. /data/DBSP_20200127')
 
-    argparser.add_argument('-d', '--output_path', default=None,
+    argparser.add_argument('-d', '--output_path', type=os.path.abspath,
+                           default='.',
                            help='Path to top-level output directory.  '
                                 'Default is the current working directory.')
 
@@ -89,6 +95,12 @@ def parser(options: Optional[List[str]] = None) -> argparse.Namespace:
                            help="Don't coadd consecutive exposures of the same target.\n"
                                 "By default consective exposures will be coadded.")
 
+    argparser.add_argument('--splicing-interpolate-gaps', default=False, action='store_true',
+                           help="Use this option to linearly interpolate across large gaps\n"
+                                "in the spectrum during splicing. The default behavior is to\n"
+                                "only use data from one detector in these gaps, which results\n"
+                                "in a slightly noisier spliced spectrum.")
+
     return argparser.parse_args() if options is None else argparser.parse_args(options)
 
 def interactive_correction(ps: PypeItSetup, instrument: instruments.Instrument) -> None:
@@ -100,12 +112,11 @@ def interactive_correction(ps: PypeItSetup, instrument: instruments.Instrument) 
     Todo:
         Make table to FITS header mapping mutable
 
-    :param ps: PypeIt metadata object created in dbsp_drp.reduction.setup
-    :type ps: PypeItSetup
+    Args:
+        ps (PypeItSetup): PypeItSetup object created in dbsp_drp.reduction.setup
     """
     # function for interactively correcting the fits table
     fitstbl = ps.fitstbl
-    fitstbl.table.sort('filename')
     deleted_files = []
     table_edit.main(fitstbl.table, deleted_files, instrument)
     files_to_remove = []
@@ -214,15 +225,11 @@ def main(args):
                 output_spec1ds[i] |= out_1d
                 output_spec2ds[i] |= out_2d
 
-    # spec1d_blueNNNN-OBJ_DBSPb_YYYYMMMDDTHHMMSS.SPAT.fits
-    fname_len = 72
-    # sens_blueNNNN-OBJ_DBSPb_YYYYMMMDDTHHMMSS.SPAT.fits
-    sensfunc_len = 70
     # Find standards and make sensitivity functions
     spec1d_table = Table(names=('filename', 'arm', 'object', 'frametype',
                             'airmass', 'mjd', 'sensfunc', 'exptime'),
-                         dtype=(f'U{fname_len}', 'U4', 'U20', 'U8',
-                            float, float, f'U{sensfunc_len}', float))
+                         dtype=(f'U255', 'U4', 'U255', 'U8',
+                            float, float, f'U255', float))
 
     # Ingest spec_1d tables
     spec1ds = set.union(*output_spec1ds)
@@ -251,6 +258,16 @@ def main(args):
         if do_arms[i]:
             arm_mask = spec1d_table['arm'] == arm
             stds = (spec1d_table['frametype'] == 'standard') & arm_mask
+
+            arm_spectrograph = load_spectrograph(instrument.arm_names_pypeit[i])
+            rawfile = os.path.join(args.root,
+                spec1d_table[arm_mask][0]['filename'].split('_')[1].split('-')[0] + '.fits'
+            )
+            config = '_'.join([
+                arm,
+                arm_spec.get_meta_value(rawfile, 'dispname').replace('/', '_'),
+                arm_spec.get_meta_value(rawfile, 'dichroic').lower()
+            ])
             if np.any(stds):
                 for row in spec1d_table[arm_mask]:
                     if row['frametype'] == 'science':
@@ -264,7 +281,7 @@ def main(args):
                     spec1d_table.loc[row['filename']]['sensfunc'] = best_sens
             else:
                 for filename in spec1d_table[arm]['filename']:
-                    spec1d_table.loc[filename]['sensfunc'] = ''
+                    spec1d_table.loc[filename]['sensfunc'] = config
 
     # build fluxfile
     fluxfiles = [''] * instrument.arms
@@ -398,10 +415,34 @@ def main(args):
 
     os.makedirs(os.path.join(args.output_path, 'spliced'), exist_ok=True)
 
+    def get_std_trace(std_path: str) -> float:
+        max_sn = -1
+        max_fracpos = -1
+        with fits.open(std_path) as hdul:
+            # loop through trace hdus
+            for hdu in hdul:
+                if not 'SPAT' in hdu.name:
+                    continue
+
+                # look at s/n
+                if 'OPT_COUNTS' in hdu.data.dtype.names:
+                    this_sn = np.nanmedian(hdu.data['OPT_COUNTS']/hdu.data['OPT_COUNTS_SIG'])
+                elif 'BOX_COUNTS' in hdu.data.dtype.names:
+                    this_sn = np.nanmedian(hdu.data['BOX_COUNTS']/hdu.data['BOX_COUNTS_SIG'])
+                else:
+                    this_sn = -1
+
+                if this_sn > max_sn:
+                    max_sn = this_sn
+                    max_fracpos = hdu.header['SPAT_FRACPOS']
+
+        if max_fracpos == -1:
+            raise Exception(f"Error! No HDUs in {os.path.basename(std_path)} have median S/N > 0.")
+        return max_fracpos
+
     ## Need to find red + blue fracpos for standards
     # hopefully standards only have one star each?
     # or should i actually try to do matching there
-    fracpos_diff_list = []
     stds = spec1d_table['frametype'] == 'standard'
 
     if sum(do_arms) > 1:
@@ -461,9 +502,6 @@ def main(args):
                         'coadd': coadd
                     }}
     # And now, actually splice!
-    splicing.splice(splicing_dict, roots[0], args.output_path, instrument)
-
-    with open("fracpos_data.pickle", "wb") as f:
-        pickle.dump((fracpos_diff_list, instrument.FRACPOS_SUM), f)
+    splicing.splice(splicing_dict, args.splicing_interpolate_gaps, roots[0], args.output_path, instrument)
 
     print('Elapsed time: {0} seconds'.format(time.perf_counter() - t))

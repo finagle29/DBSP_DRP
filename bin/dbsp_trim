@@ -1,0 +1,11 @@
+#!/usr/bin/env python
+
+"""
+Trim DBSP data.
+"""
+
+from dbsp_drp import trim
+
+if __name__ == "__main__":
+    args = trim.parse()
+    trim.main(args)
