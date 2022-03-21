@@ -12,10 +12,16 @@
 .. |conda-forge| image:: https://img.shields.io/conda/vn/conda-forge/dbsp_drp?logo=conda-forge&logoColor=white
     :target: https://anaconda.org/conda-forge/dbsp_drp
 
+.. |zenodo| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.6241526.svg
+   :target: https://doi.org/10.5281/zenodo.6241526
+
+.. |joss| image:: https://joss.theoj.org/papers/10.21105/joss.03612/status.svg
+   :target: https://doi.org/10.21105/joss.03612
+
 DBSP_DRP
 ========
 
-|conda-forge| |pypi| |astropy|
+|conda-forge| |pypi| |joss| |zenodo| |astropy|
 
 **Version**: |version|
 
