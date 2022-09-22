@@ -6,7 +6,7 @@ tags:
   - data reduction
   - spectroscopy
 authors:
-  - name: Milan S. Roberson^[Present address&#58; Department of Physics and Astronomy, University of California, Los Angeles.]
+  - name: Milan Sharma Mandigo-Stoba^[Present address&#58; Department of Physics and Astronomy, University of California, Los Angeles.]
     orcid: 0000-0003-1118-3132
     affiliation: "1,2"
   - name: Christoffer Fremling
