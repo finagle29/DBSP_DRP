@@ -146,7 +146,7 @@ deployed on the Palomar 200-inch Hale Telescope in 2023.
 
 # Acknowledgements
 
-MSR acknowledges funding from the Schmidt Academy of Software Engineering,
+M.S.M.-S. acknowledges funding from the Schmidt Academy of Software Engineering,
 which is supported by the generosity of Eric and Wendy Schmidt by
 recommendation of the Schmidt Futures program.
 
@@ -155,7 +155,7 @@ for beta-testing and providing valuable feedback during the development of this
 pipeline: Andy Tzanidakis, Lin Yan, Aishwarya Dahiwale, Yuhan Yao, Yashvi
 Sharma, and Igor Andreoni.
 
-MSR is extremely grateful to the welcoming, friendly, and helpful team of
+M.S.M.-S. is extremely grateful to the welcoming, friendly, and helpful team of
 developers on the PypeIt team, without whom this package would not exist.
 
 This research made use of Astropy,[^2] a community-developed core Python
