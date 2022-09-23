@@ -5,5 +5,5 @@ matplotlib
 yattag
 configobj
 pytest
-pypeit
+pypeit==1.6.0
 tqdm

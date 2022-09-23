@@ -14,13 +14,14 @@ sphinx:
 formats:
   - pdf
 
-# Optionally set the version of Python and requirements required to build your docs
-python:
-  version: 3.8
-  install:
-    - requirements: docs/requirements.txt
-    - method: pip
-      path: .
-
 conda:
   environment: environment.yml
+
+build:
+  os: ubuntu-22.04
+  tools:
+    python: "mambaforge-4.10"
+  jobs:
+    pre_install:
+      - git update-index --assume-unchanged environment.yml docs/source/conf.py
+      - pip install --no-cache-dir .
