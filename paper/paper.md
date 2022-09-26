@@ -7,6 +7,8 @@ tags:
   - spectroscopy
 authors:
   - name: Milan Sharma Mandigo-Stoba^[Present address&#58; Department of Physics and Astronomy, University of California, Los Angeles.]
+    given-names: Milan Sharma
+    surname: Mandigo-Stoba
     orcid: 0000-0003-1118-3132
     affiliation: "1,2"
   - name: Christoffer Fremling
