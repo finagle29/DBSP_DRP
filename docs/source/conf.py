@@ -19,7 +19,7 @@ import importlib.metadata
 
 project = 'DBSP_DRP'
 copyright = '2020-2021, California Institute of Technology'
-author = 'Milan S. Roberson'
+author = 'Milan Sharma Mandigo-Stoba'
 
 release = importlib.metadata.version('dbsp_drp')
 version = release.split('+')[0]
