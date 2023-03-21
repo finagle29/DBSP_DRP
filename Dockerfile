@@ -1,5 +1,5 @@
 FROM condaforge/miniforge3 as dbsp_ql
-LABEL Author, Milan Roberson
+LABEL Author, Milan Sharma Mandigo-Stoba
 
 # create dbsp group
 RUN groupadd --gid 10001 dbsp && \
