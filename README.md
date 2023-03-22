@@ -39,20 +39,20 @@ Additionally, please cite [PypeIt](https://github.com/pypeit/PypeIt#citation), w
   volume = {7},
   number = {70},
   pages = {3612},
-  author = {Milan S. Roberson and Christoffer Fremling and Mansi M. Kasliwal},
+  author = {Milan Sharma Mandigo-Stoba and Christoffer Fremling and Mansi M. Kasliwal},
   title = {DBSP_DRP: A Python package for automated spectroscopic data reduction of DBSP data},
   journal = {Journal of Open Source Software}
 }
 @misc{dbsp_drp:arxiv,
       title={DBSP_DRP: A Python package for automated spectroscopic data reduction of DBSP data}, 
-      author={Milan S. Roberson and Christoffer Fremling and Mansi M. Kasliwal},
+      author={Milan Sharma Mandigo-Stoba and Christoffer Fremling and Mansi M. Kasliwal},
       year={2021},
       eprint={2107.12339},
       archivePrefix={arXiv},
       primaryClass={astro-ph.IM}
 }
 @software{dbsp_drp:zenodo,
-  author       = {Roberson, Milan and
+  author       = {Mandigo-Stoba, Milan Sharma and
                   Fremling, Christoffer and
                   Kasliwal, Mansi M.},
   title        = {{DBSP\_DRP: A Python package for automated 
